@@ -1,3 +1,22 @@
+
+This project hosts the DOMinator for Firefox.
+
+DOMinator is a Firefox based software for analysis and identification of DOM 
+Cross Site Scripting issues using dynamic runtime tainting model on strings.
+
+If you want to help drop me a line or subscribe to 
+
+https://groups.google.com/forum/#!forum/dominator-ml
+
+
+*** Warning ***
+This project is not yet for production.
+
+
+
+
+--
+Firefox Original
 An explanation of the Mozilla Source Code Directory Structure and links to
 project pages with documentation can be found at:
 
