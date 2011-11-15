@@ -1,0 +1,20 @@
+. $topsrcdir/browser/config/mozconfig
+export MOZ_PHOENIX=1
+export MOZ_APP_PROFILE=DOMinator1
+mk_add_options MOZ_PHOENIX=1
+mk_add_options MOZ_APP_PROFILE=DOMinator1
+ac_add_options --disable-optimize
+ac_add_options --enable-application=browser
+ac_add_options --disable-necko-wifi
+mk_add_options MOZ_CO_PROJECT=browser
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/ff-taint
+ac_add_options --disable-tests
+mk_add_options MOZ_MAKE_FLAGS=-j4
+ac_add_options --with-user-appdir=.DOMinator1
+ac_add_options --enable-debug
+
+export MOZ_DEBUG_SYMBOLS=1
+export CFLAGS="-ggdb -gstabs+ -DTAINTED=1"
+export CXXFLAGS="-ggdb -gstabs+ -DTAINTED=1"
+export CPPFLAGS="-ggdb -DTAINTED=1"
+export DEFS="-DTAINTED=1"
