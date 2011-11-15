@@ -16,7 +16,7 @@ This project is not yet for production.
 
 
 --
-Firefox Original
+Firefox Original README.txt
 An explanation of the Mozilla Source Code Directory Structure and links to
 project pages with documentation can be found at:
 
