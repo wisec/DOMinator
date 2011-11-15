@@ -1,0 +1,93 @@
+#
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is
+# the Mozilla Foundation.
+# Portions created by the Initial Developer are Copyright (C) 2010
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either of the GNU General Public License Version 2 or later (the "GPL"),
+# or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH     = ../..
+topsrcdir = @top_srcdir@
+srcdir    = @srcdir@
+VPATH     = @srcdir@
+
+include $(DEPTH)/config/autoconf.mk
+
+# Definitions used by constants.js.
+WEAVE_VERSION=$(shell cat $(topsrcdir)/services/sync/version.txt)
+WEAVE_CHANNEL=rel
+WEAVE_ID={340c2bbc-ce74-4362-90b5-7c26312808ef}
+
+SYNC_PP_DEFINES = \
+ -Dweave_version=$(WEAVE_VERSION) \
+ -Dweave_channel=$(WEAVE_CHANNEL) \
+ -Dweave_id=$(WEAVE_ID)
+
+DIRS = locales
+
+EXTRA_COMPONENTS = \
+  SyncComponents.manifest \
+  Weave.js \
+  $(NULL)
+
+PREF_JS_EXPORTS = $(srcdir)/services-sync.js
+
+# Preprocess constants (by preprocessing everything).
+# The 'HERE' idiom avoids a dependency on pushd. We need to do this fiddling in
+# order to get relative paths, so we can process services/sync/modules/* into
+# modules/services-sync/*.
+# 
+# Note that we find candidates, make directories, then 'copy' files.
+libs::
+ifndef NO_DIST_INSTALL
+	$(EXIT_ON_ERROR) \
+	HERE=$(CURDIR); \
+	cd $(srcdir)/modules; \
+	dirs=`find * -type d`; \
+	files=`find * -type f`; \
+	cd $$HERE; \
+	for d in $$dirs; do \
+		$(PYTHON) $(topsrcdir)/config/nsinstall.py -D $(FINAL_TARGET)/modules/services-sync/$$d; \
+	done; \
+	for i in $$files; do \
+		src=$(srcdir)/modules/$$i; \
+		dest=$(FINAL_TARGET)/modules/services-sync/$$i; \
+		$(PYTHON) $(topsrcdir)/config/Preprocessor.py $(SYNC_PP_DEFINES) $$src > $$dest ; \
+	done
+endif
+
+
+ifdef ENABLE_TESTS
+DIRS += tests
+endif
+
+include $(topsrcdir)/config/rules.mk

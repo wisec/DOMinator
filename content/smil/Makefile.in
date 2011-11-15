@@ -1,0 +1,116 @@
+#
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is the Mozilla SMIL module.
+#
+# The Initial Developer of the Original Code is Brian Birtles.
+# Portions created by the Initial Developer are Copyright (C) 2005
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#   Brian Birtles <birtles@gmail.com>
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either of the GNU General Public License Version 2 or later (the "GPL"),
+# or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH		= ../..
+topsrcdir	= @top_srcdir@
+srcdir		= @srcdir@
+VPATH		= @srcdir@
+
+include $(DEPTH)/config/autoconf.mk
+
+MODULE		= content
+LIBRARY_NAME	= gkconsmil_s
+LIBXUL_LIBRARY	= 1
+
+
+# nsSMILKeySpline is used by CSS transitions -- need to build it regardless
+# of whether SMIL is enabled.
+CPPSRCS		= nsSMILKeySpline.cpp
+EXPORTS		= nsSMILKeySpline.h
+
+ifdef MOZ_SMIL
+CPPSRCS		+= \
+	nsDOMTimeEvent.cpp \
+	nsSMILAnimationController.cpp \
+	nsSMILAnimationFunction.cpp \
+	nsSMILCompositor.cpp \
+	nsSMILCSSProperty.cpp \
+	nsSMILCSSValueType.cpp \
+	nsSMILFloatType.cpp \
+	nsSMILInstanceTime.cpp \
+	nsSMILInterval.cpp \
+	nsSMILMappedAttribute.cpp \
+	nsSMILNullType.cpp \
+	nsSMILParserUtils.cpp \
+	nsSMILRepeatCount.cpp \
+	nsSMILSetAnimationFunction.cpp \
+	nsSMILTimeContainer.cpp \
+	nsSMILTimedElement.cpp \
+	nsSMILTimeValue.cpp \
+	nsSMILTimeValueSpec.cpp \
+	nsSMILValue.cpp \
+	SMILBoolType.cpp \
+	SMILEnumType.cpp \
+	SMILIntegerType.cpp \
+	SMILStringType.cpp \
+		$(NULL)
+endif
+
+include $(topsrcdir)/config/config.mk
+
+# we don't want the shared lib, but we want to force the creation of a static lib.
+FORCE_STATIC_LIB = 1
+
+ifdef MOZ_SMIL
+ifdef ENABLE_TESTS
+TOOL_DIRS		+= test
+endif # ENABLE_TESTS
+
+EXPORTS		+= \
+	  nsISMILAnimationElement.h \
+	  nsISMILAttr.h \
+	  nsISMILType.h \
+	  nsSMILAnimationController.h \
+	  nsSMILCompositorTable.h \
+	  nsSMILCSSProperty.h \
+	  nsSMILKeySpline.h \
+	  nsSMILMappedAttribute.h \
+	  nsSMILMilestone.h \
+	  nsSMILTimeContainer.h \
+	  nsSMILTypes.h \
+	  $(NULL)
+
+INCLUDES += 	\
+		-I$(srcdir)/../base/src \
+		-I$(srcdir)/../../layout/style \
+		-I$(srcdir)/../events/src \
+		$(NULL)
+endif # MOZ_SMIL
+
+include $(topsrcdir)/config/rules.mk
+
+DEFINES += -D_IMPL_NS_LAYOUT

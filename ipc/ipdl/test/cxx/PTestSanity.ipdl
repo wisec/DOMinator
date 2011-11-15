@@ -1,0 +1,28 @@
+
+namespace mozilla {
+namespace _ipdltest {
+
+
+protocol PTestSanity {
+
+child:
+    Ping(int zero, float zeroPtFive, PRInt8 dummy);
+    __delete__();
+
+parent:
+    Pong(int one, float zeroPtTwoFive, PRUint8 dummy);
+
+
+state PING:
+    send Ping goto PONG;
+
+state PONG:
+    recv Pong goto DEAD;
+
+state DEAD:
+    send __delete__;
+};
+
+
+} // namespace mozilla
+} // namespace _ipdltest

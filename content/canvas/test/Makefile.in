@@ -1,0 +1,182 @@
+#
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is
+# the Mozilla Foundation.
+# Portions created by the Initial Developer are Copyright (C) 2007
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#   Philip Taylor <philip.taylor@cl.cam.ac.uk>
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either of the GNU General Public License Version 2 or later (the "GPL"),
+# or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH		= ../../..
+topsrcdir	= @top_srcdir@
+srcdir		= @srcdir@
+VPATH		= @srcdir@
+relativesrcdir  = content/canvas/test
+DIRS		+= webgl
+
+include $(DEPTH)/config/autoconf.mk
+include $(topsrcdir)/config/rules.mk
+_TEST_FILES_0 = \
+	test_canvas.html \
+	image_transparent50.png \
+	image_redtransparent.png \
+	image_yellow.png \
+	image_anim-poster-gr.png \
+	image_green-16x16.png \
+	image_red-16x16.png \
+	image_green-1x1.png \
+	image_ggrr-256x256.png \
+	image_yellow75.png \
+	image_anim-gr.gif \
+	image_rrgg-256x256.png \
+	image_broken.png \
+	image_anim-gr.png \
+	image_rgrg-256x256.png \
+	image_red.png \
+	image_transparent.png \
+	image_green.png \
+	image_green-redirect \
+	image_green-redirect^headers^ \
+	test_drawImageIncomplete.html \
+	test_canvas_font_setter.html \
+	test_2d.clearRect.image.offscreen.html \
+	test_2d.composite.canvas.destination-atop.html \
+	test_2d.composite.canvas.destination-in.html \
+	test_2d.composite.canvas.source-in.html \
+	test_2d.composite.canvas.source-out.html \
+	test_2d.composite.image.destination-atop.html \
+	test_2d.composite.image.destination-in.html \
+	test_2d.composite.image.source-in.html \
+	test_2d.composite.image.source-out.html \
+	test_2d.composite.uncovered.image.destination-in.html \
+	test_2d.composite.uncovered.image.source-in.html \
+	test_2d.composite.uncovered.image.source-out.html \
+	test_2d.drawImage.zerocanvas.html \
+	test_toDataURL_lowercase_ascii.html \
+	test_toDataURL_parameters.html \
+	test_mozGetAsFile.html \
+	test_canvas_strokeStyle_getter.html \
+	test_bug613794.html \
+	test_drawImage_edge_cases.html \
+	$(NULL)
+
+ifneq (1_Linux,$(MOZ_SUITE)_$(OS_ARCH))
+# This test fails in Suite on Linux for some reason, disable it there
+_TEST_FILES_0 += test_2d.composite.uncovered.image.destination-atop.html
+endif
+
+# xor and lighter aren't well handled by cairo; they mostly work, but we don't want
+# to test that
+#	test_2d.composite.solid.xor.html \
+#	test_2d.composite.solid.lighter.html \
+#	test_2d.composite.transparent.xor.html \
+#	test_2d.composite.transparent.lighter.html \
+#	test_2d.composite.image.xor.html \
+#	test_2d.composite.image.lighter.html \
+#	test_2d.composite.canvas.xor.html \
+#	test_2d.composite.canvas.lighter.html \
+#	test_2d.composite.clip.xor.html \
+#	test_2d.composite.clip.lighter.html \
+#
+
+# Tests that fail on Mac (possibly because spec is underdefined?).  Bug 407105
+ifneq ($(MOZ_WIDGET_TOOLKIT),cocoa)
+# XXX vlad don't test these anywhere, cairo behaviour changed
+_TEST_FILES_0 += \
+	test_2d.line.join.parallel.html \
+	test_2d.strokeRect.zero.5.html \
+	$(NULL)
+
+# This is an issue with Quartz's handling of radial gradients and some numeric
+# imprecision that results in errors here.
+_TEST_FILES_0 += \
+	test_2d.gradient.radial.inside2.html \
+	test_2d.gradient.radial.inside3.html \
+	test_2d.gradient.radial.outside1.html \
+	test_2d.gradient.radial.cone.front.html \
+	test_2d.gradient.radial.cone.top.html \
+	$(NULL)
+
+# This is another Quartz bug -- closed paths that don't lie fully within the
+# destination bounds seem to have problems with the BEVEL/SQUARE join/cap combo.
+# The joins are rendered as if with MITER; the correct behaviour is also seen
+# if BUTT is used instead of SQUARE.
+_TEST_FILES_0 += test_2d.line.cap.closed.html
+
+endif
+
+# Tests that fail on non-Mac (bug 407107)
+ifeq ($(MOZ_WIDGET_TOOLKIT),cocoa)
+
+# still need bug numbers
+_TEST_FILES_0 += \
+	test_2d.composite.uncovered.fill.source-in.html \
+	test_2d.composite.uncovered.fill.destination-in.html \
+	test_2d.composite.uncovered.fill.source-out.html \
+	test_2d.composite.uncovered.fill.destination-atop.html \
+	test_2d.composite.uncovered.pattern.source-in.html \
+	test_2d.composite.uncovered.pattern.destination-in.html \
+	test_2d.composite.uncovered.pattern.source-out.html \
+	test_2d.composite.uncovered.pattern.destination-atop.html \
+	$(NULL)
+
+# still need bug numbers
+_TEST_FILES_0 += \
+	test_2d.gradient.radial.outside2.html \
+	test_2d.gradient.radial.outside3.html \
+	$(NULL)
+
+# still need bug numbers
+_TEST_FILES_0 += test_2d.path.arc.shape.3.html
+
+_TEST_FILES_0 += test_2d.path.rect.selfintersect.html
+endif
+
+# These tests only pass on Mac OS X >= 10.5; see bug 450114
+# test_2d.gradient.radial.touch1.html \
+# test_2d.gradient.radial.touch2.html \
+# test_2d.gradient.radial.touch3.html \
+# test_2d.gradient.radial.equal.html \
+
+# These tests do not pass on any platform; Quartz backend won't pass them
+# because we fall back to pixman when one circle doesn't contain the other.
+# See bug 512647.
+#	test_2d.gradient.radial.cone.shape2.html \
+#	test_2d.gradient.radial.cone.behind.html \
+#	test_2d.gradient.radial.cone.beside.html \
+
+# This test is bogus according to the spec; see bug 407107
+# test_2d.path.rect.zero.6.html
+
+# split up into groups to work around command-line length limits
+libs:: $(_TEST_FILES_0)
+	$(INSTALL) $(foreach f,$^,"$f") $(DEPTH)/_tests/testing/mochitest/tests/$(relativesrcdir)

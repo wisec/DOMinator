@@ -1,0 +1,181 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set sw=2 ts=8 et tw=80 ft=cpp : */
+
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ *  The Mozilla Foundation
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Jason Duell <jduell.mcbugs@gmail.com>
+ *   Honza Bambas <honzab@firemni.cz>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+include protocol PNecko;
+
+include "mozilla/net/PHttpChannelParams.h";
+include "mozilla/net/NeckoMessageUtils.h";
+include "prio.h";
+
+using RequestHeaderTuples;
+using nsHttpResponseHead;
+using nsHttpAtom;
+using IPC::URI;
+using IPC::InputStream;
+using PRNetAddr;
+
+namespace mozilla {
+namespace net {
+
+//-------------------------------------------------------------------
+protocol PHttpChannel
+{
+  manager PNecko;
+
+parent:
+  AsyncOpen(URI                 uri,
+            // - TODO: bug 571161: unclear if any HTTP channel clients ever
+            // set originalURI != uri (about:credits?); also not clear if
+            // chrome channel would ever need to know.  Get rid of next arg?
+            URI                 original,
+            URI                 doc,
+            URI                 referrer,
+            PRUint32            loadFlags,
+            RequestHeaderTuples requestHeaders,
+            nsHttpAtom          requestMethod,
+            InputStream         uploadStream,
+            PRBool              uploadStreamHasHeaders,
+            PRUint16            priority,
+            PRUint8             redirectionLimit,
+            PRBool              allowPipelining,
+            PRBool              forceAllowThirdPartyCookie,
+            bool                resumeAt,
+            PRUint64            startPos,
+            nsCString           entityID,
+            bool                chooseApplicationCache,
+            nsCString           appCacheClientID);
+
+  // Used to connect redirected-to channel on the parent with redirected-to
+  // channel on the child.
+  ConnectChannel(PRUint32 channelId);
+
+  SetPriority(PRUint16 priority);
+
+  SetCacheTokenCachedCharset(nsCString charset);
+
+  UpdateAssociatedContentSecurity(PRInt32 high,
+                                  PRInt32 low,
+                                  PRInt32 broken,
+                                  PRInt32 no);
+  Suspend();
+  Resume();
+
+  Cancel(nsresult status);
+
+  // Reports approval/veto of redirect by child process redirect observers
+  Redirect2Verify(nsresult result, RequestHeaderTuples changedHeaders);
+
+  // For document loads we keep this protocol open after child's
+  // OnStopRequest, and send this msg (instead of __delete__) to allow
+  // partial cleanup on parent. 
+  DocumentChannelCleanup();
+
+  // This might have to be sync. If this fails we must fail the document load
+  // to avoid endless loop.
+  //
+  // Explanation: the document loaded was loaded from the offline cache. But
+  // the cache group id (the manifest URL) of the cache group it was loaded 
+  // from is different then the manifest the document refers to in the html 
+  // tag. If we detect this during the cache selection algorithm, we must not 
+  // load this document from the offline cache group it was just loaded from.
+  // Marking the cache entry as foreign in its cache group will prevent
+  // the document to load from the bad offline cache group. After it is marked,
+  // we reload the document to take the effect. If we fail to mark the entry 
+  // as foreign, we will end up in the same situation and reload again and
+  // again, indefinitely.
+  MarkOfflineCacheEntryAsForeign();
+
+  __delete__();
+
+child:
+  OnStartRequest(nsHttpResponseHead  responseHead,
+                 PRBool              useResponseHead,
+                 RequestHeaderTuples requestHeaders,
+                 PRBool              isFromCache,
+                 PRBool              cacheEntryAvailable,
+                 PRUint32            cacheExpirationTime,
+                 nsCString           cachedCharset,
+                 nsCString           securityInfoSerialization,
+                 PRNetAddr           selfAddr,
+                 PRNetAddr           peerAddr);
+
+  // Combines a single OnDataAvailable and its associated OnProgress &
+  // OnStatus calls into one IPDL message
+  OnTransportAndData(nsresult  status,
+                     PRUint64  progress,
+                     PRUint64  progressMax,
+                     nsCString data,
+                     PRUint32  offset,
+                     PRUint32  count);
+
+  OnStopRequest(nsresult statusCode);
+
+  OnProgress(PRUint64 progress, PRUint64 progressMax);
+
+  OnStatus(nsresult status);
+
+  // Used to cancel child channel if we hit errors during creating and
+  // AsyncOpen of nsHttpChannel on the parent.
+  FailedAsyncOpen(nsresult status);
+
+  // Called to initiate content channel redirect, starts talking to sinks
+  // on the content process and reports result via Redirect2Verify above
+  Redirect1Begin(PRUint32           newChannelId,
+                 URI                newUri,
+                 PRUint32           redirectFlags,
+                 nsHttpResponseHead responseHead);
+
+  // Called if redirect successful so that child can complete setup.
+  Redirect3Complete();
+
+  // Associte the child with an application ids
+  AssociateApplicationCache(nsCString groupID,
+                            nsCString clientID);
+
+  // Tell child to delete channel (all IPDL deletes must be done from child to
+  // avoid races: see bug 591708).
+  DeleteSelf();
+};
+
+
+} // namespace net
+} // namespace mozilla
+

@@ -1,0 +1,326 @@
+/* -*- Mode: IDL; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is the Mozilla SVG project.
+ *
+ * The Initial Developer of the Original Code is IBM Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 2004
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+#include "nsIDOMSVGElement.idl"
+#include "nsIDOMSVGStylable.idl"
+
+interface nsIDOMSVGAnimatedLength;
+interface nsIDOMSVGAnimatedString;
+interface nsIDOMSVGAnimatedNumber;
+interface nsIDOMSVGAnimatedEnumeration;
+interface nsIDOMSVGAnimatedNumberList;
+interface nsIDOMSVGAnimatedInteger;
+interface nsIDOMSVGAnimatedBoolean;
+
+[scriptable, uuid(8ec9c323-10dd-45ef-a301-4ecb9ec414dd)]
+interface nsIDOMSVGFilterPrimitiveStandardAttributes : nsIDOMSVGElement
+{ 
+    readonly attribute nsIDOMSVGAnimatedLength      x;
+    readonly attribute nsIDOMSVGAnimatedLength      y;
+    readonly attribute nsIDOMSVGAnimatedLength      width;
+    readonly attribute nsIDOMSVGAnimatedLength      height;
+    readonly attribute nsIDOMSVGAnimatedString      result;
+};
+
+[scriptable, uuid(1644ea2b-8fdb-492d-a858-850b7bb570ed)]
+interface nsIDOMSVGFEBlendElement : nsIDOMSVGFilterPrimitiveStandardAttributes
+{
+    const unsigned short SVG_MODE_UNKNOWN   = 0;
+    const unsigned short SVG_MODE_NORMAL    = 1;
+    const unsigned short SVG_MODE_MULTIPLY  = 2;
+    const unsigned short SVG_MODE_SCREEN    = 3;
+    const unsigned short SVG_MODE_DARKEN    = 4;
+    const unsigned short SVG_MODE_LIGHTEN   = 5;
+
+    readonly attribute nsIDOMSVGAnimatedString        in1;
+    readonly attribute nsIDOMSVGAnimatedString        in2;
+    readonly attribute nsIDOMSVGAnimatedEnumeration   mode;
+};
+
+[scriptable, uuid(94d552df-87ea-4eaf-8618-5de29a7a9dbe)]
+interface nsIDOMSVGFEColorMatrixElement : nsIDOMSVGFilterPrimitiveStandardAttributes
+{
+    // Color Matrix Types
+    const unsigned short SVG_FECOLORMATRIX_TYPE_UNKNOWN            = 0;
+    const unsigned short SVG_FECOLORMATRIX_TYPE_MATRIX             = 1;
+    const unsigned short SVG_FECOLORMATRIX_TYPE_SATURATE           = 2;
+    const unsigned short SVG_FECOLORMATRIX_TYPE_HUE_ROTATE         = 3;
+    const unsigned short SVG_FECOLORMATRIX_TYPE_LUMINANCE_TO_ALPHA = 4;
+
+    readonly attribute nsIDOMSVGAnimatedString in1;
+    readonly attribute nsIDOMSVGAnimatedEnumeration type;
+    readonly attribute nsIDOMSVGAnimatedNumberList  values;
+};
+
+[scriptable, uuid(2871a5c9-d4e5-420c-910c-c98fc2e8cad1)]
+interface nsIDOMSVGFEComponentTransferElement : nsIDOMSVGFilterPrimitiveStandardAttributes
+{
+    readonly attribute nsIDOMSVGAnimatedString in1;
+};
+
+[scriptable, uuid(1620e78a-cb9d-44ad-99f3-732168a403e6)]
+interface nsIDOMSVGComponentTransferFunctionElement : nsIDOMSVGElement
+{
+    // Component Transfer Types
+    const unsigned short SVG_FECOMPONENTTRANSFER_TYPE_UNKNOWN  = 0;
+    const unsigned short SVG_FECOMPONENTTRANSFER_TYPE_IDENTITY = 1;
+    const unsigned short SVG_FECOMPONENTTRANSFER_TYPE_TABLE    = 2;
+    const unsigned short SVG_FECOMPONENTTRANSFER_TYPE_DISCRETE = 3;
+    const unsigned short SVG_FECOMPONENTTRANSFER_TYPE_LINEAR   = 4;
+    const unsigned short SVG_FECOMPONENTTRANSFER_TYPE_GAMMA    = 5;
+
+    readonly attribute nsIDOMSVGAnimatedEnumeration type;
+    readonly attribute nsIDOMSVGAnimatedNumberList  tableValues;
+    readonly attribute nsIDOMSVGAnimatedNumber      slope;
+    readonly attribute nsIDOMSVGAnimatedNumber      intercept;
+    readonly attribute nsIDOMSVGAnimatedNumber      amplitude;
+    readonly attribute nsIDOMSVGAnimatedNumber      exponent;
+    readonly attribute nsIDOMSVGAnimatedNumber      offset;
+};
+
+[scriptable, uuid(12c63fba-b0f9-41ee-ad57-573650ebde89)]
+interface nsIDOMSVGFECompositeElement : nsIDOMSVGFilterPrimitiveStandardAttributes
+{
+    // Operator Types
+    const unsigned short SVG_OPERATOR_UNKNOWN    = 0;
+    const unsigned short SVG_OPERATOR_OVER       = 1;
+    const unsigned short SVG_OPERATOR_IN         = 2;
+    const unsigned short SVG_OPERATOR_OUT        = 3;
+    const unsigned short SVG_OPERATOR_ATOP       = 4;
+    const unsigned short SVG_OPERATOR_XOR        = 5;
+    const unsigned short SVG_OPERATOR_ARITHMETIC = 6;
+
+    readonly attribute nsIDOMSVGAnimatedString  in1;
+    readonly attribute nsIDOMSVGAnimatedString  in2;
+    readonly attribute nsIDOMSVGAnimatedNumber  k1;
+    readonly attribute nsIDOMSVGAnimatedNumber  k2;
+    readonly attribute nsIDOMSVGAnimatedNumber  k3;
+    readonly attribute nsIDOMSVGAnimatedNumber  k4;
+    readonly attribute nsIDOMSVGAnimatedEnumeration operator;
+    
+    void setK ( in float k1, in float k2, in float k3, in float k4 );
+
+};
+
+[scriptable, uuid(f13456d1-04b9-45cb-9fbf-fc733d6a0279)]
+interface nsIDOMSVGFEFuncRElement : nsIDOMSVGComponentTransferFunctionElement
+{
+};
+
+[scriptable, uuid(05709de9-e3a9-43c1-a820-585c3f4694be)]
+interface nsIDOMSVGFEFuncGElement : nsIDOMSVGComponentTransferFunctionElement
+{
+};
+
+[scriptable, uuid(7ed53e92-f831-4e5c-bdd4-ab769e27587e)]
+interface nsIDOMSVGFEFuncBElement : nsIDOMSVGComponentTransferFunctionElement
+{
+};
+
+[scriptable, uuid(30893867-f167-4238-bec2-fb0a65cdf779)]
+interface nsIDOMSVGFEFuncAElement : nsIDOMSVGComponentTransferFunctionElement
+{
+};
+
+[scriptable, uuid(66a74ea4-5504-4a8b-9c3a-b0438615f15e)]
+interface nsIDOMSVGFEGaussianBlurElement : nsIDOMSVGFilterPrimitiveStandardAttributes
+{ 
+    readonly attribute nsIDOMSVGAnimatedString in1;
+    readonly attribute nsIDOMSVGAnimatedNumber stdDeviationX;
+    readonly attribute nsIDOMSVGAnimatedNumber stdDeviationY;
+
+    void setStdDeviation ( in float stdDeviationX, in float stdDeviationY );
+};
+
+[scriptable, uuid(9932eb32-dee0-4848-b0a5-a6c0dfd21182)]
+interface nsIDOMSVGFEMergeElement : nsIDOMSVGFilterPrimitiveStandardAttributes
+{
+};
+
+[scriptable, uuid(695a89c2-8eab-4ddd-94e7-509bf2a4f6e8)]
+interface nsIDOMSVGFEMergeNodeElement : nsIDOMSVGElement { 
+    readonly attribute nsIDOMSVGAnimatedString in1;
+};
+
+[scriptable, uuid(15acdbf5-6203-4167-b7c1-c746f5dd2478)]
+interface nsIDOMSVGFEOffsetElement : nsIDOMSVGFilterPrimitiveStandardAttributes { 
+    readonly attribute nsIDOMSVGAnimatedString in1;
+    readonly attribute nsIDOMSVGAnimatedNumber dx;
+    readonly attribute nsIDOMSVGAnimatedNumber dy;
+};
+
+[scriptable, uuid(cf267d0d-813a-4c67-be8e-e65937afba21)]
+interface nsIDOMSVGFEFloodElement : nsIDOMSVGFilterPrimitiveStandardAttributes
+{
+};
+
+[scriptable, uuid(380da0f2-f2f5-457e-a79d-7fab3da1eefb)]
+interface nsIDOMSVGFETileElement : nsIDOMSVGFilterPrimitiveStandardAttributes
+{
+    readonly attribute nsIDOMSVGAnimatedString in1;
+};
+
+[scriptable, uuid(20d41b65-e433-4742-b9e1-08238b139285)]
+interface nsIDOMSVGFETurbulenceElement : nsIDOMSVGFilterPrimitiveStandardAttributes
+{ 
+    // Turbulence Types
+    const unsigned short SVG_TURBULENCE_TYPE_UNKNOWN      = 0;
+    const unsigned short SVG_TURBULENCE_TYPE_FRACTALNOISE = 1;
+    const unsigned short SVG_TURBULENCE_TYPE_TURBULENCE   = 2;
+    // Stitch Options
+    const unsigned short SVG_STITCHTYPE_UNKNOWN  = 0;
+    const unsigned short SVG_STITCHTYPE_STITCH   = 1;
+    const unsigned short SVG_STITCHTYPE_NOSTITCH = 2;
+
+    readonly attribute nsIDOMSVGAnimatedNumber      baseFrequencyX;
+    readonly attribute nsIDOMSVGAnimatedNumber      baseFrequencyY;
+    readonly attribute nsIDOMSVGAnimatedInteger     numOctaves;
+    readonly attribute nsIDOMSVGAnimatedNumber      seed;
+    readonly attribute nsIDOMSVGAnimatedEnumeration stitchTiles;
+    readonly attribute nsIDOMSVGAnimatedEnumeration type;
+};
+
+[scriptable, uuid(83508db0-be38-4929-8e91-7cfddb921f4a)]
+interface nsIDOMSVGFEMorphologyElement : nsIDOMSVGFilterPrimitiveStandardAttributes
+{ 
+    // Operator Types
+    const unsigned short SVG_OPERATOR_UNKNOWN  = 0;
+    const unsigned short SVG_OPERATOR_ERODE    = 1;
+    const unsigned short SVG_OPERATOR_DILATE   = 2;
+
+    readonly attribute nsIDOMSVGAnimatedString      in1;
+    readonly attribute nsIDOMSVGAnimatedNumber      radiusX;
+    readonly attribute nsIDOMSVGAnimatedNumber      radiusY;
+    readonly attribute nsIDOMSVGAnimatedEnumeration operator;
+    
+    void setRadius ( in float rx, in float ry );
+};
+
+[scriptable, uuid(5232e1f6-6845-4c29-9677-93852228ab2f)]
+interface nsIDOMSVGFEConvolveMatrixElement : nsIDOMSVGFilterPrimitiveStandardAttributes
+{ 
+    // Edge Mode Values
+    const unsigned short SVG_EDGEMODE_UNKNOWN   = 0;
+    const unsigned short SVG_EDGEMODE_DUPLICATE = 1;
+    const unsigned short SVG_EDGEMODE_WRAP      = 2;
+    const unsigned short SVG_EDGEMODE_NONE      = 3;
+
+    readonly attribute nsIDOMSVGAnimatedString      in1;
+    readonly attribute nsIDOMSVGAnimatedInteger     orderX;
+    readonly attribute nsIDOMSVGAnimatedInteger     orderY;
+    readonly attribute nsIDOMSVGAnimatedNumberList  kernelMatrix;
+    readonly attribute nsIDOMSVGAnimatedNumber      divisor;
+    readonly attribute nsIDOMSVGAnimatedNumber      bias;
+    readonly attribute nsIDOMSVGAnimatedInteger     targetX;
+    readonly attribute nsIDOMSVGAnimatedInteger     targetY;
+    readonly attribute nsIDOMSVGAnimatedEnumeration edgeMode;
+    readonly attribute nsIDOMSVGAnimatedNumber      kernelUnitLengthX;
+    readonly attribute nsIDOMSVGAnimatedNumber      kernelUnitLengthY;
+    readonly attribute nsIDOMSVGAnimatedBoolean     preserveAlpha;
+};
+
+[scriptable, uuid(3834f5f7-bb9b-4ba4-9de5-6b12bca6fb46)]
+interface nsIDOMSVGFEDiffuseLightingElement :  nsIDOMSVGFilterPrimitiveStandardAttributes
+{ 
+  readonly attribute nsIDOMSVGAnimatedString in1;
+  readonly attribute nsIDOMSVGAnimatedNumber surfaceScale;
+  readonly attribute nsIDOMSVGAnimatedNumber diffuseConstant;
+  readonly attribute nsIDOMSVGAnimatedNumber kernelUnitLengthX;
+  readonly attribute nsIDOMSVGAnimatedNumber kernelUnitLengthY;
+};
+
+[scriptable, uuid(3e60f5df-f77a-4fe2-bcad-881865cfc21f)]
+interface nsIDOMSVGFESpecularLightingElement : nsIDOMSVGFilterPrimitiveStandardAttributes
+{ 
+  readonly attribute nsIDOMSVGAnimatedString in1;
+  readonly attribute nsIDOMSVGAnimatedNumber surfaceScale;
+  readonly attribute nsIDOMSVGAnimatedNumber specularConstant;
+  readonly attribute nsIDOMSVGAnimatedNumber specularExponent;
+  readonly attribute nsIDOMSVGAnimatedNumber kernelUnitLengthX;
+  readonly attribute nsIDOMSVGAnimatedNumber kernelUnitLengthY;
+};
+
+[scriptable, uuid(02141672-7f2c-412a-a7d7-4caa194842e9)]
+interface nsIDOMSVGFEDistantLightElement : nsIDOMSVGElement { 
+  readonly attribute nsIDOMSVGAnimatedNumber azimuth;
+  readonly attribute nsIDOMSVGAnimatedNumber elevation;
+};
+
+[scriptable, uuid(557f128a-026b-4fa8-a44c-605df7bfd62e)]
+interface nsIDOMSVGFEPointLightElement : nsIDOMSVGElement { 
+  readonly attribute nsIDOMSVGAnimatedNumber x;
+  readonly attribute nsIDOMSVGAnimatedNumber y;
+  readonly attribute nsIDOMSVGAnimatedNumber z;
+};
+
+[scriptable, uuid(5515dd05-3d9d-4d6c-8460-a04aaf5afe15)]
+interface nsIDOMSVGFESpotLightElement : nsIDOMSVGElement { 
+  readonly attribute nsIDOMSVGAnimatedNumber x;
+  readonly attribute nsIDOMSVGAnimatedNumber y;
+  readonly attribute nsIDOMSVGAnimatedNumber z;
+  readonly attribute nsIDOMSVGAnimatedNumber pointsAtX;
+  readonly attribute nsIDOMSVGAnimatedNumber pointsAtY;
+  readonly attribute nsIDOMSVGAnimatedNumber pointsAtZ;
+  readonly attribute nsIDOMSVGAnimatedNumber specularExponent;
+  readonly attribute nsIDOMSVGAnimatedNumber limitingConeAngle;
+};
+
+[scriptable, uuid(d36089cf-ade0-48e8-9540-40ee35838f88)]
+interface nsIDOMSVGFEImageElement : nsIDOMSVGFilterPrimitiveStandardAttributes
+/*
+  nsIDOMSVGURIReference,
+  nsIDOMSVGLangSpace,
+  nsIDOMSVGExternalResourcesRequired
+*/
+{
+};
+
+[scriptable, uuid(821533e9-9da9-4ea4-8d53-5fb9170fa952)]
+interface nsIDOMSVGFEDisplacementMapElement : nsIDOMSVGFilterPrimitiveStandardAttributes
+{
+  // Channel Selectors
+  const unsigned short SVG_CHANNEL_UNKNOWN = 0;
+  const unsigned short SVG_CHANNEL_R       = 1;
+  const unsigned short SVG_CHANNEL_G       = 2;
+  const unsigned short SVG_CHANNEL_B       = 3;
+  const unsigned short SVG_CHANNEL_A       = 4;
+
+  readonly attribute nsIDOMSVGAnimatedString      in1;
+  readonly attribute nsIDOMSVGAnimatedString      in2;
+  readonly attribute nsIDOMSVGAnimatedNumber      scale;
+  readonly attribute nsIDOMSVGAnimatedEnumeration xChannelSelector;
+  readonly attribute nsIDOMSVGAnimatedEnumeration yChannelSelector;
+};

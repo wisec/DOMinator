@@ -1,0 +1,108 @@
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+#include "nspluginroot.idl"
+#include "nsISupports.idl"
+#include "nsIPluginTag.idl"
+
+%{C++
+#define MOZ_PLUGIN_HOST_CONTRACTID \
+  "@mozilla.org/plugin/host;1"
+%}
+
+[scriptable, uuid(28F1F9E1-CD23-4FE2-BCC8-BBB0B2D49A4A)]
+interface nsIPluginHost : nsISupports
+{
+  /**
+   * Causes the plugins directory to be searched again for new plugin 
+   * libraries.
+   *
+   * @param reloadPages - indicates whether currently visible pages should 
+   * also be reloaded
+   */
+  void reloadPlugins(in boolean reloadPages);
+
+  void getPluginTags([optional] out unsigned long aPluginCount,
+    [retval, array, size_is(aPluginCount)] out nsIPluginTag aResults);
+
+  /*
+   * Flags for use with clearSiteData.
+   *
+   * FLAG_CLEAR_ALL: clear all data associated with a site.
+   * FLAG_CLEAR_CACHE: clear cached data that can be retrieved again without
+   *                   loss of functionality. To be used out of concern for
+   *                   space and not necessarily privacy.
+   */
+  const PRUint32 FLAG_CLEAR_ALL = 0;
+  const PRUint32 FLAG_CLEAR_CACHE = 1;
+
+  /*
+   * Clear site data for a given plugin.
+   *
+   * @param plugin: the plugin to clear data for, such as one returned by
+   *                nsIPluginHost.getPluginTags.
+   * @param domain: the domain to clear data for. If this argument is null,
+   *                clear data for all domains. Otherwise, it must be a domain
+   *                only (not a complete URI or IRI). The base domain for the
+   *                given site will be determined; any data for the base domain
+   *                or its subdomains will be cleared.
+   * @param flags: a flag value defined above.
+   * @param maxAge: the maximum age in seconds of data to clear, inclusive. If
+   *                maxAge is 0, no data is cleared; if it is -1, all data is
+   *                cleared.
+   *
+   * @throws NS_ERROR_INVALID_ARG if the domain argument is malformed.
+   * @throws NS_ERROR_PLUGIN_TIME_RANGE_NOT_SUPPORTED if maxAge is a value other
+   *         than -1 and the plugin does not support clearing by timerange in
+   *         general or for that particular site and/or flag combination.
+   */
+  void clearSiteData(in nsIPluginTag plugin, in AUTF8String domain,
+                     in PRUint64 flags, in PRInt64 maxAge);
+
+  /*
+   * Determine if a plugin has stored data for a given site.
+   *
+   * @param plugin: the plugin to query, such as one returned by
+   *                nsIPluginHost.getPluginTags.
+   * @param domain: the domain to test. If this argument is null, test if data
+   *                is stored for any site. The base domain for the given domain
+   *                will be determined; if any data for the base domain or its
+   *                subdomains is found, return true.
+   */
+  boolean siteHasData(in nsIPluginTag plugin, in AUTF8String domain);
+};
+

@@ -1,0 +1,85 @@
+== bidi-000.html bidi-000-ref.html
+== bidi-001.html bidi-001-ref.html
+== bidi-001-j.html bidi-001-ref.html
+== bidi-001-v.html bidi-001-ref.html
+== bidi-002.html bidi-002-ref.html
+== bidi-003.html bidi-003-ref.html
+fails-if(Android) == bidi-004.html bidi-004-ref.html
+fails-if(Android) == bidi-004-j.html bidi-004-ref.html
+== bidi-005.html bidi-005-ref.html
+fails-if(Android) == bidi-006.html bidi-006-ref.html
+fails-if(Android) == bidi-006-j.html bidi-006-ref.html
+== bidiSVG-01.svg bidiSVG-01-ref.svg
+== bidiSVG-02.svg bidiSVG-02-ref.svg
+== bidiSVG-03.svg bidiSVG-03-ref.svg
+== bidiSVG-04.svg bidiSVG-04-ref.svg
+== bidiSVG-05.svg bidiSVG-05-ref.svg
+random-if(layersGPUAccelerated) == visualmarquee.html marquee-ref.html
+random-if(layersGPUAccelerated) == logicalmarquee.html marquee-ref.html
+== visualmarquee.html logicalmarquee.html
+# test for glyph mirroring in right-to-left text
+== mirroring-01.html mirroring-01-ref.html
+# quote marks are not supposed to mirror, but Unicode 5.0 said they should, so some systems do it
+random-if(cocoaWidget) == mirroring-02.html mirroring-02-ref.html
+== mixedChartype-00.html mixedChartype-00-ref.html
+== mixedChartype-00-j.html mixedChartype-00-ref.html
+== mixedChartype-01.html mixedChartype-01-ref.html
+== mixedChartype-01-j.html mixedChartype-01-ref.html
+== mixedChartype-02.html mixedChartype-02-ref.html
+== mixedChartype-02-j.html mixedChartype-02-ref.html
+== mixedChartype-03.html mixedChartype-03-ref.html
+== mixedChartype-03-j.html mixedChartype-03-ref.html
+== unicode-bidi-anonymous-001.html unicode-bidi-anonymous-001-ref.html
+== unicode-bidi-anonymous-002.html unicode-bidi-anonymous-002-ref.html
+== with-first-letter-1a.html with-first-letter-1-ref.html
+== with-first-letter-1b.html with-first-letter-1-ref.html
+== with-first-letter-2a.html with-first-letter-2-ref.html
+== with-first-letter-2b.html with-first-letter-2-ref.html
+== 83958-1a.html 83958-1-ref.html
+== 83958-1b.html 83958-1-ref.html
+== 83958-1c.html 83958-1-ref.html
+== 83958-2a.html 83958-2-ref.html
+== 83958-2b.html 83958-2-ref.html
+== 83958-2c.html 83958-2-ref.html
+== 115921-1.html 115921-1-ref.html
+== 115921-2.html 115921-2-ref.html
+== 229367-1.html 229367-1-ref.html
+== 229367-2.html 229367-2-ref.html
+== 229367-3.html 229367-3-ref.html
+== 258928-1.html 258928-1-ref.html
+== 263359-1.html 263359-1-ref.html
+== 263359-1a.html 263359-1-ref.html
+!= 263359-1b.html 263359-1-ref.html
+== 263359-2.html 263359-2-ref.html
+== 263359-3.html 263359-3-ref.html
+== 263359-4.html 263359-4-ref.html
+random-if(winWidget) == 267459-1.html 267459-1-ref.html # depends on windows version, see bug 590101
+fails-if(Android) == 267459-2.html 267459-2-ref.html # bug 650567
+== 299065-1.html 299065-1-ref.html
+random-if(winWidget) == 305643-1.html 305643-1-ref.html # depends on windows version, see bug 590101
+== 332655-1.html 332655-1-ref.html
+== 332655-2.html 332655-2-ref.html
+== 381279-1.html 381279-1-ref.html
+fails-if(Android) == 386339.html 386339-ref.html
+== 409375.html 409375-ref.html
+== 413542-1.html 413542-1-ref.html
+== 413542-2.html 413542-2-ref.html
+== 413928-1.html 413928-1-ref.html
+== 413928-2.html 413928-2-ref.html
+== 425338-1a.html 425338-1-ref.html
+== 425338-1b.html 425338-1-ref.html
+== 489517-1.html 489517-1-ref.html
+== 489887-1.html 489887-1-ref.html
+== 492231-1.html 492231-1-ref.html
+== 496006-1.html 496006-1-ref.html
+== 503269-1.html 503269-1-ref.html
+== 503957-1.html 503957-1-ref.html
+== 525740-1.html 525740-1-ref.html
+== 536963-1.html 536963-1-ref.html
+== 588739-1.html 588739-ref.html
+== 588739-2.html 588739-ref.html
+== 588739-3.html 588739-ref.html
+== 612843-1.html 612843-1-ref.html
+== 613157-1.html 613157-1-ref.html
+== 613157-2.html 613157-2-ref.html
+== 670226-1.html 670226-1-ref.html

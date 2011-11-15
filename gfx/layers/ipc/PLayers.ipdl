@@ -1,0 +1,268 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: sw=2 ts=8 et :
+ */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at:
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Code.
+ *
+ * The Initial Developer of the Original Code is
+ *   The Mozilla Foundation
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Chris Jones <jones.chris.g@gmail.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+//include protocol PCompositor;
+include protocol PLayer;
+include protocol PRenderFrame;
+
+include "IPC/ShadowLayerUtils.h";
+
+using gfx3DMatrix;
+using gfxRGBA;
+using nsIntPoint;
+using nsIntRect;
+using nsIntRegion;
+using nsIntSize;
+using mozilla::GraphicsFilterType;
+using mozilla::layers::FrameMetrics;
+using mozilla::layers::SurfaceDescriptorX11;
+using mozilla::null_t;
+using mozilla::WindowsHandle;
+
+/**
+ * The layers protocol is spoken between thread contexts that manage
+ * layer (sub)trees.  The protocol comprises atomically publishing
+ * layer subtrees to a "shadow" thread context (which grafts the
+ * subtree into its own tree), and atomically updating a published
+ * subtree.  ("Atomic" in this sense is wrt painting.)
+ */
+
+namespace mozilla {
+namespace layers {
+
+// Create a shadow layer for |layer|
+struct OpCreateThebesLayer     { PLayer layer; };
+struct OpCreateContainerLayer  { PLayer layer; };
+struct OpCreateImageLayer      { PLayer layer; };
+struct OpCreateColorLayer      { PLayer layer; };
+struct OpCreateCanvasLayer     { PLayer layer; };
+
+struct SurfaceDescriptorD3D10 {
+  WindowsHandle handle;
+};
+
+union SurfaceDescriptor {
+  Shmem;
+  SurfaceDescriptorD3D10;
+  SurfaceDescriptorX11;
+};
+
+struct YUVImage {
+  Shmem Ydata;
+  Shmem Udata;
+  Shmem Vdata;
+  nsIntRect picture;
+};
+
+union SharedImage {
+  SurfaceDescriptor;
+  YUVImage;
+};
+
+struct ThebesBuffer {
+  SurfaceDescriptor buffer;
+  nsIntRect rect;
+  nsIntPoint rotation; 
+};
+union OptionalThebesBuffer { ThebesBuffer; null_t; };
+
+// For the "buffer creation" operations, we send an initial front
+// buffer that only contains (transparent) black pixels just so that
+// we can swap it back after the first OpPaint without a special case.
+
+struct OpCreateThebesBuffer {
+  PLayer layer;
+  OptionalThebesBuffer initialFront;
+  nsIntRegion frontValidRegion;
+};
+struct OpDestroyThebesFrontBuffer { PLayer layer; };
+
+struct OpCreateCanvasBuffer {
+  PLayer layer;
+  nsIntSize size;
+  SurfaceDescriptor initialFront;
+  bool needYFlip;
+};
+struct OpDestroyCanvasFrontBuffer { PLayer layer; };
+
+struct OpCreateImageBuffer {
+  PLayer layer;
+  nsIntSize size;
+  SharedImage initialFront;
+};
+struct OpDestroyImageFrontBuffer { PLayer layer; };
+
+
+// Change a layer's attributes
+struct CommonLayerAttributes {
+  nsIntRegion visibleRegion;
+  gfx3DMatrix transform;
+  PRUint32 contentFlags;
+  float opacity;
+  bool useClipRect;
+  nsIntRect clipRect;
+  bool useTileSourceRect;
+  nsIntRect tileSourceRect;
+  bool isFixedPosition;
+};
+
+struct ThebesLayerAttributes {
+  nsIntRegion validRegion;
+};
+struct ContainerLayerAttributes{ FrameMetrics metrics; };
+struct ColorLayerAttributes    { gfxRGBA color; };
+struct CanvasLayerAttributes   { GraphicsFilterType filter; };
+struct ImageLayerAttributes    { GraphicsFilterType filter; };
+
+union SpecificLayerAttributes {
+  null_t;
+  ThebesLayerAttributes;
+  ContainerLayerAttributes;
+  ColorLayerAttributes;
+  CanvasLayerAttributes;
+  ImageLayerAttributes;
+};
+
+struct LayerAttributes {
+  CommonLayerAttributes common;
+  SpecificLayerAttributes specific;
+};
+
+struct OpSetLayerAttributes {
+  PLayer layer;
+  LayerAttributes attrs;
+};
+
+
+// Monkey with the tree structure
+struct OpSetRoot      { PLayer root; };
+struct OpInsertAfter  { PLayer container; PLayer childLayer; PLayer after; };
+struct OpAppendChild  { PLayer container; PLayer childLayer; };
+struct OpRemoveChild  { PLayer container; PLayer childLayer; };
+
+
+// Paint (buffer update)
+struct OpPaintThebesBuffer {
+  PLayer layer;
+  ThebesBuffer newFrontBuffer;
+  nsIntRegion updatedRegion;
+};
+
+struct OpPaintCanvas  {
+  PLayer layer;
+  SurfaceDescriptor newFrontBuffer;
+};
+
+struct OpPaintImage  {
+  PLayer layer;
+  SharedImage newFrontBuffer;
+};
+
+
+// A unit of a changeset; a set of these comprise a changeset
+union Edit {
+  OpCreateThebesLayer;
+  OpCreateContainerLayer;
+  OpCreateImageLayer;
+  OpCreateColorLayer;
+  OpCreateCanvasLayer;
+  OpCreateCanvasBuffer;
+  OpCreateThebesBuffer;
+  OpCreateImageBuffer;
+  OpDestroyThebesFrontBuffer;
+  OpDestroyCanvasFrontBuffer;
+  OpDestroyImageFrontBuffer;
+
+  OpSetLayerAttributes;
+
+  OpSetRoot;
+  OpInsertAfter;
+  OpAppendChild;
+  OpRemoveChild;
+
+  OpPaintThebesBuffer;
+  OpPaintCanvas;
+  OpPaintImage;
+};
+
+
+// Replies to operations
+struct OpBufferSwap   { PLayer layer; SurfaceDescriptor newBackBuffer; };
+
+struct OpImageSwap { PLayer layer; SharedImage newBackImage; };
+
+struct OpThebesBufferSwap {
+  PLayer layer;
+  ThebesBuffer newBackBuffer;
+  nsIntRegion newValidRegion;
+  // If the parent took the child's old back buffer and returned its
+  // old front buffer, |readOnlyFrontBuffer| may (if non-null) contain
+  // the child's old back buffer (parent's new front buffer).  This
+  // buffer can be used to read back the newly updated region into the
+  // child's new back buffer.  This buffer must be considered
+  // read-only, but sadly that's not enforced.
+  OptionalThebesBuffer readOnlyFrontBuffer;
+  nsIntRegion frontUpdatedRegion;
+};
+
+// Unit of a "changeset reply".  This is a weird abstraction, probably
+// only to be used for buffer swapping.
+union EditReply {
+  OpBufferSwap;
+  OpThebesBufferSwap;
+  OpImageSwap;
+};
+
+
+sync protocol PLayers {
+  manager PRenderFrame /*or PCompositor or PMedia or PPlugin*/;
+  manages PLayer;
+
+parent:
+  async PLayer();
+
+  sync Update(Edit[] cset)
+    returns (EditReply[] reply);
+
+  async __delete__();
+};
+
+} // namespace layers
+} // namespace mozilla

@@ -1,0 +1,196 @@
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is
+# Google Inc.
+# Portions created by the Initial Developer are Copyright (C) 2005
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#  Brian Ryner <bryner@brianryner.com>
+#  Stuart Parmenter <pavlov@pavlov.net>
+#  Vladimir Vukicevic <vladimir@pobox.com>
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either of the GNU General Public License Version 2 or later (the "GPL"),
+# or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH		= ../../../..
+topsrcdir	= @top_srcdir@
+srcdir		= @srcdir@
+VPATH		= @srcdir@
+
+include $(DEPTH)/config/autoconf.mk
+
+MODULE		= libpixman
+LIBRARY_NAME	= mozlibpixman
+LIBXUL_LIBRARY = 1
+
+ifeq ($(OS_TARGET),Android)
+MODULE_OPTIMIZE_FLAGS = -O2
+endif
+
+DEFINES += -DPIXMAN_NO_TLS
+
+# Build MMX code either with VC or with gcc-on-x86
+ifdef _MSC_VER
+ifeq (86,$(findstring 86,$(OS_TEST)))
+ifneq (64,$(findstring 64,$(OS_TEST)))
+USE_MMX=1
+endif
+USE_SSE2=1
+MMX_CFLAGS=
+ifneq (,$(filter 1400 1500, $(_MSC_VER)))
+# MSVC 2005 and 2008 generate code that breaks alignment
+# restrictions in debug mode so always optimize.
+# See bug 640250 for more info.
+SSE2_CFLAGS=-O2
+else
+SSE2_CFLAGS=
+endif
+endif
+ifeq (arm,$(findstring arm,$(OS_TEST)))
+USE_ARM_SIMD_MSVC=1
+endif
+endif
+
+ifdef GNU_CC
+ifeq (86,$(findstring 86,$(OS_TEST)))
+USE_MMX=1
+MMX_CFLAGS=-mmmx -Winline
+ifeq (64,$(findstring 64,$(OS_TEST)))
+USE_SSE2=1
+endif
+ifdef HAVE_GCC_ALIGN_ARG_POINTER
+USE_SSE2=1
+endif
+ifdef USE_SSE2
+SSE2_CFLAGS=-msse -msse2 -Winline
+endif
+ifneq ($(MOZ_WIDGET_TOOLKIT),os2)
+MMX_CFLAGS+=--param inline-unit-growth=10000 --param large-function-growth=10000
+endif
+endif
+ifeq (arm,$(findstring arm,$(OS_TEST)))
+ifdef HAVE_ARM_SIMD
+USE_ARM_SIMD_GCC=1
+endif
+ifdef HAVE_ARM_NEON
+USE_ARM_NEON_GCC=1
+endif
+endif
+
+endif
+
+
+CSRCS	= \
+	pixman-access.c \
+	pixman-access-accessors.c \
+	pixman-bits-image.c \
+	pixman.c \
+	pixman-combine32.c \
+	pixman-combine64.c \
+	pixman-conical-gradient.c \
+	pixman-cpu.c \
+	pixman-edge.c \
+	pixman-edge-accessors.c \
+	pixman-fast-path.c \
+	pixman-general.c \
+	pixman-gradient-walker.c \
+	pixman-image.c \
+	pixman-implementation.c \
+	pixman-linear-gradient.c \
+	pixman-matrix.c \
+	pixman-radial-gradient.c \
+	pixman-region16.c \
+	pixman-region32.c \
+	pixman-solid-fill.c \
+	pixman-trap.c \
+	pixman-utils.c \
+	$(NULL)
+
+ifdef USE_MMX
+CSRCS += pixman-mmx.c
+DEFINES += -DUSE_MMX
+endif
+
+ifdef USE_SSE2
+CSRCS += pixman-sse2.c
+DEFINES += -DUSE_SSE -DUSE_SSE2
+endif
+
+ifdef USE_VMX
+CSRCS += pixman-vmx.c
+DEFINES += -DUSE_VMX
+endif
+
+ifdef USE_ARM_SIMD_GCC
+CSRCS += pixman-arm-simd.c
+SSRCS += pixman-arm-simd-asm.S
+DEFINES += -DUSE_ARM_SIMD
+endif
+
+ifdef USE_ARM_NEON_GCC
+CSRCS += pixman-arm-neon.c
+SSRCS += pixman-arm-neon-asm.S
+SSRCS += pixman-arm-neon-asm-bilinear.S
+DEFINES += -DUSE_ARM_NEON
+ARM_NEON_CFLAGS = -mfpu=neon
+endif
+
+EXPORTS		= pixman.h pixman-version.h
+
+LOCAL_INCLUDES	+= -I$(srcdir) -I$(srcdir)/../../cairo/src
+
+FORCE_STATIC_LIB = 1
+# This library is used by other shared libs in a static build
+FORCE_USE_PIC = 1
+
+include $(topsrcdir)/config/config.mk
+
+include $(topsrcdir)/config/rules.mk
+
+CFLAGS += -DPACKAGE="mozpixman" -D_USE_MATH_DEFINES
+
+# Disable spammy "missing initializer" GCC warning
+ifdef GNU_CC
+CFLAGS += -Wno-missing-field-initializers
+endif # GNU_CC
+
+# special rule for pixman-mmx to get the right cflags
+pixman-mmx.$(OBJ_SUFFIX): pixman-mmx.c $(GLOBAL_DEPS)
+	$(REPORT_BUILD)
+	@$(MAKE_DEPS_AUTO_CC)
+	$(ELOG) $(CC) $(OUTOPTION)$@ -c $(COMPILE_CFLAGS) $(MMX_CFLAGS) $(_VPATH_SRCS)
+
+pixman-sse2.$(OBJ_SUFFIX): pixman-sse2.c $(GLOBAL_DEPS)
+	$(REPORT_BUILD)
+	@$(MAKE_DEPS_AUTO_CC)
+	$(ELOG) $(CC) $(OUTOPTION)$@ -c $(COMPILE_CFLAGS) $(SSE2_CFLAGS) $(_VPATH_SRCS)
+
+pixman-arm-neon.$(OBJ_SUFFIX): pixman-arm-neon.c $(GLOBAL_DEPS)
+	$(REPORT_BUILD)
+	@$(MAKE_DEPS_AUTO_CC)
+	$(ELOG) $(CC) $(OUTOPTION)$@ -c $(COMPILE_CFLAGS) $(ARM_NEON_CFLAGS) $(_VPATH_SRCS)

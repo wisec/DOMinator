@@ -1,0 +1,217 @@
+/* -*- Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 8 -*- */
+/* vim: set sw=4 ts=8 et tw=80 ft=cpp : */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Content App.
+ *
+ * The Initial Developer of the Original Code is
+ *   The Mozilla Foundation.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+include protocol PAudio;
+include protocol PBrowser;
+include protocol PCrashReporter;
+include protocol PTestShell;
+include protocol PNecko;
+include protocol PExternalHelperApp;
+include protocol PStorage;
+include protocol PMemoryReportRequest;
+
+include "mozilla/chrome/RegistryMessageUtils.h";
+include "mozilla/net/NeckoMessageUtils.h";
+
+include "nsGeoPositionIPCSerialiser.h";
+include "PPrefTuple.h";
+
+using GeoPosition;
+using PrefTuple;
+
+using ChromePackage;
+using ResourceMapping;
+using OverrideMapping;
+using IPC::URI;
+using IPC::Permission;
+using mozilla::null_t;
+using gfxIntSize;
+
+namespace mozilla {
+namespace dom {
+
+// Data required to clone an existing DOMStorageImpl in the parent
+struct StorageClone
+{
+    // Existing cross-process storage actor to clone
+    PStorage actor;
+    // Result of calling IsCallerSecure() in the child
+    bool callerSecure;
+};
+
+// When creating a new PStorage protocol, an existing one can be
+// cloned (see nsDOMStorage2::Clone)
+union StorageConstructData
+{
+    null_t;
+    StorageClone;
+};
+
+struct FontListEntry {
+    nsCString familyName;
+    nsCString filepath;
+    PRUint32  index;
+};
+
+rpc protocol PContent
+{
+    manages PAudio;
+    manages PBrowser;
+    manages PCrashReporter;
+    manages PTestShell;
+    manages PNecko;
+    manages PExternalHelperApp;
+    manages PStorage;
+    manages PMemoryReportRequest;
+
+child:
+    PBrowser(PRUint32 chromeFlags);
+
+    PMemoryReportRequest();
+
+    PTestShell();
+
+    RegisterChrome(ChromePackage[] packages, ResourceMapping[] resources,
+                   OverrideMapping[] overrides, nsCString locale);
+
+    async SetOffline(PRBool offline);
+
+    async NotifyVisited(URI uri);
+
+    PreferenceUpdate(PrefTuple pref);
+    ClearUserPreference(nsCString prefName);
+
+    NotifyAlertsObserver(nsCString topic, nsString data);
+
+    GeolocationUpdate(GeoPosition somewhere);
+
+    // nsIPermissionManager messages
+    AddPermission(Permission permission);
+
+    DeviceMotionChanged(long type, double x, double y, double z);
+
+    ScreenSizeChanged(gfxIntSize size);
+
+    FlushMemory(nsString reason);
+
+    /**
+     * Start accessibility engine in content process.
+     */
+    ActivateA11y();
+
+parent:
+    PNecko();
+    PCrashReporter();
+    
+    PStorage(StorageConstructData data);
+
+    PAudio(PRInt32 aNumChannels, PRInt32 aRate, PRInt32 aFormat);
+
+    // Services remoting
+
+    async StartVisitedQuery(URI uri);
+    async VisitURI(URI uri, URI referrer, PRUint32 flags);
+    async SetURITitle(URI uri, nsString title);
+    
+    // filepicker remoting
+    sync ShowFilePicker(PRInt16 mode, PRInt16 selectedType, PRBool addToRecentDocs,
+                        nsString title, nsString defaultFile, nsString defaultExtension,
+                        nsString[] filters, nsString[] filterNames)
+        returns (nsString[] files, PRInt16 retValue, nsresult result);
+
+    async LoadURIExternal(URI uri);
+
+    // PrefService message
+    sync ReadPrefsArray() returns (PrefTuple[] retValue);
+
+    sync ReadFontList() returns (FontListEntry[] retValue);
+
+    sync SyncMessage(nsString aMessage, nsString aJSON)
+      returns (nsString[] retval);
+
+    ShowAlertNotification(nsString imageUrl, 
+                          nsString title, 
+                          nsString text, 
+                          PRBool textClickable,
+                          nsString cookie,
+                          nsString name);
+
+    PExternalHelperApp(URI uri, nsCString aMimeContentType,
+                       nsCString aContentDisposition, bool aForceSave,
+                       PRInt64 aContentLength, URI aReferrer);
+    
+    AddGeolocationListener();
+    RemoveGeolocationListener();
+    AddDeviceMotionListener();
+    RemoveDeviceMotionListener();
+
+    ConsoleMessage(nsString message);
+    ScriptError(nsString message, nsString sourceName, nsString sourceLine,
+                PRUint32 lineNumber, PRUint32 colNumber, PRUint32 flags,
+                nsCString category); 
+
+    // nsIPermissionManager messages
+    sync ReadPermissions() returns (Permission[] permissions);
+
+    sync GetIndexedDBDirectory() returns (nsString directory);
+
+    // These clipboard methods are only really used on Android since
+    // the clipboard is not available in the content process.
+    SetClipboardText(nsString text, PRInt32 whichClipboard);
+    sync GetClipboardText(PRInt32 whichClipboard)
+        returns (nsString text);
+    EmptyClipboard();
+    sync ClipboardHasText()
+        returns (PRBool hasText);
+
+    sync GetSystemColors(PRUint32 colorsCount)
+        returns (PRUint32[] colors);
+
+    sync GetIconForExtension(nsCString aFileExt, PRUint32 aIconSize)
+        returns (PRUint8[] bits);
+
+    sync GetShowPasswordSetting()
+        returns (PRBool showPassword);
+
+both:
+     AsyncMessage(nsString aMessage, nsString aJSON);
+
+};
+
+}
+}

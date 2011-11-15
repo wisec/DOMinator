@@ -1,0 +1,81 @@
+# really basic tests that square, circular, and elliptical border and
+# outline radius are not the same thing
+!= border-square.html about:blank
+!= border-circle.html about:blank
+!= border-ellips.html about:blank
+!= border-square.html border-circle.html
+!= border-square.html border-ellips.html
+!= border-circle.html border-ellips.html
+
+!= outline-square.html about:blank
+!= outline-circle.html about:blank
+!= outline-ellips.html about:blank
+!= outline-square.html outline-circle.html
+!= outline-square.html outline-ellips.html
+!= outline-circle.html outline-ellips.html
+== border-value-interpret.html border-value-interpret-ref.html
+!= curved-borders-all-styles.html about:blank # no way to generate reference for dotted/dashed/inset/outset
+# ridge/groove borders
+
+# percent units
+== percent-1.html percent-1-ref.html
+== percent-2.html percent-2-ref.html
+== percent-3.html percent-3-ref.html
+
+# more serious tests, using SVG reference
+== border-circle-2.html border-circle-2-ref.xhtml
+fails == curved-stripe-border.html curved-stripe-border-ref.svg # bug 459945
+
+# Corners
+== corner-1.html corner-1-ref.svg # bottom corners different radius than top corners
+random == corner-2.html corner-2-ref.svg # right corners different radius than left corners; see bug 500804
+
+# Test that radii too long are reduced
+== border-reduce-height.html border-reduce-height-ref.html
+
+# Tests for border clipping
+fails == clipping-1.html clipping-1-ref.html # background color should completely fill box; bug 466572
+!= clipping-2.html about:blank # background color clipped to inner/outer border, can't get
+# great tests for this due to antialiasing problems described in bug 466572
+fails-if(Android) == clipping-3.html clipping-3-ref.xhtml # edge of border-radius clips an underlying object's background, Android failure is bug 650569
+
+# Tests for clipping the contents of replaced elements and overflow!=visible
+!= clipping-4-ref.html clipping-4-notref.html
+fails-if(cocoaWidget) == clipping-4-canvas.html clipping-4-ref.html
+fails-if(Android) == clipping-4-image.html clipping-4-ref.html
+== clipping-4-overflow-hidden.html clipping-4-ref.html
+== clipping-5-canvas.html clipping-5-refc.html
+== clipping-5-image.html clipping-5-refi.html
+== clipping-5-overflow-hidden.html clipping-5-ref.html
+fails-if(Android) == clipping-5-refi.html clipping-5-ref.html
+fails-if(cocoaWidget) == clipping-5-refc.html clipping-5-ref.html
+== clipping-and-zindex-1.html clipping-and-zindex-1-ref.html
+== intersecting-clipping-1-canvas.html intersecting-clipping-1-refc.html
+== intersecting-clipping-1-image.html intersecting-clipping-1-refi.html
+== intersecting-clipping-1-overflow-hidden.html intersecting-clipping-1-ref.html
+fails-if(Android) == intersecting-clipping-1-refi.html intersecting-clipping-1-ref.html
+fails-if(cocoaWidget) == intersecting-clipping-1-refc.html intersecting-clipping-1-ref.html
+
+# Inheritance
+== inherit-1.html inherit-1-ref.html # border-radius shouldn't inherit
+
+# Table elements
+== table-collapse-1.html table-collapse-1-ref.html # border-radius is ignored on internal table elements
+# when border-collapse: collapse
+
+== invalidate-1a.html invalidate-1-ref.html
+== invalidate-1b.html invalidate-1-ref.html
+
+# test that border-radius is reduced for scrollbars
+fails-if(Android) == scrollbar-clamping-1.html scrollbar-clamping-1-ref.html
+fails-if(Android) == scrollbar-clamping-2.html scrollbar-clamping-2-ref.html
+
+# Test for bad corner joins.
+== corner-joins-1.xhtml corner-joins-1-ref.xhtml
+random-if(winWidget) HTTP(..) == corner-joins-2.xhtml corner-joins-2-ref.xhtml
+
+== scroll-1.html scroll-1-ref.html # see bug 602892
+
+== zero-radius-clip-1.html zero-radius-clip-ref.html
+
+== iframe-1.html iframe-1-ref.html

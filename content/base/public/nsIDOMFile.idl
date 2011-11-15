@@ -1,0 +1,82 @@
+/* -*- Mode: IDL; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla Corporation
+ * Portions created by the Initial Developer are Copyright (C) 2007
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+#include "domstubs.idl"
+
+%{C++
+#include "jsapi.h"
+%}
+
+interface nsIDOMFileError;
+interface nsIInputStream;
+interface nsIURI;
+interface nsIPrincipal;
+interface nsIDOMBlob;
+
+[scriptable, builtinclass, uuid(d5237f31-443a-460b-9e42-449a135346f0)]
+interface nsIDOMBlob : nsISupports
+{
+  readonly attribute unsigned long long size;
+  readonly attribute DOMString type;
+
+  [noscript] readonly attribute nsIInputStream internalStream;
+  // The caller is responsible for releasing the internalUrl from the
+  // moz-filedata: protocol handler
+  [noscript] DOMString getInternalUrl(in nsIPrincipal principal);
+
+  [optional_argc] nsIDOMBlob mozSlice([optional] in long long start,
+                                      [optional] in long long end,
+                                      [optional] in DOMString contentType);
+};
+
+[scriptable, builtinclass, uuid(b096ef67-7b77-47f8-8e70-5d8ee36416bf)]
+interface nsIDOMFile : nsIDOMBlob
+{
+  readonly attribute DOMString name;
+  readonly attribute DOMString mozFullPath;
+
+  // This performs no security checks!
+  [noscript] readonly attribute DOMString mozFullPathInternal;
+};
+
+[scriptable, builtinclass, uuid(006d2cde-ec18-41d4-acc3-43682dd418e2)]
+interface nsIDOMMozBlobBuilder : nsISupports
+{
+  nsIDOMBlob getBlob([optional] in DOMString contentType);
+  nsIDOMFile getFile(in DOMString name, [optional] in DOMString contentType);
+  [implicit_jscontext] void append(in jsval data);
+};

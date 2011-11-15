@@ -1,0 +1,144 @@
+#
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is
+# Mozilla Foundation.
+# Portions created by the Initial Developer are Copyright (C) 2007
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either of the GNU General Public License Version 2 or later (the "GPL"),
+# or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH		= ../../..
+topsrcdir	= @top_srcdir@
+srcdir		= @srcdir@
+VPATH		= @srcdir@
+relativesrcdir  = layout/generic/test
+
+include $(DEPTH)/config/autoconf.mk
+include $(topsrcdir)/config/rules.mk
+
+# in the list below, we make sure that the tests that require focus
+# run before test_plugin_clipping, which can steal focus for its window.
+_TEST_FILES = \
+  bug344830_testembed.svg \
+  frame_selection_underline.xhtml \
+  frame_selection_underline-ref.xhtml \
+  frame_selection_underline.css \
+  plugin_clipping_helper.xhtml \
+  plugin_clipping_helper2.xhtml \
+  plugin_clipping_helper_transformed.xhtml \
+  plugin_clipping_helper_table.xhtml \
+  plugin_clipping_lib.js \
+  plugin_focus_helper.html \
+  test_bug240933.html \
+  test_bug263683.html \
+  test_bug288789.html \
+  test_bug290397.html \
+  test_bug323656.html \
+  test_bug344830.html \
+  test_bug348681.html \
+  test_bug382429.html \
+  test_bug384527.html \
+  test_bug385751.html \
+  test_bug389630.html \
+  test_bug391747.html \
+  test_bug392746.html \
+  test_bug392923.html \
+  test_bug394173.html \
+  test_bug394239.html \
+  test_bug402380.html \
+  test_bug404872.html \
+  test_bug405178.html \
+  test_bug416168.html \
+  test_bug421436.html \
+  $(warning test_bug421839-1.html disabled because it calls finish twice which can cause timeouts) \
+  test_bug421839-2.html \
+  bug421839-2-page.html \
+  test_bug424627.html \
+  test_bug438840.html \
+  test_bug448860.html \
+  test_bug460532.html \
+  test_bug468167.html \
+  test_bug470212.html \
+  $(warning test_bug488417.html temporarily disabled - see bug 489560) \
+  test_bug496275.html \
+  test_bug503813.html \
+  $(warning test_bug507902.html temporarily disabled - see bug 510001) \
+  test_bug514732.html \
+  test_bug527306.html \
+  test_bug579767.html \
+  test_bug597333.html \
+  test_bug666225.html \
+  test_image_selection.html \
+  test_invalidate_during_plugin_paint.html \
+  test_movement_by_characters.html \
+  test_movement_by_words.html \
+  test_plugin_clipping.xhtml \
+  test_plugin_clipping2.xhtml \
+  test_plugin_clipping_transformed.xhtml \
+  test_plugin_clipping_table.xhtml \
+  test_plugin_focus.html \
+  test_plugin_mouse_coords.html \
+  test_plugin_position.xhtml \
+  test_selection_expanding.html \
+  selection_expanding_xbl.xml \
+  test_selection_underline.html \
+  file_BrokenImageReference.png \
+  file_Dolske.png \
+  file_IconTestServer.sjs \
+  file_LoadingImageReference.png \
+  file_bug514732_1.html \
+  file_bug514732_helper.html \
+  file_bug579767_1.html \
+  file_bug579767_2.html \
+  test_bug522632.html \
+  test_bug589621.html \
+  test_bug589623.html \
+  test_bug633762.html \
+  bug633762_iframe.html \
+  $(srcdir)/../../reftests/backgrounds/blue-32x32.png \
+  $(srcdir)/../../reftests/backgrounds/fuchsia-32x32.png \
+  $(NULL)
+
+_CHROME_FILES = \
+  test_bug632379.xul \
+  test_bug508115.xul \
+  test_bug469613.xul \
+  test_bug469774.xul \
+  test_backspace_delete.xul \
+  test_bug514732-2.xul \
+  file_bug514732_window.xul \
+  $(NULL)
+
+libs:: $(_TEST_FILES)
+	$(INSTALL) $(foreach f,$^,"$f") $(DEPTH)/_tests/testing/mochitest/tests/$(relativesrcdir)
+
+libs:: $(_CHROME_FILES)
+	$(INSTALL) $(foreach f,$^,"$f") $(DEPTH)/_tests/testing/mochitest/chrome/$(relativesrcdir)

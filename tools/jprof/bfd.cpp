@@ -1,0 +1,238 @@
+// vim:ts=8:sw=2:et:
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is Netscape Communications Corp.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+#include "leaky.h"
+
+#ifdef USE_BFD
+#include <stdio.h>
+#include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <libgen.h>
+#include <bfd.h>
+
+extern "C" {
+  char *cplus_demangle (const char *mangled, int options);
+}
+
+static bfd *try_debug_file(const char *filename, unsigned long crc32)
+{
+  int fd = open(filename, O_RDONLY);
+  if (fd < 0)
+    return NULL;
+
+  unsigned char buf[4*1024];
+  unsigned long crc = 0;
+
+  while (1) {
+    ssize_t count = read(fd, buf, sizeof(buf));
+    if (count <= 0)
+      break;
+
+    crc = bfd_calc_gnu_debuglink_crc32(crc, buf, count);
+  }
+
+  close(fd);
+
+  if (crc != crc32)
+    return NULL;
+
+  bfd *object = bfd_openr(filename, NULL);
+  if (!bfd_check_format(object, bfd_object)) {
+    bfd_close(object);
+    return NULL;
+  }
+
+  return object;
+}
+
+static bfd *find_debug_file(bfd *lib, const char *aFileName)
+{
+  // check for a separate debug file with symbols
+  asection *sect = bfd_get_section_by_name(lib, ".gnu_debuglink");
+
+  if (!sect)
+    return NULL;
+
+  bfd_size_type debuglinkSize = bfd_section_size (objfile->obfd, sect);
+
+  char *debuglink = new char[debuglinkSize];
+  bfd_get_section_contents(lib, sect, debuglink, 0, debuglinkSize);
+
+  // crc checksum is aligned to 4 bytes, and after the NUL.
+  int crc_offset = (int(strlen(debuglink)) & ~3) + 4;
+  unsigned long crc32 = bfd_get_32(lib, debuglink + crc_offset);
+
+  // directory component
+  char *dirbuf = strdup(aFileName);
+  const char *dir = dirname(dirbuf);
+
+  static const char debug_subdir[] = ".debug";
+  // This is gdb's default global debugging info directory, but gdb can
+  // be instructed to use a different directory.
+  static const char global_debug_dir[] = "/usr/lib/debug";
+
+  char *filename =
+    new char[strlen(global_debug_dir) + strlen(dir) + crc_offset + 3];
+
+  // /path/debuglink
+  sprintf(filename, "%s/%s", dir, debuglink);
+  bfd *debugFile = try_debug_file(filename, crc32);
+  if (!debugFile) {
+
+    // /path/.debug/debuglink
+    sprintf(filename, "%s/%s/%s", dir, debug_subdir, debuglink);
+    debugFile = try_debug_file(filename, crc32);
+    if (!debugFile) {
+
+      // /usr/lib/debug/path/debuglink
+      sprintf(filename, "%s/%s/%s", global_debug_dir, dir, debuglink);
+      debugFile = try_debug_file(filename, crc32);
+    }
+  }
+
+  delete[] filename;
+  free(dirbuf);
+  delete[] debuglink;
+
+  return debugFile;
+}
+
+#define NEXT_SYMBOL \
+  sp++; \
+  if (sp >= lastSymbol) { \
+    long n = numExternalSymbols + 10000; \
+    externalSymbols = (Symbol*) \
+      realloc(externalSymbols, (size_t) (sizeof(Symbol) * n)); \
+    lastSymbol = externalSymbols + n; \
+    sp = externalSymbols + numExternalSymbols; \
+    numExternalSymbols = n; \
+  }
+
+void leaky::ReadSymbols(const char *aFileName, u_long aBaseAddress)
+{
+  int initialSymbols = usefulSymbols;
+  if (NULL == externalSymbols) {
+    externalSymbols = (Symbol*) malloc(sizeof(Symbol) * 10000);
+    numExternalSymbols = 10000;
+  }
+  Symbol* sp = externalSymbols + usefulSymbols;
+  Symbol* lastSymbol = externalSymbols + numExternalSymbols;
+
+  // Create a dummy symbol for the library so, if it doesn't have any
+  // symbols, we show it by library.
+  sp->Init(aFileName, aBaseAddress);
+  NEXT_SYMBOL
+
+  bfd_boolean kDynamic = (bfd_boolean) false;
+
+  static int firstTime = 1;
+  if (firstTime) {
+    firstTime = 0;
+    bfd_init ();
+  }
+
+  bfd* lib = bfd_openr(aFileName, NULL);
+  if (NULL == lib) {
+    return;
+  }
+  if (!bfd_check_format(lib, bfd_object)) {
+    bfd_close(lib);
+    return;
+  }
+
+  bfd *symbolFile = find_debug_file(lib, aFileName);
+
+  // read mini symbols
+  PTR minisyms;
+  unsigned int size;
+  long symcount = 0;
+
+  if (symbolFile) {
+    symcount = bfd_read_minisymbols(symbolFile, kDynamic, &minisyms, &size);
+    if (symcount == 0) {
+      bfd_close(symbolFile);
+    } else {
+      bfd_close(lib);
+    }
+  }
+  if (symcount == 0) {
+    symcount = bfd_read_minisymbols(lib, kDynamic, &minisyms, &size);
+    if (symcount == 0) {
+      // symtab is empty; try dynamic symbols
+      kDynamic = (bfd_boolean) true;
+      symcount = bfd_read_minisymbols(lib, kDynamic, &minisyms, &size);
+    }
+    symbolFile = lib;
+  }
+
+  asymbol* store;
+  store = bfd_make_empty_symbol(symbolFile);
+
+  // Scan symbols
+  bfd_byte* from = (bfd_byte *) minisyms;
+  bfd_byte* fromend = from + symcount * size;
+  for (; from < fromend; from += size) {
+    asymbol *sym;
+    sym = bfd_minisymbol_to_symbol(symbolFile, kDynamic, (const PTR) from, store);
+
+    symbol_info syminfo;
+    bfd_get_symbol_info (symbolFile, sym, &syminfo);
+
+//    if ((syminfo.type == 'T') || (syminfo.type == 't')) {
+      const char* nm = bfd_asymbol_name(sym);
+      if (nm && nm[0]) {
+	char* dnm = NULL;
+	if (strncmp("__thunk", nm, 7)) {
+	  dnm = cplus_demangle(nm, 1);
+	}
+	sp->Init(dnm ? dnm : nm, syminfo.value + aBaseAddress);
+        NEXT_SYMBOL
+      }
+//    }
+  }
+
+  bfd_close(symbolFile);
+
+  int interesting = sp - externalSymbols;
+  if (!quiet) {
+    printf("%s provided %d symbols\n", aFileName,
+	   interesting - initialSymbols);
+  }
+  usefulSymbols = interesting;
+}
+
+#endif /* USE_BFD */

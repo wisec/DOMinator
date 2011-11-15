@@ -1,0 +1,93 @@
+#
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is
+# Mozilla Foundation.
+# Portions created by the Initial Developer are Copyright (C) 2007
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either of the GNU General Public License Version 2 or later (the "GPL"),
+# or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH		= ../../..
+topsrcdir	= @top_srcdir@
+srcdir		= @srcdir@
+VPATH		= @srcdir@
+relativesrcdir  = layout/forms/test
+
+include $(DEPTH)/config/autoconf.mk
+include $(topsrcdir)/config/rules.mk
+
+_TEST_FILES =	test_bug231389.html \
+		test_bug287446.html \
+		     bug287446_subframe.html \
+		test_bug345267.html \
+		test_bug348236.html \
+		test_bug353539.html \
+		test_bug365410.html \
+		test_bug378670.html \
+		test_bug402198.html \
+		test_bug411236.html \
+		test_bug446663.html \
+		test_bug476308.html \
+		test_bug477531.html \
+		test_bug477700.html \
+		     bug477700_subframe.html \
+		test_textarea_resize.html \
+		test_bug478219.xhtml \
+		test_bug542914.html \
+		test_bug534785.html \
+		     bug536567_subframe.html \
+		test_bug549170.html \
+		test_bug562447.html \
+		test_bug563642.html \
+		test_bug564115.html \
+		bug564115_window.html \
+		test_bug377624.html \
+		test_bug571352.html \
+		test_bug572406.html \
+		test_bug572649.html \
+		test_bug36619.html \
+		test_bug620936.html \
+		test_bug595310.html \
+		test_bug644542.html \
+		test_bug672810.html \
+		$(NULL)
+
+_CHROME_FILES = \
+		test_bug536567.html \
+		test_bug665540.html \
+		     bug665540_window.xul \
+		$(NULL)
+
+libs:: $(_TEST_FILES)
+	$(INSTALL) $^ $(DEPTH)/_tests/testing/mochitest/tests/$(relativesrcdir)
+
+libs:: $(_CHROME_FILES)
+	$(INSTALL) $^ $(DEPTH)/_tests/testing/mochitest/chrome/$(relativesrcdir)

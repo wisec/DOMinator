@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<!--
+https://bugzilla.mozilla.org/show_bug.cgi?id=449327
+-->
+<head>
+  <title>Test for getBBox</title>
+  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+<body>
+
+<p id="display"></p>
+<div id="content" style="display: none"></div>
+
+<iframe id="svg" src="bbox-helper.svg"></iframe>
+
+<pre id="test">
+<script class="testbody" type="application/javascript">
+SimpleTest.waitForExplicitFinish();
+
+function run()
+{
+  var doc = $("svg").contentDocument;
+
+  function getBBox(id) {
+    return doc.getElementById(id).getBBox();
+  }
+  function checkBBox(id, x, y, width, height) {
+    var bbox = getBBox(id);
+    is(bbox.x, x, id + ".getBBox().x");
+    is(bbox.y, y, id + ".getBBox().y");
+    is(bbox.width, width, id + ".getBBox().width");
+    is(bbox.height, height, id + ".getBBox().height");
+  }
+  function checkBBoxHeight(id1, id2) {
+    var bbox1 = getBBox(id1);
+    var bbox2 = getBBox(id2);
+    is(bbox1.height, bbox2.height, id1 + ".getBBox().height");
+  }
+
+  checkBBox("f", 0, 0, 100, 100);
+  checkBBoxHeight("a", "b");
+  checkBBoxHeight("a", "y");
+  
+  SimpleTest.finish();
+}
+
+window.addEventListener("load", run, false);
+</script>
+</pre>
+</body>
+</html>

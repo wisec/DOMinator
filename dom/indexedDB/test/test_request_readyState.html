@@ -1,0 +1,73 @@
+<!--
+  Any copyright is dedicated to the Public Domain.
+  http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>Indexed Database Property Test</title>
+
+  <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+
+  <script type="text/javascript;version=1.7">
+    function testSteps()
+    {
+      const name = window.location.pathname;
+      const description = "My Test Database";
+
+      const LOADING = Components.interfaces.nsIIDBRequest.LOADING;
+      const DONE = Components.interfaces.nsIIDBRequest.DONE;
+
+      let request = mozIndexedDB.open(name, description);
+      is(request.readyState, LOADING, "Correct readyState");
+
+      request.onerror = errorHandler;
+      request.onsuccess = grabEventAndContinueHandler;
+      let event = yield;
+
+      is(request.readyState, DONE, "Correct readyState");
+
+      let db = event.target.result;
+
+      request = db.setVersion("1");
+      is(request.readyState, LOADING, "Correct readyState");
+
+      request.onerror = errorHandler;
+      request.onsuccess = grabEventAndContinueHandler;
+      let event = yield;
+
+      is(request.readyState, DONE, "Correct readyState");
+
+      let objectStore = db.createObjectStore("foo");
+      let key = 10;
+
+      request = objectStore.add({}, key);
+      is(request.readyState, LOADING, "Correct readyState");
+
+      request.onerror = errorHandler;
+      request.onsuccess = grabEventAndContinueHandler;
+      event = yield;
+
+      is(request.readyState, DONE, "Correct readyState");
+      is(event.target.result, key, "Correct key");
+
+      request = objectStore.get(key);
+      request.onerror = errorHandler;
+      request.onsuccess = grabEventAndContinueHandler;
+      is(request.readyState, LOADING, "Correct readyState");
+      event = yield;
+
+      ok(event.target.result, "Got something");
+      is(request.readyState, DONE, "Correct readyState");
+
+      finishTest();
+      yield;
+    }
+  </script>
+  <script type="text/javascript;version=1.7" src="helpers.js"></script>
+
+</head>
+
+<body onload="runTest();"></body>
+
+</html>

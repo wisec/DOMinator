@@ -1,0 +1,179 @@
+<?xml version="1.0"?>
+
+<!-- ***** BEGIN LICENSE BLOCK *****
+   - Version: MPL 1.1/GPL 2.0/LGPL 2.1
+   -
+   - The contents of this file are subject to the Mozilla Public License Version
+   - 1.1 (the "License"); you may not use this file except in compliance with
+   - the License. You may obtain a copy of the License at
+   - http://www.mozilla.org/MPL/
+   -
+   - Software distributed under the License is distributed on an "AS IS" basis,
+   - WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+   - for the specific language governing rights and limitations under the
+   - License.
+   -
+   - The Original Code is Findbar Test code
+   -
+   - The Initial Developer of the Original Code is
+   - Graeme McCutcheon <graememcc_firefox@graeme-online.co.uk>.
+   - Portions created by the Initial Developer are Copyright (C) 2008
+   - the Initial Developer. All Rights Reserved.
+   -
+   - Contributor(s):
+   -
+   -
+   - Alternatively, the contents of this file may be used under the terms of
+   - either the GNU General Public License Version 2 or later (the "GPL"), or
+   - the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+   - in which case the provisions of the GPL or the LGPL are applicable instead
+   - of those above. If you wish to allow use of your version of this file only
+   - under the terms of either the GPL or the LGPL, and not to allow others to
+   - use your version of this file under the terms of the MPL, indicate your
+   - decision by deleting the provisions above and replace them with the notice
+   - and other provisions required by the GPL or the LGPL. If you do not delete
+   - the provisions above, a recipient may use your version of this file under
+   - the terms of any one of the MPL, the GPL or the LGPL.
+   -
+   - ***** END LICENSE BLOCK ***** -->
+
+<?xml-stylesheet href="chrome://global/skin" type="text/css"?>
+
+<window id="451286test"
+        xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+        width="600"
+        height="600"
+        onload="SimpleTest.executeSoon(startTest);"
+        title="451286 test (also tests bug 493658)">
+
+  <script type="application/javascript"><![CDATA[
+    const Ci = Components.interfaces;
+    const Cc = Components.classes;
+    const Cr = Components.results;
+    const SEARCH_TEXT = "text";
+    const DATAURI = "data:text/html," + SEARCH_TEXT;
+
+    var gFindBar = null;
+    var gBrowser;
+
+    var imports = ["SimpleTest", "ok", "snapshotWindow", "compareSnapshots"];
+    for each (var name in imports) {
+      window[name] = window.opener.wrappedJSObject[name];
+    }
+
+    function finish() {
+      window.close();
+      SimpleTest.finish();
+    }
+
+    function startTest() {
+      gFindBar = document.getElementById("FindToolbar");
+      gBrowser = document.getElementById("content");
+      gBrowser.addEventListener("pageshow", onPageShow, false);
+
+      // Bug 451286. An iframe that should be highlighted
+      var visible = "<iframe id='visible' src='" + DATAURI + "'></iframe>";
+
+      // Bug 493658. An invisible iframe that shouldn't interfere with
+      // highlighting matches lying after it in the document
+      var invisible = "<iframe id='invisible' style='display: none;' " +
+                      "src='" + DATAURI + "'></iframe>";
+
+      var uri = DATAURI + invisible + SEARCH_TEXT + visible + SEARCH_TEXT;
+      gBrowser.loadURI(uri);
+    }
+
+    function onPageShow(aEvent) {
+      // Don't respond to pageshow events coming from the <iframes>
+      if (aEvent.target != gBrowser.contentDocument)
+        return;
+
+      gBrowser.removeEventListener("pageshow", onPageShow, false);
+
+      // First, take a snapshot of the window without highlighting
+      // to be used later to test the unhighlighting case
+      var gWin = gBrowser.contentWindow;
+      var noHighlightSnapshot = snapshotWindow(gWin);
+
+      gFindBar.open();
+      gFindBar._findField.value = SEARCH_TEXT;
+      var matchCase = gFindBar.getElement("find-case-sensitive");
+      if (matchCase.checked)
+        matchCase.doCommand();
+
+      // Turn on highlighting
+      gFindBar.toggleHighlight(true);
+      gFindBar.close();
+    
+      // Take snapshot of highlighing
+      var findSnapshot = snapshotWindow(gWin);
+
+      // Now, remove the highlighting, and take a snapshot to compare
+      // to our original state
+      gFindBar.open();
+      gFindBar.toggleHighlight(false);
+      gFindBar.close();
+      var unhighlightSnapshot = snapshotWindow(gWin);
+
+      // Select the matches that should have been highlighted manually
+      var doc = gBrowser.contentDocument;
+
+      // Create a manual highlight in the visible iframe to test bug 451286
+      var iframe = doc.getElementById("visible");
+      var ifBody = iframe.contentDocument.body;
+      var range = iframe.contentDocument.createRange();
+      range.selectNodeContents(ifBody.childNodes[0]);
+      var ifWindow = iframe.contentWindow;
+      var ifDocShell = ifWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                               .getInterface(Ci.nsIWebNavigation)
+                               .QueryInterface(Ci.nsIDocShell);
+
+      var ifController = ifDocShell.QueryInterface(Ci.nsIInterfaceRequestor)
+                                   .getInterface(Ci.nsISelectionDisplay)
+                                   .QueryInterface(Ci.nsISelectionController);
+
+      var frameFindSelection =
+        ifController.getSelection(ifController.SELECTION_FIND);
+      frameFindSelection.addRange(range);
+
+      // Create manual highlights in the main document (the matches that lie
+      // before/after the iframes
+      var docShell = gWin.QueryInterface(Ci.nsIInterfaceRequestor)
+                         .getInterface(Ci.nsIWebNavigation)
+                          .QueryInterface(Ci.nsIDocShell);
+
+      var controller = docShell.QueryInterface(Ci.nsIInterfaceRequestor)
+                               .getInterface(Ci.nsISelectionDisplay)
+                               .QueryInterface(Ci.nsISelectionController);
+
+      var docFindSelection =
+        controller.getSelection(ifController.SELECTION_FIND);
+
+      range = doc.createRange();
+      range.selectNodeContents(doc.body.childNodes[0]);
+      docFindSelection.addRange(range);
+      range = doc.createRange();
+      range.selectNodeContents(doc.body.childNodes[2]);
+      docFindSelection.addRange(range);
+      range = doc.createRange();
+      range.selectNodeContents(doc.body.childNodes[4]);
+      docFindSelection.addRange(range);
+
+      // Take snapshot of manual highlighting
+      var manualSnapshot = snapshotWindow(gBrowser.contentWindow);
+
+      // Test 1: Were the matches in iframe correctly highlighted?
+      var res = compareSnapshots(findSnapshot, manualSnapshot, true);
+      ok(res[0], "Matches found in iframe correctly highlighted");
+
+      // Test 2: Were the matches in iframe correctly unhighlighted?
+      res = compareSnapshots(noHighlightSnapshot, unhighlightSnapshot, true);
+      ok(res[0], "Highlighting in iframe correctly removed");
+
+      finish();
+    }
+  ]]></script>
+
+  <browser type="content-primary" flex="1" id="content" src="about:blank"/>
+  <findbar id="FindToolbar" browserid="content"/>
+</window>

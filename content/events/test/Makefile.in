@@ -1,0 +1,146 @@
+#
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is
+# Mozilla Foundation.
+# Portions created by the Initial Developer are Copyright (C) 2007
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either of the GNU General Public License Version 2 or later (the "GPL"),
+# or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH		= ../../..
+topsrcdir	= @top_srcdir@
+srcdir		= @srcdir@
+VPATH		= @srcdir@
+relativesrcdir  = content/events/test
+
+include $(DEPTH)/config/autoconf.mk
+include $(topsrcdir)/config/rules.mk
+
+# Disabled due to timeouts.
+# 		test_bug563329.html
+# Disabled due to lack of present support for JSD in JM
+#		test_bug448602.html
+_TEST_FILES = \
+		test_bug226361.xhtml \
+		     bug226361_iframe.xhtml \
+		test_bug238987.html \
+		test_bug288392.html \
+		test_bug299673-1.html \
+		test_bug299673-2.html \
+		     bug299673.js \
+		test_bug322588.html \
+		     bug322588-popup.html \
+		test_bug328885.html \
+		test_bug336682_1.html \
+		test_bug336682.js \
+		test_bug367781.html \
+		test_bug368835.html \
+		test_bug379120.html \
+		test_bug391568.xhtml \
+		test_bug402089.html \
+		test_bug405632.html \
+		test_bug409604.html \
+		test_bug412567.html \
+		test_bug426082.html \
+		test_bug427537.html \
+		test_bug443985.html \
+		test_bug447736.html \
+		test_bug450876.html \
+		test_bug456273.html \
+		test_bug457672.html \
+		test_bug428988.html \
+		bug457672.html \
+		test_draggableprop.html \
+		test_bug489671.html \
+		test_bug502818.html \
+		test_bug508479.html \
+		test_bug508906.html \
+		test_bug517851.html \
+		test_bug534833.html \
+		test_bug545268.html \
+		test_bug547996-1.html \
+		test_bug547996-2.xhtml \
+		test_bug556493.html \
+		test_bug574663.html \
+		test_clickevent_on_input.html \
+		test_bug593959.html \
+		test_bug591815.html \
+		test_bug605242.html \
+		test_bug613634.html \
+		test_bug607464.html \
+		test_bug624127.html \
+		test_bug650493.html \
+		test_bug641477.html \
+		test_bug648573.html \
+		test_bug615597.html \
+		test_bug656379-1.html \
+		test_bug656379-2.html \
+		test_bug656954.html \
+		test_bug662678.html \
+		test_bug667919-1.html \
+		test_bug667919-2.html \
+		test_bug667612.html \
+		empty.js \
+		$(NULL)
+
+#bug 585630
+ifneq (mobile,$(MOZ_BUILD_APP))
+_TEST_FILES += \
+		test_dragstart.html \
+		$(NULL)
+endif
+
+# bug 565245
+ifneq (Linux,$(OS_ARCH))
+_TEST_FILES += \
+		test_bug493251.html \
+		$(NULL)
+endif
+
+_CHROME_FILES = \
+		test_bug336682_2.xul \
+		test_bug336682.js \
+		test_bug350471.xul \
+		test_bug586961.xul \
+		test_bug415498.xul \
+		bug415498-doc1.html \
+		bug415498-doc2.html \
+		bug602962.xul \
+		test_bug602962.xul \
+		test_bug617528.xul \
+		window_bug617528.xul \
+		$(NULL)
+
+libs:: $(_TEST_FILES)
+	$(INSTALL) $(foreach f,$^,"$f") $(DEPTH)/_tests/testing/mochitest/tests/$(relativesrcdir)
+
+libs:: $(_CHROME_FILES)
+	$(INSTALL) $(foreach f,$^,"$f") $(DEPTH)/_tests/testing/mochitest/chrome/$(relativesrcdir)

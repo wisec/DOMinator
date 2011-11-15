@@ -1,0 +1,215 @@
+#
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is
+# Netscape Communications Corporation.
+# Portions created by the Initial Developer are Copyright (C) 1998
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either of the GNU General Public License Version 2 or later (the "GPL"),
+# or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH		= ../..
+topsrcdir	= @top_srcdir@
+srcdir		= @srcdir@
+VPATH		= @srcdir@
+relativesrcdir = xpcom/tests
+
+include $(DEPTH)/config/autoconf.mk
+
+MODULE		= xpcom
+
+DIRS		= external component bug656331_component
+
+ifeq ($(OS_ARCH),WINNT)
+DIRS		+= windows
+endif
+
+ifdef DEHYDRA_PATH
+DIRS += static-checker
+endif
+
+VPATH += $(topsrcdir)/build
+
+CPPSRCS = \
+  nsIFileEnumerator.cpp \
+  TestCallTemplates.cpp \
+  TestINIParser.cpp \
+  TestRacingServiceManager.cpp \
+  TestRegistrationOrder.cpp \
+  TestThreadPoolListener.cpp \
+  TestTimers.cpp \
+  TestBlockingProcess.cpp \
+  TestQuickReturn.cpp \
+  TestArguments.cpp \
+  TestUnicodeArguments.cpp \
+  $(STDCPPFLAGS) \
+  $(NULL)
+
+ifeq ($(OS_TARGET),WINNT)
+CPPSRCS += TestBase64.cpp
+endif
+
+ifdef WRAP_STL_INCLUDES
+CPPSRCS += TestSTLWrappers.cpp
+endif
+
+SIMPLE_PROGRAMS	:= $(CPPSRCS:.cpp=$(BIN_SUFFIX))
+
+CPP_UNIT_TESTS = \
+                 ShowAlignments.cpp \
+                 ShowSSEConfig.cpp \
+                 TestAutoPtr.cpp \
+                 TestCOMArray.cpp \
+                 TestCOMPtr.cpp \
+                 TestCOMPtrEq.cpp \
+                 TestFile.cpp \
+                 TestHashtables.cpp \
+                 TestID.cpp \
+                 TestObserverArray.cpp \
+                 TestObserverService.cpp \
+                 TestPipe.cpp \
+                 TestRefPtr.cpp \
+                 TestTextFormatter.cpp \
+                 TestCheckedInt.cpp \
+                 $(NULL)
+
+# XXX Make this tests work in libxul builds.
+#CPP_UNIT_TESTS += \
+#                  TestArray.cpp \
+#                  TestCRT.cpp \
+#                  TestDeque.cpp \
+#                  TestEncoding.cpp \
+#                  TestExpirationTracker.cpp \
+#                  TestPipes.cpp \
+#                  TestPriorityQueue.cpp \
+#                  TestProxies.cpp \
+#                  TestStorageStream.cpp \
+#                  TestStrings.cpp \
+#                  TestSynchronization.cpp \
+#                  TestTArray.cpp \
+#                  TestThreadPool.cpp \
+#                  TestThreads.cpp \
+#                  TestTimeStamp.cpp \
+#                  TestXPIDLString.cpp \
+#                  TestUTF.cpp \
+#                  TestAtoms.cpp \
+#                  $(NULL)
+## FIXME: bug 577500 TestStaticAtoms fails when run in dist/bin
+## TestStaticAtoms.cpp
+
+ifdef MOZ_DEBUG
+# FIXME bug 523392: TestDeadlockDetector doesn't like Windows
+# FIXME bug 523378: also fails on OS X
+ifneq (,$(filter-out WINNT Darwin,$(OS_ARCH)))
+CPP_UNIT_TESTS += \
+                  TestDeadlockDetector.cpp \
+                  TestDeadlockDetectorScalability.cpp \
+                  $(NULL)
+endif
+endif
+
+ifndef MOZILLA_INTERNAL_API
+CPP_UNIT_TESTS += \
+                  TestStringAPI.cpp \
+                  $(NULL)
+endif
+
+include $(topsrcdir)/config/config.mk
+
+LIBS += $(XPCOM_LIBS)
+
+# Needed to resolve __yylex (?)
+ifeq ($(OS_ARCH)$(OS_RELEASE),FreeBSD2)
+LIBS		+= -lpcap
+endif
+
+XPCSHELL_TESTS = unit
+
+# Make sure we have symbols in case we need to debug these.
+MOZ_DEBUG_SYMBOLS = 1
+
+include $(topsrcdir)/config/rules.mk
+
+LOCAL_INCLUDES	= \
+                -I$(srcdir)/../ds \
+		-I$(srcdir)/services \
+		$(NULL)
+
+libs::
+	$(INSTALL) $(srcdir)/test.properties $(DIST)/bin/res
+ifneq (,$(SIMPLE_PROGRAMS))
+	$(INSTALL) $(SIMPLE_PROGRAMS) $(DEPTH)/_tests/xpcshell/$(relativesrcdir)/unit
+endif
+
+# Copy TestHarness.h into its own module, for ease of setting up includes
+# correctly.
+export::
+	$(NSINSTALL) -D $(DIST)/include/testing
+	$(INSTALL) $(srcdir)/TestHarness.h $(DIST)/include/testing
+
+install::
+	$(SYSINSTALL) $(IFLAGS1) $(srcdir)/test.properties $(DESTDIR)$(mozappdir)/res
+
+ifeq (,$(filter-out WINNT os2-emx, $(HOST_OS_ARCH)))
+swapslashes = $(shell echo $(1) | sed -e 's|/|\\|g')
+getnativepath = $(call swapslashes,$(call normalizepath,$(1)))
+else
+getnativepath = $(1)
+endif
+
+abs_srcdir = $(shell cd $(srcdir) && pwd)
+
+DIST_PATH = $(DIST)/bin/
+RM_DIST = rm -f
+regOrderDir="$(call getnativepath,$(abs_srcdir)/regorder)";
+DOCOPY=
+
+check::
+	@echo "Running XPIDL tests"
+	$(XPIDL_COMPILE) -m header $(srcdir)/TestScriptable.idl
+	@if grep Notscriptable TestScriptable.h | grep NS_SCRIPTABLE >/dev/null 2>&1 ; then \
+		echo "Nonscriptable object marked scriptable by xpidl"; \
+		exit 1; \
+	fi
+	@if test `grep 'NS_IMETHOD[^I].*Scriptable' TestScriptable.h | grep -v -c NS_SCRIPTABLE` -ne 0 ; then \
+		echo "Scriptable object marked nonscriptable by xpidl"; \
+		exit 1; \
+	fi
+	$(RM_DIST) $(DIST_PATH)components/compreg.dat; \
+	$(DOCOPY) \
+	XPCOM_DEBUG_BREAK=stack-and-abort $(RUN_TEST_PROGRAM) \
+	  $(DIST)/bin/TestRegistrationOrder$(BIN_SUFFIX) $(regOrderDir)
+
+GARBAGE += TestScriptable.h
+
+ifdef STDCXX_COMPAT
+TestCheckedInt: $(STDCXX_COMPAT:.cpp=.$(OBJ_SUFFIX))
+TestCheckedInt: LIBS += $(STDCXX_COMPAT:.cpp=.$(OBJ_SUFFIX))
+endif

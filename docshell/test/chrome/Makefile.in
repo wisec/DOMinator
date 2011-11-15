@@ -1,0 +1,137 @@
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is
+# Sylvain Pasche <sylvain.pasche@gmail.com>.
+# Portions created by the Initial Developer are Copyright (C) 2007
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either of the GNU General Public License Version 2 or later (the "GPL"),
+# or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH		= ../../..
+topsrcdir	= @top_srcdir@
+srcdir		= @srcdir@
+VPATH		= @srcdir@
+relativesrcdir	= docshell/test/chrome 
+
+include $(DEPTH)/config/autoconf.mk
+include $(topsrcdir)/config/rules.mk
+
+_HTTP_FILES =	\
+                bug89419.sjs \
+                blue.png \
+                red.png \
+		92598_nostore.html \
+		92598_nostore.html^headers^ \
+		112564_nocache.html \
+		112564_nocache.html^headers^ \
+		215405_nostore.html \
+		215405_nostore.html^headers^ \
+		215405_nocache.html \
+		215405_nocache.html^headers^ \
+		582176_dummy.html \
+		582176_xml.xml \
+		582176_xslt.xsl \
+		$(NULL)
+
+_TEST_FILES =	\
+                test_bug89419.xul \
+                bug89419_window.xul \
+                89419.html \
+		test_bug92598.xul \
+		bug92598_window.xul \
+		92598_nostore.html \
+		test_bug112564.xul \
+		bug112564_window.xul \
+		test_bug113934.xul \
+		bug113934_window.xul \
+		test_bug215405.xul \
+		bug215405_window.xul \
+		test_bug293235.xul \
+		bug293235_window.xul \
+		bug293235.html \
+		bug293235_p2.html \
+		test_bug294258.xul \
+		bug294258_window.xul \
+		bug294258_testcase.html \
+		test_bug298622.xul \
+		bug298622_window.xul \
+		test_bug301397.xul \
+		bug301397_window.xul \
+		bug301397_1.html \
+		bug301397_2.html \
+		bug301397_3.html \
+		bug301397_4.html \
+		test_bug303267.xul \
+		bug303267.html \
+		bug303267_window.xul \
+		test_bug321671.xul \
+		bug321671_window.xul \
+		test_bug360511.xul \
+		bug360511_window.xul \
+		bug360511_case1.html \
+		bug360511_case2.html \
+		test_bug364461.xul \
+		bug364461_window.xul \
+		test_bug396519.xul \
+		bug396519_window.xul \
+		test_bug396649.xul \
+		bug396649_window.xul \
+		test_bug582176.xul \
+		bug582176_window.xul \
+		test_bug428288.html \
+		test_bug608669.xul \
+		bug608669.xul \
+		test_bug449778.xul \
+		bug449778_window.xul \
+		test_bug449780.xul \
+		bug449780_window.xul \
+		test_bug454235.xul \
+		bug454235-subframe.xul \
+		test_bug456980.xul \
+		test_bug662200.xul \
+		bug662200_window.xul \
+		662200a.html \
+		662200b.html \
+		662200c.html \
+		$(NULL)
+
+_DOCSHELL_SUBHARNESS = \
+    docshell_helpers.js \
+    generic.html \
+    $(NULL)
+
+libs:: $(_HTTP_FILES)
+	$(INSTALL) $(foreach f,$^,"$f") $(DEPTH)/_tests/testing/mochitest/tests/$(relativesrcdir)
+
+libs:: $(_TEST_FILES)
+	$(INSTALL) $(foreach f,$^,"$f") $(DEPTH)/_tests/testing/mochitest/chrome/$(relativesrcdir)
+
+libs:: $(_DOCSHELL_SUBHARNESS)
+	$(INSTALL) $(foreach f,$^,"$f") $(DEPTH)/_tests/testing/mochitest/chrome/$(relativesrcdir)

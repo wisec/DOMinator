@@ -1,0 +1,221 @@
+#
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is
+# Netscape Communications Corporation.
+# Portions created by the Initial Developer are Copyright (C) 1998
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either of the GNU General Public License Version 2 or later (the "GPL"),
+# or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH		= ../../..
+topsrcdir	= @top_srcdir@
+srcdir		= @srcdir@
+VPATH		= @srcdir@
+
+include $(DEPTH)/config/autoconf.mk
+
+MODULE		= content
+LIBRARY_NAME	= gkconbase_s
+LIBXUL_LIBRARY	= 1
+
+
+
+EXPORTS		= \
+		nsAtomListUtils.h \
+		nsAttrName.h \
+		nsContentList.h \
+		nsContentSink.h \
+		nsGkAtomList.h \
+		nsGkAtoms.h \
+		nsNodeInfoManager.h \
+		nsNodeUtils.h \
+		nsPropertyTable.h \
+		nsScriptLoader.h \
+		nsStubDocumentObserver.h \
+		nsStubImageDecoderObserver.h \
+		nsStubMutationObserver.h \
+		nsTextFragment.h \
+		mozAutoDocUpdate.h \
+		$(NULL)
+
+EXPORTS_NAMESPACES = mozilla/dom
+
+EXPORTS_mozilla/dom = \
+  Link.h \
+  $(NULL)
+
+LOCAL_INCLUDES = -I$(srcdir)/js/src/xpconnect/src
+
+CPPSRCS		= \
+		mozSanitizingSerializer.cpp \
+		nsAtomListUtils.cpp \
+		nsAttrAndChildArray.cpp \
+		nsAttrValue.cpp \
+		nsCCUncollectableMarker.cpp \
+		nsChannelPolicy.cpp \
+		nsCommentNode.cpp \
+		nsContentAreaDragDrop.cpp \
+		nsContentIterator.cpp \
+		nsContentList.cpp \
+		nsContentPolicy.cpp \
+		nsContentSink.cpp \
+		nsContentUtils.cpp \
+		nsCopySupport.cpp \
+		nsCrossSiteListenerProxy.cpp \
+		nsCSPService.cpp \
+		nsDataDocumentContentPolicy.cpp \
+		nsDOMAttribute.cpp \
+		nsDOMAttributeMap.cpp \
+		nsDOMBlobBuilder.cpp \
+		nsDOMDocumentType.cpp \
+		nsDOMEventTargetWrapperCache.cpp \
+		nsDOMFile.cpp \
+		nsDOMFileReader.cpp \
+		nsDOMLists.cpp \
+		nsDOMParser.cpp \
+		nsDOMSerializer.cpp \
+		nsDOMTokenList.cpp \
+		nsDOMSettableTokenList.cpp \
+		nsDocument.cpp \
+		nsDocumentEncoder.cpp \
+		nsDocumentFragment.cpp \
+		nsFrameLoader.cpp \
+		nsFormData.cpp \
+		nsGenConImageContent.cpp \
+		nsGenericDOMDataNode.cpp \
+		nsGenericElement.cpp \
+		nsGkAtoms.cpp \
+		nsHTMLContentSerializer.cpp \
+		nsImageLoadingContent.cpp \
+		nsLineBreaker.cpp \
+		nsMappedAttributeElement.cpp \
+		nsMappedAttributes.cpp \
+		nsNameSpaceManager.cpp \
+		nsNoDataProtocolContentPolicy.cpp \
+		nsNodeInfo.cpp \
+		nsNodeInfoManager.cpp \
+		nsNodeIterator.cpp \
+		nsNodeUtils.cpp \
+		nsObjectLoadingContent.cpp \
+		nsParserUtils.cpp \
+		nsPlainTextSerializer.cpp \
+		nsPropertyTable.cpp \
+		nsRange.cpp \
+		nsReferencedElement.cpp \
+		nsScriptElement.cpp \
+		nsScriptLoader.cpp \
+		nsStubDocumentObserver.cpp \
+		nsStubImageDecoderObserver.cpp \
+		nsStubMutationObserver.cpp \
+		nsStyledElement.cpp \
+		nsStyleLinkElement.cpp \
+		nsSyncLoadService.cpp \
+		nsTextFragment.cpp \
+		nsTextNode.cpp \
+		nsTraversal.cpp \
+		nsTreeSanitizer.cpp \
+		nsTreeWalker.cpp \
+		nsWebSocket.cpp \
+		nsXHTMLContentSerializer.cpp \
+		nsXMLContentSerializer.cpp \
+		nsXMLHttpRequest.cpp \
+		nsXMLNameSpaceMap.cpp \
+		Link.cpp \
+		nsFileDataProtocolHandler.cpp \
+		nsFrameMessageManager.cpp \
+		nsInProcessTabChildGlobal.cpp \
+		ThirdPartyUtil.cpp \
+		nsEventSource.cpp \
+		$(NULL)
+
+# Are we targeting x86-32 or x86-64?  If so, we want to include SSE2 code for
+# nsTextFragment.cpp
+ifneq (,$(INTEL_ARCHITECTURE))
+
+CPPSRCS += nsTextFragmentSSE2.cpp
+
+# gcc requires -msse2 for this file since it uses SSE2 intrinsics.  (See bug
+# 585538 comment 12.)
+ifdef GNU_CC
+nsTextFragmentSSE2.$(OBJ_SUFFIX): CXXFLAGS+=-msse2
+endif
+
+ifdef SOLARIS_SUNPRO_CXX
+nsTextFragmentSSE2.$(OBJ_SUFFIX): CXXFLAGS+=-xarch=sse2 -xO4
+endif
+endif
+
+GQI_SRCS = contentbase.gqi
+
+# we don't want the shared lib, but we want to force the creation of a
+# static lib.
+FORCE_STATIC_LIB = 1
+
+EXTRA_COMPONENTS = \
+		$(srcdir)/nsBadCertHandler.js \
+		nsBadCertHandler.manifest \
+		contentSecurityPolicy.js \
+		contentSecurityPolicy.manifest \
+		contentAreaDropListener.js \
+		contentAreaDropListener.manifest \
+		messageWakeupService.js \
+		messageWakeupService.manifest \
+		$(NULL)
+
+EXTRA_JS_MODULES = \
+		CSPUtils.jsm \
+		$(NULL)
+
+include $(topsrcdir)/config/config.mk
+include $(topsrcdir)/ipc/chromium/chromium-config.mk
+include $(topsrcdir)/config/rules.mk
+
+INCLUDES	+= \
+		-I$(srcdir)/../../events/src \
+		-I$(srcdir)/../../xml/content/src \
+		-I$(srcdir)/../../../layout/xul/base/src \
+		-I$(srcdir)/../../xul/content/src \
+		-I$(srcdir)/../../html/content/src \
+		-I$(srcdir)/../../base/src \
+		-I$(srcdir)/../../xbl/src \
+		-I$(srcdir)/../../../layout/generic \
+		-I$(srcdir)/../../../layout/style \
+		-I$(srcdir)/../../../dom/base \
+		-I$(srcdir)/../../xml/document/src \
+		-I$(topsrcdir)/xpcom/io \
+		-I$(topsrcdir)/dom/ipc \
+		-I$(topsrcdir)/js/src/xpconnect/src \
+		-I$(topsrcdir)/caps/include \
+		-I$(topsrcdir)/netwerk/base/src \
+		-I$(topsrcdir)/xpcom/ds \
+		$(NULL)
+
+DEFINES += -D_IMPL_NS_LAYOUT

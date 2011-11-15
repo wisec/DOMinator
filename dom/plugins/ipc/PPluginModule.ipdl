@@ -1,0 +1,163 @@
+/* -*- Mode: C++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 8 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Plugins.
+ *
+ * The Initial Developer of the Original Code is
+ *   Chris Jones <jones.chris.g@gmail.com>.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Benjamin Smedberg <benjamin@smedbergs.us>
+ *   Ben Turner <bent.mozilla@gmail.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+include protocol PPluginIdentifier;
+include protocol PPluginInstance;
+include protocol PPluginScriptableObject;
+
+include "npapi.h";
+include "mozilla/plugins/PluginMessageUtils.h";
+
+using NPError;
+using NPNVariable;
+using base::FileDescriptor;
+using mozilla::plugins::NativeThreadId;
+using mac_plugin_interposing::NSCursorInfo;
+using nsID;
+
+namespace mozilla {
+namespace plugins {
+
+rpc protocol PPluginModule
+{
+  manages PPluginInstance;
+  manages PPluginIdentifier;
+
+both:
+  /**
+   * Sending a void string to this constructor creates an int identifier whereas
+   * sending a non-void string will create a string identifier. This constructor
+   * may be called by either child or parent. If a race occurs by calling the
+   * constructor with the same string or int argument then we create two actors
+   * and detect the second instance in the child. We prevent the parent's actor
+   * from leaking out to plugin code and only allow the child's to be used.
+   *
+   * When calling into the plugin, the parent may create a "temporary"
+   * identifier which is only valid for the lifetime of the current RPC frame.
+   */
+  async PPluginIdentifier(nsCString aString,
+                          int32_t aInt,
+                          bool temporary);
+
+  // Window-specific message which instructs the RPC mechanism to enter
+  // a nested event loop for the current RPC call.
+  async ProcessNativeEventsInRPCCall();
+
+child:
+  // Forces the child process to update its plugin function table.
+  rpc NP_GetEntryPoints()
+    returns (NPError rv);
+
+  // Return the plugin's thread ID, if it can be found.
+  rpc NP_Initialize()
+    returns (NativeThreadId tid, NPError rv);
+
+  rpc PPluginInstance(nsCString aMimeType,
+                      uint16_t aMode,
+                      nsCString[] aNames,
+                      nsCString[] aValues)
+    returns (NPError rv);
+
+  rpc NP_Shutdown()
+    returns (NPError rv);
+
+  rpc OptionalFunctionsSupported()
+    returns (bool aURLRedirectNotify, bool aClearSiteData,
+             bool aGetSitesWithData);
+
+  rpc NPP_ClearSiteData(nsCString site, uint64_t flags, uint64_t maxAge)
+    returns (NPError rv);
+
+  rpc NPP_GetSitesWithData()
+    returns (nsCString[] sites);
+
+  // Windows specific message to set up an audio session in the plugin process
+  async SetAudioSessionData(nsID aID,
+                            nsString aDisplayName,
+                            nsString aIconPath);
+
+parent:
+  /**
+   * This message is only used on X11 platforms.
+   *
+   * Send a dup of the plugin process's X socket to the parent
+   * process.  In theory, this scheme keeps the plugin's X resources
+   * around until after both the plugin process shuts down *and* the
+   * parent process closes the dup fd.  This is used to prevent the
+   * parent process from crashing on X errors if, e.g., the plugin
+   * crashes *just before* a repaint and the parent process tries to
+   * use the newly-invalid surface.
+   */
+  async BackUpXResources(FileDescriptor aXSocketFd);
+
+  rpc NPN_UserAgent()
+    returns (nsCString userAgent);
+
+  rpc NPN_GetValue_WithBoolReturn(NPNVariable aVariable)
+    returns (NPError aError,
+             bool aBoolVal);
+
+  // Wake up and process a few native events.  Periodically called by
+  // Gtk-specific code upon detecting that the plugin process has
+  // entered a nested event loop.  If the browser doesn't process
+  // native events, then "livelock" and some other glitches can occur.
+  rpc ProcessSomeEvents();
+
+  sync AppendNotesToCrashReport(nsCString aNotes);
+
+  // OS X Specific calls to manage the plugin's window
+  // when interposing system calls.
+  async PluginShowWindow(uint32_t aWindowId, bool aModal,
+                         int32_t aX, int32_t aY,
+                         size_t aWidth, size_t aHeight);
+  async PluginHideWindow(uint32_t aWindowId);
+
+  // OS X Specific calls to allow the plugin to manage the cursor.
+  async SetCursor(NSCursorInfo cursorInfo);
+  async ShowCursor(bool show);
+  async PushCursor(NSCursorInfo cursorInfo);
+  async PopCursor();
+  sync GetNativeCursorsSupported() returns (bool supported);
+
+  sync NPN_SetException(nullable PPluginScriptableObject actor,
+                        nsCString message);
+};
+
+} // namespace plugins
+} // namespace mozilla

@@ -1,0 +1,504 @@
+<html>
+
+<head>
+  <title>Text attributes tests</title>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" type="text/css" href="chrome://mochikit/content/tests/SimpleTest/test.css" />
+
+  <script type="application/javascript"
+          src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+
+  <script type="application/javascript"
+          src="../common.js"></script>
+  <script type="application/javascript"
+          src="../attributes.js"></script>
+  <script type="application/javascript"
+          src="../events.js"></script>
+
+  <script type="application/javascript">
+    var gComputedStyle = null;
+
+    function doTest()
+    {
+      //////////////////////////////////////////////////////////////////////////
+      // area1
+      var ID = "area1";
+      var defAttrs = buildDefaultTextAttrs(ID, "10pt");
+      testDefaultTextAttrs(ID, defAttrs);
+
+      var attrs = {};
+      testTextAttrs(ID, 0, attrs, defAttrs, 0, 7);
+
+      attrs = { "font-weight": kBoldFontWeight };
+      testTextAttrs(ID, 7, attrs, defAttrs, 7, 11);
+
+      attrs = {};
+      testTextAttrs(ID, 12, attrs, defAttrs, 11, 18);
+
+      //////////////////////////////////////////////////////////////////////////
+      // area2
+      ID = "area2";
+      defAttrs = buildDefaultTextAttrs(ID, "14pt");
+      testDefaultTextAttrs(ID, defAttrs);
+
+      attrs = {};
+      testTextAttrs(ID, 0, attrs, defAttrs, 0, 7);
+
+      attrs = { "font-weight": kBoldFontWeight };
+      testTextAttrs(ID, 7, attrs, defAttrs, 7, 12);
+
+      var tempElem = getNode(ID).firstChild.nextSibling.firstChild.nextSibling;
+      gComputedStyle = document.defaultView.getComputedStyle(tempElem, "");
+      attrs = {"font-style": gComputedStyle.fontStyle,
+               "font-weight": kBoldFontWeight };
+      testTextAttrs(ID, 13, attrs, defAttrs, 12, 19);
+
+      attrs = { "font-weight": kBoldFontWeight };
+      testTextAttrs(ID, 20, attrs, defAttrs, 19, 23);
+
+      attrs = {};
+      testTextAttrs(ID, 24, attrs, defAttrs, 23, 30);
+
+      //////////////////////////////////////////////////////////////////////////
+      // area3
+      ID = "area3";
+      defAttrs = buildDefaultTextAttrs(ID, "12pt");
+      testDefaultTextAttrs(ID, defAttrs);
+
+      tempElem = getNode(ID).firstChild.nextSibling;
+      gComputedStyle = document.defaultView.getComputedStyle(tempElem, "");
+      attrs = {"color": gComputedStyle.color};
+      testTextAttrs(ID, 0, attrs, defAttrs, 0, 6);
+
+      tempElem = tempElem.firstChild.nextSibling;
+      gComputedStyle = document.defaultView.getComputedStyle(tempElem, "");
+      attrs = {"color": gComputedStyle.color};
+      testTextAttrs(ID, 6, attrs, defAttrs, 6, 26);
+
+      tempElem = tempElem.parentNode;
+      gComputedStyle = document.defaultView.getComputedStyle(tempElem, "");
+      attrs = {"color": gComputedStyle.color};
+      testTextAttrs(ID, 26, attrs, defAttrs, 26, 27);
+
+      tempElem = tempElem.nextSibling;
+      gComputedStyle = document.defaultView.getComputedStyle(tempElem, "");
+      attrs = {"color": gComputedStyle.color,
+               "background-color": gComputedStyle.backgroundColor};
+      testTextAttrs(ID, 27, attrs, defAttrs, 27, 50);
+
+      //////////////////////////////////////////////////////////////////////////
+      // area4
+      ID = "area4";
+      defAttrs = buildDefaultTextAttrs(ID, "12pt");
+      testDefaultTextAttrs(ID, defAttrs);
+
+      tempElem = getNode(ID).firstChild.nextSibling;
+      gComputedStyle = document.defaultView.getComputedStyle(tempElem, "");
+      attrs = {"color": gComputedStyle.color};
+      testTextAttrs(ID, 0, attrs, defAttrs, 0, 16);
+
+      tempElem = tempElem.nextSibling.firstChild.nextSibling;
+      gComputedStyle = document.defaultView.getComputedStyle(tempElem, "");
+      attrs = {"color": gComputedStyle.color};
+      testTextAttrs(ID, 16, attrs, defAttrs, 16, 33);
+
+      tempElem = tempElem.parentNode;
+      gComputedStyle = document.defaultView.getComputedStyle(tempElem, "");
+      attrs = {"color": gComputedStyle.color};
+      testTextAttrs(ID, 34, attrs, defAttrs, 33, 46);
+
+      //////////////////////////////////////////////////////////////////////////
+      // area5: "Green!*!RedNormal"
+      ID = "area5";
+      defAttrs = buildDefaultTextAttrs(ID, "12pt");
+      testDefaultTextAttrs(ID, defAttrs);
+
+      // Green
+      tempElem = getNode(ID).firstChild.nextSibling;
+      gComputedStyle = document.defaultView.getComputedStyle(tempElem, "");
+      attrs = {"color": gComputedStyle.color};
+      testTextAttrs(ID, 0, attrs, defAttrs, 0, 5);
+
+      // br
+      attrs = {};
+      testTextAttrs(ID, 5, attrs, defAttrs, 5, 6);
+
+      // img, embedded accessible, no attributes
+      attrs = {};
+      testTextAttrs(ID, 6, attrs, {}, 6, 7);
+
+      // br
+      attrs = {};
+      testTextAttrs(ID, 7, attrs, defAttrs, 7, 8);
+
+      // Red
+      tempElem = tempElem.nextSibling.nextSibling.nextSibling.nextSibling;
+      gComputedStyle = document.defaultView.getComputedStyle(tempElem, "");
+      attrs = {"color": gComputedStyle.color};
+      testTextAttrs(ID, 9, attrs, defAttrs, 8, 11);
+
+      // Normal
+      attrs = {};
+      testTextAttrs(ID, 11, attrs, defAttrs, 11, 18);
+
+      //////////////////////////////////////////////////////////////////////////
+      // area6 (CSS vertical-align property, bug 445938)
+      ID = "area6";
+      defAttrs = buildDefaultTextAttrs(ID, "12pt");
+      testDefaultTextAttrs(ID, defAttrs);
+
+      attrs = {};
+      testTextAttrs(ID, 0, attrs, defAttrs, 0, 5);
+
+      tempElem = getNode(ID).firstChild.nextSibling;
+      gComputedStyle = document.defaultView.getComputedStyle(tempElem, "");
+      attrs = {"text-position": gComputedStyle.verticalAlign,
+               "font-size": "10pt"};
+      testTextAttrs(ID, 5, attrs, defAttrs, 5, 13);
+
+      attrs = {};
+      testTextAttrs(ID, 13, attrs, defAttrs, 13, 27);
+
+      tempElem = tempElem.nextSibling.nextSibling;
+      gComputedStyle = document.defaultView.getComputedStyle(tempElem, "");
+      attrs = {"text-position": gComputedStyle.verticalAlign};
+      testTextAttrs(ID, 27, attrs, defAttrs, 27, 35);
+
+      attrs = {};
+      testTextAttrs(ID, 35, attrs, defAttrs, 35, 39);
+
+      tempElem = tempElem.nextSibling.nextSibling;
+      gComputedStyle = document.defaultView.getComputedStyle(tempElem, "");
+      attrs = {"text-position": gComputedStyle.verticalAlign,
+               "font-size": "10pt"};
+      testTextAttrs(ID, 39, attrs, defAttrs, 39, 50);
+
+      attrs = {};
+      testTextAttrs(ID, 50, attrs, defAttrs, 50, 55);
+
+      tempElem = tempElem.nextSibling.nextSibling;
+      gComputedStyle = document.defaultView.getComputedStyle(tempElem, "");
+      attrs = {"text-position": gComputedStyle.verticalAlign};
+      testTextAttrs(ID, 55, attrs, defAttrs, 55, 64);
+
+      //////////////////////////////////////////////////////////////////////////
+      // area7
+      ID = "area7";
+      defAttrs = buildDefaultTextAttrs(ID, "12pt");
+      defAttrs["language"] = "en";
+      testDefaultTextAttrs(ID, defAttrs);
+
+      attrs = {"language": "ru"};
+      testTextAttrs(ID, 0, attrs, defAttrs, 0, 6);
+
+      attrs = {};
+      testTextAttrs(ID, 6, attrs, defAttrs, 6, 7);
+
+      tempElem = getNode(ID).firstChild.nextSibling.nextSibling.nextSibling;
+      gComputedStyle = document.defaultView.getComputedStyle(tempElem, "");
+      attrs = { "background-color": gComputedStyle.backgroundColor};
+      testTextAttrs(ID, 13, attrs, defAttrs, 7, 20);
+
+      attrs = {};
+      testTextAttrs(ID, 20, attrs, defAttrs, 20, 21);
+
+      attrs = {"language": "de"};
+      testTextAttrs(ID, 21, attrs, defAttrs, 21, 36);
+
+      attrs = {};
+      testTextAttrs(ID, 36, attrs, defAttrs, 36, 44);
+
+      attrs = {};
+      testTextAttrs(ID, 37, attrs, defAttrs, 36, 44);
+
+      tempElem = tempElem.nextSibling.nextSibling.nextSibling.nextSibling.firstChild.nextSibling;
+      gComputedStyle = document.defaultView.getComputedStyle(tempElem, "");
+      attrs = {"color": gComputedStyle.color};
+      testTextAttrs(ID, 44, attrs, defAttrs, 44, 51);
+
+      tempElem = tempElem.firstChild.nextSibling;
+      gComputedStyle = document.defaultView.getComputedStyle(tempElem, "");
+      attrs = {"font-weight": kBoldFontWeight,
+               "color": gComputedStyle.color};
+      testTextAttrs(ID, 51, attrs, defAttrs, 51, 55);
+
+      tempElem = tempElem.parentNode;
+      gComputedStyle = document.defaultView.getComputedStyle(tempElem, "");
+      attrs = {"color": gComputedStyle.color};
+      testTextAttrs(ID, 55, attrs, defAttrs, 55, 62);
+
+      //////////////////////////////////////////////////////////////////////////
+      // area9, different single style spans in styled paragraph
+      ID = "area9";
+      defAttrs = buildDefaultTextAttrs(ID, "10pt");
+      testDefaultTextAttrs(ID, defAttrs);
+
+      attrs = {};
+      testTextAttrs(ID, 0, attrs, defAttrs, 0, 6);
+
+      attrs = { "font-size": "12pt" };
+      testTextAttrs(ID, 7, attrs, defAttrs, 6, 12);
+
+      attrs = {};
+      testTextAttrs(ID, 13, attrs, defAttrs, 12, 21);
+
+      // Walk to the span with the different background color
+      tempElem = getNode(ID).firstChild.nextSibling.nextSibling.nextSibling;
+      gComputedStyle = document.defaultView.getComputedStyle(tempElem, "");
+      attrs = { "background-color": gComputedStyle.backgroundColor };
+      testTextAttrs(ID, 22, attrs, defAttrs, 21, 36);
+
+      attrs = {};
+      testTextAttrs(ID, 37, attrs, defAttrs, 36, 44);
+
+      // Walk from the background color span to the one with font-style
+      tempElem = tempElem.nextSibling.nextSibling;
+      gComputedStyle = document.defaultView.getComputedStyle(tempElem, "");
+      attrs = { "font-style": gComputedStyle.fontStyle };
+      testTextAttrs(ID, 45, attrs, defAttrs, 44, 61);
+
+      attrs = {};
+      testTextAttrs(ID, 62, attrs, defAttrs, 61, 69);
+
+      // Walk from span with font-style to the one with font-family.
+      tempElem = tempElem.nextSibling.nextSibling;
+      gComputedStyle = document.defaultView.getComputedStyle(tempElem, "");
+      attrs = { "font-family": gComputedStyle.fontFamily };
+      testTextAttrs(ID, 70, attrs, defAttrs, 69, 83);
+
+      attrs = {};
+      testTextAttrs(ID, 84, attrs, defAttrs, 83, 91);
+
+      attrs = { "text-underline-style": "solid" };
+      testTextAttrs(ID, 92, attrs, defAttrs, 91, 101);
+
+      attrs = {};
+      testTextAttrs(ID, 102, attrs, defAttrs, 101, 109);
+
+      attrs = { "text-line-through-style": "solid" };
+      testTextAttrs(ID, 110, attrs, defAttrs, 109, 122);
+
+      attrs = {};
+      testTextAttrs(ID, 123, attrs, defAttrs, 122, 130);
+
+      // area10, different single style spans in non-styled paragraph
+      ID = "area10";
+      defAttrs = buildDefaultTextAttrs(ID, "12pt");
+      testDefaultTextAttrs(ID, defAttrs);
+
+      attrs = {};
+      testTextAttrs(ID, 0, attrs, defAttrs, 0, 7);
+
+      attrs = { "font-size": "14pt" };
+      testTextAttrs(ID, 7, attrs, defAttrs, 7, 13);
+
+      attrs = {};
+      testTextAttrs(ID, 13, attrs, defAttrs, 13, 22);
+
+      // Walk to the span with the different background color
+      tempElem = getNode(ID).firstChild.nextSibling.nextSibling.nextSibling;
+      gComputedStyle = document.defaultView.getComputedStyle(tempElem, "");
+      attrs = { "background-color": gComputedStyle.backgroundColor };
+      testTextAttrs(ID, 23, attrs, defAttrs, 22, 37);
+
+      attrs = {};
+      testTextAttrs(ID, 38, attrs, defAttrs, 37, 45);
+
+      // Walk from the background color span to the one with font-style
+      tempElem = tempElem.nextSibling.nextSibling;
+      gComputedStyle = document.defaultView.getComputedStyle(tempElem, "");
+      attrs = {"font-style": gComputedStyle.fontStyle};
+      testTextAttrs(ID, 46, attrs, defAttrs, 45, 62);
+
+      attrs = {};
+      testTextAttrs(ID, 63, attrs, defAttrs, 62, 70);
+
+      // Walk from span with font-style to the one with font-family.
+      tempElem = tempElem.nextSibling.nextSibling;
+      gComputedStyle = document.defaultView.getComputedStyle(tempElem, "");
+      attrs = {"font-family": gComputedStyle.fontFamily};
+      testTextAttrs(ID, 71, attrs, defAttrs, 70, 84);
+
+      attrs = {};
+      testTextAttrs(ID, 85, attrs, defAttrs, 84, 92);
+
+      attrs = { "text-underline-style": "solid" };
+      testTextAttrs(ID, 93, attrs, defAttrs, 92, 102);
+
+      attrs = {};
+      testTextAttrs(ID, 103, attrs, defAttrs, 102, 110);
+
+      attrs = { "text-line-through-style": "solid" };
+      testTextAttrs(ID, 111, attrs, defAttrs, 110, 123);
+
+      attrs = {};
+      testTextAttrs(ID, 124, attrs, defAttrs, 123, 131);
+
+      // area11, "font-weight" tests
+      ID = "area11";
+      defAttrs = buildDefaultTextAttrs(ID, "12pt", kBoldFontWeight);
+      testDefaultTextAttrs(ID, defAttrs);
+
+      attrs = { };
+      testTextAttrs(ID, 0, attrs, defAttrs, 0, 13);
+
+      attrs = { "font-weight": kNormalFontWeight };
+      testTextAttrs(ID, 13, attrs, defAttrs, 13, 20);
+
+      attrs = { };
+      testTextAttrs(ID, 20, attrs, defAttrs, 20, 27);
+
+      attrs = { "font-weight": kNormalFontWeight };
+      testTextAttrs(ID, 27, attrs, defAttrs, 27, 33);
+
+      attrs = { };
+      testTextAttrs(ID, 33, attrs, defAttrs, 33, 51);
+
+      attrs = { "font-weight": kNormalFontWeight };
+      testTextAttrs(ID, 51, attrs, defAttrs, 51, 57);
+
+      attrs = { };
+      testTextAttrs(ID, 57, attrs, defAttrs, 57, 97);
+
+      //////////////////////////////////////////////////////////////////////////
+      // test out of range offset
+      testTextAttrsWrongOffset("area12", -1);
+      testTextAttrsWrongOffset("area12", 500);
+
+      //////////////////////////////////////////////////////////////////////////
+      // test zero offset on empty hypertext accessibles
+      ID = "area13";
+      defAttrs = buildDefaultTextAttrs(ID, "12pt");
+      attrs = { };
+      testTextAttrs(ID, 0, attrs, defAttrs, 0, 0);
+
+      ID = "area14";
+      defAttrs = buildDefaultTextAttrs(ID, kInputFontSize);
+
+      attrs = { };
+      testTextAttrs(ID, 0, attrs, defAttrs, 0, 0);
+
+      //////////////////////////////////////////////////////////////////////////
+      // area15, embed char tests, "*plain*plain**bold*bold*"
+      ID = "area15";
+      defAttrs = buildDefaultTextAttrs(ID, "12pt");
+
+      // p
+      testTextAttrs(ID, 0, { }, { }, 0, 1);
+      // plain
+      testTextAttrs(ID, 1, { }, defAttrs, 1, 6);
+      // p
+      testTextAttrs(ID, 6, { }, { }, 6, 7);
+      // plain
+      testTextAttrs(ID, 7, { }, defAttrs, 7, 12);
+      // p and img
+      testTextAttrs(ID, 12, { }, { }, 12, 14);
+      // bold
+      attrs = { "font-weight": kBoldFontWeight };
+      testTextAttrs(ID, 14, attrs, defAttrs, 14, 18);
+      // p
+      testTextAttrs(ID, 18, { }, { }, 18, 19);
+      // bold
+      attrs = { "font-weight": kBoldFontWeight };
+      testTextAttrs(ID, 19, attrs, defAttrs, 19, 23);
+      // p
+      testTextAttrs(ID, 23, { }, { }, 23, 24);
+
+      SimpleTest.finish();
+    }
+
+    SimpleTest.waitForExplicitFinish();
+    addA11yLoadEvent(doTest);
+  </script>
+</head>
+<body style="font-size: 12pt">
+
+  <a target="_blank"
+     href="https://bugzilla.mozilla.org/show_bug.cgi?id=345759"
+     title="Implement text attributes">
+    Mozilla Bug 345759
+  </a>
+  <p id="display"></p>
+  <div id="content" style="display: none"></div>
+  <pre id="test">
+  </pre>
+
+  <p id="area1" style="font-size: smaller">Normal <b>Bold</b> Normal</p>
+  <p id="area2" style="font-size: 120%">Normal <b>Bold <i>Italic </i>Bold</b> Normal</p>
+  <p id="area3" style="background-color: blue;">
+    <span style="color: green; background-color: rgb(0, 0, 255)">
+      Green
+      <span style="color: red">but children are red</span>
+    </span><span style="color: green; background-color: rgb(255, 255, 0);">
+      Another green section.
+    </span>
+  </p>
+  <p id="area4">
+    <span style="color: green">
+      Green
+    </span><span style="color: green">
+      Green too
+      <span style="color: red">with red children</span>
+      Green again
+    </span>
+  </p>
+  <!-- Green!*!RedNormal-->
+  <p id="area5">
+    <span style="color: green">Green</span>
+    <img src="../moz.png" alt="image"/>
+    <span style="color: red">Red</span>Normal
+  </p>
+  <p id="area6">
+    This <sup>sentence</sup> has the word 
+    <span style="vertical-align:super;">sentence</span> in 
+    <sub>superscript</sub> and 
+    <span style="vertical-align:sub;">subscript</span>
+  </p>
+
+  <p lang="en" id="area7">
+    <span lang="ru">Привет</span>
+    <span style="background-color: blue">Blue BG color</span>
+    <span lang="de">Ich bin/Du bist</span>
+    <span lang="en">
+      Normal
+      <span style="color: magenta">Magenta<b>Bold</b>Magenta</span>
+    </span>
+  </p>
+
+  <p id="area9" style="font-size: smaller">Small
+    <span style="font-size: 120%">bigger</span> smaller
+    <span style="background-color: blue;">background blue</span> normal
+    <span style="font-style: italic;">Different styling</span> normal
+    <span style="font-family: tahoma;">Different font</span> normal
+    <span style="text-decoration: underline;">underlined</span> normal
+    <span style="text-decoration: line-through;">strikethrough</span> normal
+  </p>
+
+  <p id="area10">Normal
+    <span style="font-size: 120%">bigger</span> smaller
+    <span style="background-color: blue;">background blue</span> normal
+    <span style="font-style: italic;">Different styling</span> normal
+    <span style="font-family: tahoma;">Different font</span> normal
+    <span style="text-decoration: underline;">underlined</span> normal
+    <span style="text-decoration: line-through;">strikethrough</span> normal
+  </p>
+
+  <p id="area11" style="font-weight: bolder;">
+    <span style="font-weight: bolder;">bolder</span>bolder
+    <span style="font-weight: lighter;">lighter</span>bolder
+    <span style="font-weight: normal;">normal</span>bolder
+    <b>bold</b>bolder
+    <span style="font-weight: 400;">normal</span>bolder
+    <span style="font-weight: 700;">bold</span>bolder
+    <span style="font-weight: bold;">bold</span>bolder
+    <span style="font-weight: 900;">bold</span>bolder
+  </p>
+
+  <p id="area12">hello</p>
+  <p id="area13"></p>
+  <input id="area14">
+
+  <!-- *plain*plain**bold*bold*-->
+  <div id="area15"><p>embed</p>plain<p>embed</p>plain<p>embed</p><img src="../moz.png" alt="image"/><b>bold</b><p>embed</p><b>bold</b><p>embed</p></div>
+</body>
+</html>

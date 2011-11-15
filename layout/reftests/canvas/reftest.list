@@ -1,0 +1,69 @@
+== default-size.html default-size-ref.html
+== size-1.html size-1-ref.html
+
+== image-rendering-test.html image-rendering-ref.html
+== image-shadow.html image-shadow-ref.html
+
+asserts-if(cocoaWidget,0-2) == size-change-1.html size-change-1-ref.html
+
+!= text-ltr-left.html text-blank.html
+!= text-ltr-right.html text-blank.html
+!= text-rtl-left.html text-blank.html
+!= text-rtl-right.html text-blank.html
+
+== text-ltr-start.html text-ltr-left.html
+== text-ltr-end.html text-ltr-right.html
+!= text-ltr-left.html text-ltr-right.html
+== text-rtl-start.html text-rtl-right.html
+== text-rtl-end.html text-rtl-left.html
+!= text-rtl-left.html text-rtl-right.html
+
+== text-ltr-left.html text-rtl-left.html
+
+== text-ltr-alignment-test.html text-ltr-alignment-ref.html
+== text-rtl-alignment-test.html text-rtl-alignment-ref.html
+
+== text-horzline-with-bottom.html text-horzline.html
+== text-horzline-with-top.html text-horzline.html
+
+!= text-big-stroke.html text-blank.html
+!= text-big-stroke.html text-big-fill.html
+
+== text-context-state-test.html text-context-state-ref.html
+== text-font-inherit.html text-big-fill.html
+== text-space-replace-test.html text-space-replace-ref.html
+
+== text-no-frame-test.html text-no-frame-ref.html
+== text-no-frame-2-test.html text-not-in-doc-ref.html
+== text-not-in-doc-test.html text-not-in-doc-ref.html
+
+== text-bidi-ltr-test.html text-bidi-ltr-ref.html
+== text-bidi-rtl-test.html text-bidi-rtl-ref.html
+
+fails-if(Android) != text-font-lang.html text-font-lang-notref.html
+
+== text-measure.html text-measure-ref.html
+
+== strokeText-path.html strokeText-path-ref.html
+
+# gradient off-by-one, fails on windows and linux
+== linear-gradient-1a.html linear-gradient-1-ref.html
+fails-if(cocoaWidget) == linear-gradient-1b.html linear-gradient-1-ref.html
+
+== zero-dimensions.html zero-dimensions-ref.html
+
+== evenodd-fill-sanity.html data:text/html,<body>Pass
+!= evenodd-fill-1.html nonzero-fill-1.html
+== evenodd-fill-1.html evenodd-fill-ref.html
+== evenodd-fill-2.html evenodd-fill-ref.html
+== evenodd-fill-3.html nonzero-fill-2.html
+
+== dash-sanity.html data:text/html,<body>Pass
+random-if(Android) == dash-1.html dash-1-ref.svg  # Bug 668412 (really is android-specific, not IPC-specific)
+
+== ctm-sanity.html data:text/html,<body>Pass
+fails == ctm-singular-sanity.html data:text/html,<body>Pass  # Bug 612033
+== ctm-1.html ctm-1-ref.html
+
+fails-if(cocoaWidget) == 672646-alpha-radial-gradient.html 672646-alpha-radial-gradient-ref.html # Bug 673333
+== 674003-alpha-radial-gradient-superlum.html 674003-alpha-radial-gradient-superlum-ref.html

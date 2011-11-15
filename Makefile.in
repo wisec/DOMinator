@@ -1,0 +1,227 @@
+#
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is
+# Netscape Communications Corporation.
+# Portions created by the Initial Developer are Copyright (C) 1998
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either the GNU General Public License Version 2 or later (the "GPL"), or
+# the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH		= .
+topsrcdir	= @top_srcdir@
+srcdir		= @srcdir@
+VPATH		= @srcdir@
+
+ifndef .PYMAKE
+ifeq (,$(MAKE_VERSION))
+$(error GNU Make is required)
+endif
+ifeq (,$(filter-out 3.78 3.79,$(MAKE_VERSION)))
+$(error GNU Make 3.80 or higher is required)
+endif
+endif
+
+include $(DEPTH)/config/autoconf.mk
+
+default::
+
+TIERS += base
+
+#
+# tier "base" - basic setup
+#
+tier_base_dirs = \
+	config \
+	build \
+	probes \
+	$(NULL)
+
+ifndef LIBXUL_SDK
+tier_base_dirs += \
+	memory \
+	$(NULL)
+ifeq ($(OS_TARGET),Android)
+tier_base_dirs += other-licenses/android
+endif
+
+endif
+
+ifdef COMPILE_ENVIRONMENT
+include $(topsrcdir)/$(MOZ_BUILD_APP)/build.mk
+endif
+
+
+include $(topsrcdir)/config/config.mk
+
+GARBAGE_DIRS += dist _javagen _profile _tests staticlib
+DIST_GARBAGE = config.cache config.log config.status config-defs.h \
+   config/autoconf.mk \
+   unallmakefiles mozilla-config.h \
+   netwerk/necko-config.h xpcom/xpcom-config.h xpcom/xpcom-private.h \
+   $(topsrcdir)/.mozconfig.mk $(topsrcdir)/.mozconfig.out
+
+default alldep all:: $(topsrcdir)/configure config.status
+	$(RM) -r $(DIST)/sdk
+	$(RM) -r $(DIST)/include
+	$(RM) -r $(DIST)/private
+	$(RM) -r $(DIST)/public
+	$(RM) -r $(DIST)/bin/components
+	$(RM) -r _tests
+
+$(topsrcdir)/configure: $(topsrcdir)/configure.in
+	@echo "STOP!  configure.in has changed, and your configure is out of date."
+	@echo "Please rerun autoconf and re-configure your build directory."
+	@echo "To ignore this message, touch 'configure' in the source directory,"
+	@echo "but your build might not succeed."
+	@exit 1
+
+config.status: $(topsrcdir)/configure
+	@echo "STOP!  configure has changed and needs to be run in this build directory."
+	@echo "Please rerun configure."
+	@echo "To ignore this message, touch 'config.status' in the build directory,"
+	@echo "but your build might not succeed."
+	@exit 1
+
+# Build pseudo-external modules first when export is explicitly called
+export::
+	$(RM) -r $(DIST)/sdk
+	$(MAKE) -C config export
+	$(MAKE) tier_nspr
+
+ifdef ENABLE_TESTS
+# Additional makefile targets to call automated test suites
+include $(topsrcdir)/testing/testsuite-targets.mk
+endif
+
+include $(topsrcdir)/config/rules.mk
+
+distclean::
+	cat unallmakefiles | $(XARGS) rm -f
+	$(RM) unallmakefiles $(DIST_GARBAGE)
+
+ifeq ($(OS_ARCH),WINNT)
+# we want to copy PDB files on Windows
+MAKE_SYM_STORE_ARGS := -c --vcs-info
+ifdef PDBSTR_PATH
+MAKE_SYM_STORE_ARGS += -i
+endif
+DUMP_SYMS_BIN ?= $(topsrcdir)/toolkit/crashreporter/tools/win32/dump_syms_vc$(_MSC_VER).exe
+# PDB files don't get moved to dist, so we need to scan the whole objdir
+MAKE_SYM_STORE_PATH := .
+endif
+ifeq ($(OS_ARCH),Darwin)
+# need to pass arch flags for universal builds
+ifdef UNIVERSAL_BINARY
+MAKE_SYM_STORE_ARGS := -c -a "i386 x86_64" --vcs-info
+MAKE_SYM_STORE_PATH := $(DIST)/universal
+else
+MAKE_SYM_STORE_ARGS := -c -a $(OS_TEST) --vcs-info
+MAKE_SYM_STORE_PATH := $(DIST)/bin
+endif
+DUMP_SYMS_BIN ?= $(DIST)/host/bin/dump_syms
+endif
+ifeq (,$(filter-out Linux SunOS,$(OS_ARCH)))
+MAKE_SYM_STORE_ARGS := -c --vcs-info
+DUMP_SYMS_BIN ?= $(DIST)/host/bin/dump_syms
+MAKE_SYM_STORE_PATH := $(DIST)/bin
+endif
+
+SYM_STORE_SOURCE_DIRS := $(topsrcdir)
+
+include $(topsrcdir)/toolkit/mozapps/installer/package-name.mk
+
+ifdef MOZ_SYMBOLS_EXTRA_BUILDID
+EXTRA_BUILDID := -$(MOZ_SYMBOLS_EXTRA_BUILDID)
+endif
+
+SYMBOL_INDEX_NAME = \
+  $(MOZ_APP_NAME)-$(MOZ_APP_VERSION)-$(OS_TARGET)-$(BUILDID)$(EXTRA_BUILDID)-symbols.txt
+
+buildsymbols:
+ifdef MOZ_CRASHREPORTER
+ifdef USE_ELF_HACK
+	$(MAKE) -C $(MOZ_BUILD_APP)/installer elfhack
+endif
+	echo building symbol store
+	$(RM) -r $(DIST)/crashreporter-symbols
+	$(RM) "$(DIST)/$(SYMBOL_ARCHIVE_BASENAME).zip"
+	$(NSINSTALL) -D $(DIST)/crashreporter-symbols
+	OBJCOPY="$(OBJCOPY)" \
+	$(PYTHON) $(topsrcdir)/toolkit/crashreporter/tools/symbolstore.py \
+	  $(MAKE_SYM_STORE_ARGS)                                          \
+	  $(foreach dir,$(SYM_STORE_SOURCE_DIRS),-s $(dir))               \
+	  $(DUMP_SYMS_BIN)                                                \
+	  $(DIST)/crashreporter-symbols                                   \
+	  $(MAKE_SYM_STORE_PATH) >                                        \
+	  $(DIST)/crashreporter-symbols/$(SYMBOL_INDEX_NAME)
+	echo packing symbols
+	$(NSINSTALL) -D $(DIST)/$(PKG_PATH)
+	cd $(DIST)/crashreporter-symbols && \
+          zip -r9D "../$(PKG_PATH)$(SYMBOL_FULL_ARCHIVE_BASENAME).zip" .
+	cd $(DIST)/crashreporter-symbols && \
+	grep "sym" $(SYMBOL_INDEX_NAME) > $(SYMBOL_INDEX_NAME).tmp && \
+	  mv $(SYMBOL_INDEX_NAME).tmp $(SYMBOL_INDEX_NAME)
+	cd $(DIST)/crashreporter-symbols && \
+          zip -r9D "../$(PKG_PATH)$(SYMBOL_ARCHIVE_BASENAME).zip" . -i "*.sym" -i "*.txt"
+endif # MOZ_CRASHREPORTER
+
+uploadsymbols:
+ifdef MOZ_CRASHREPORTER
+	$(SHELL) $(topsrcdir)/toolkit/crashreporter/tools/upload_symbols.sh $(SYMBOL_INDEX_NAME) "$(DIST)/$(PKG_PATH)$(SYMBOL_FULL_ARCHIVE_BASENAME).zip"
+endif
+
+codesighs:
+	$(MAKE) -C $(MOZ_BUILD_APP)/installer codesighs
+
+# defined in package-name.mk
+export MOZ_SOURCE_STAMP
+
+#XXX: this is a hack, since we don't want to clobber for MSVC
+# PGO support, but we can't do this test in client.mk
+ifneq ($(OS_ARCH)_$(GNU_CC), WINNT_)
+# No point in clobbering if PGO has been explicitly disabled.
+ifndef NO_PROFILE_GUIDED_OPTIMIZE
+maybe_clobber_profiledbuild: clean
+else
+maybe_clobber_profiledbuild:
+endif
+else
+maybe_clobber_profiledbuild:
+endif
+
+.PHONY: maybe_clobber_profiledbuild
+
+# Look for R_386_PC32 relocations in shared libs, these
+# break x86_64 builds and SELinux users.
+ifeq ($(OS_TARGET)_$(TARGET_XPCOM_ABI),Linux_x86-gcc3)
+scheck::
+	@relcount=`find $(DIST)/bin -name "*.so" | xargs objdump -R | grep R_386_PC32 | wc -l` && if test $$relcount -gt 0; then echo "FAILED: R_386_PC32 relocations detected in a shared library.  Did you use a system header without adding it to config/system-headers?"; exit 1; else echo "PASSED"; fi
+endif

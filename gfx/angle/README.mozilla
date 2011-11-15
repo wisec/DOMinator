@@ -1,0 +1,36 @@
+This is the ANGLE project, from http://code.google.com/p/angleproject/.
+
+Current revision: r686
+
+== Applied local patches ==
+
+In this order:
+  angle-nspr-misc.patch - don't bother with ANGLE_OS detection with NSPR
+  angle-renaming.patch - rename debug.h to compilerdebug.h to avoid conflict in our makefiles
+  angle-intrinsic-msvc2005.patch - work around a MSVC 2005 compile error
+  angle-amap-arev-fix.patch - plain bug fix, this is ANGLE r699
+  angle-r702.patch - this is ANGLE r702
+  angle-limit-identifiers-to-250-chars.patch - see bug 675625
+  angle-r712.patch - this is ANGLE r712
+  angle-win64.patch - Win64 support. This is ANGLE r697
+  angle-r707.patch - this is ANGLE r707 for Win64 bug fix
+  angle-r719.patch - this is ANGLE r719
+  angle-r711.patch - this is ANGLE r711
+  angle-use-xmalloc.patch - see bug 680840. Can drop this patch whenever the new preprocessor lands.
+
+In addition to these patches, the Makefile.in files are ours, they're not present in upsteam ANGLE.
+
+== How to update this ANGLE copy ==
+
+1. Unapply patches
+2. Apply diff with new ANGLE version
+3. Reapply patches.
+4. Check for changes in src/build_angle.gyp, update our Makefile.in files accordingly. Note that a single file may be recorded in more than one Makefile.
+
+== Visual Studio Solution Files ==
+
+Ignore these. We don't use them anymore. We use custom Makefiles.
+
+== Generated parser code==
+
+Don't bother about that anymore. The parser is now generated and included in the ANGLE svn repo.

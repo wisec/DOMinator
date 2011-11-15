@@ -1,0 +1,157 @@
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is Mozilla code.
+#
+# The Initial Developer of the Original Code is the Mozilla Corporation.
+# Portions created by the Initial Developer are Copyright (C) 2007
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#  Chris Double <chris.double@double.co.nz>
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either the GNU General Public License Version 2 or later (the "GPL"), or
+# the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH     = ../../..
+topsrcdir = @top_srcdir@
+srcdir    = @srcdir@
+
+include $(DEPTH)/config/autoconf.mk
+
+MODULE           = theora
+LIBRARY_NAME     = theora
+FORCE_STATIC_LIB = 1
+
+# The encoder is currently not included.
+DEFINES += -DTHEORA_DISABLE_ENCODE
+
+ifeq ($(findstring 86,$(OS_TEST)), 86)
+ifneq ($(OS_ARCH),SunOS)
+ifneq ($(OS_ARCH)$(OS_TEST),WINNTx86_64)
+DEFINES += -DOC_X86_ASM
+ifeq (64,$(findstring 64,$(OS_TEST)))
+DEFINES += -DOC_X86_64_ASM
+endif
+endif
+endif
+endif
+
+VPATH := $(srcdir)
+
+CSRCS = \
+  apiwrapper.c \
+  bitpack.c \
+  decapiwrapper.c \
+  decinfo.c \
+  decode.c \
+  dequant.c \
+  fragment.c \
+  huffdec.c \
+  idct.c \
+  info.c \
+  internal.c \
+  quant.c \
+  state.c \
+  $(NULL)
+
+ifeq ($(findstring 86,$(OS_TEST)), 86)
+ifdef _MSC_VER
+ifneq (64,$(findstring 64,$(OS_TEST)))
+VPATH += $(srcdir)/x86_vc
+
+CSRCS += \
+  mmxidct.c \
+  mmxfrag.c \
+  mmxstate.c \
+  x86state.c \
+  x86cpu.c \
+  $(NULL)
+endif
+else
+ifndef HAVE_OLD_CLANG
+VPATH += $(srcdir)/x86
+
+CSRCS += \
+  mmxidct.c \
+  mmxfrag.c \
+  mmxstate.c \
+  sse2idct.c \
+  x86state.c \
+  x86cpu.c \
+  $(NULL)
+endif
+endif
+endif
+
+ifdef GNU_AS
+ifeq ($(findstring arm,$(OS_TEST)), arm)
+
+VPATH += $(srcdir)/arm
+
+CSRCS += \
+  armcpu.c \
+  armstate.c \
+  $(NULL)
+
+DEFINES += -DOC_ARM_ASM -DOC_ARM_ASM_EDSP -DOC_ARM_ASM_MEDIA -DOC_ARM_ASM_NEON
+
+# The Android NDK doesn't pre-define anything to indicate the OS it's on, so
+# do it for them.
+ifeq ($(OS_TARGET),Android)
+DEFINES += -D__linux__
+endif
+
+THEORA_ASFILES  = \
+  armbits.s \
+  armfrag.s \
+  armidct.s \
+  armloop.s \
+  armopts.s \
+  $(NULL)
+
+ASFILES = $(patsubst %.s,%-gnu.$(ASM_SUFFIX),$(THEORA_ASFILES))
+
+# These flags are a lie; they're just used to enable the requisite
+# opcodes; actual arch detection is done at runtime.
+ASFLAGS = -march=armv7-a -mfpu=neon
+
+armfrag-gnu.$(ASM_SUFFIX): armopts-gnu.S
+armidct-gnu.$(ASM_SUFFIX): armopts-gnu.S
+armloop-gnu.$(ASM_SUFFIX): armopts-gnu.S
+
+# armopts needs a specific rule, because arm2gnu.pl will always add the .S
+# suffix when translating the files that include it.
+armopts-gnu.S: armopts.s
+	$(PERL) $(srcdir)/arm/arm2gnu.pl < $< > $@
+# For all others, we can use an implicit rule with the configured $(ASM_SUFFIX).
+%-gnu.$(ASM_SUFFIX): %.s
+	$(PERL) $(srcdir)/arm/arm2gnu.pl < $< > $@
+
+endif
+endif
+
+include $(topsrcdir)/config/rules.mk
+
+LOCAL_INCLUDES = -I$(srcdir)

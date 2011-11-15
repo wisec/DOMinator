@@ -1,0 +1,411 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>
+Mochitest version of the WebGL Conformance Test Suite
+</title>
+<script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+<link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+<script type="text/javascript" src="resources/webgl-test-harness.js"></script>
+<script>
+
+/**
+ * This is copied from webgl-test-harness.js where it is defined as a private function, not accessible to us (argh!)
+ *
+ * Loads text from an external file. This function is synchronous.
+ * @param {string} url The url of the external file.
+ * @return {string} the loaded text if the request is synchronous.
+ */
+  var loadTextFileSynchronous = function (url) {
+    var error = 'loadTextFileSynchronous failed to load url "' + url + '"';
+    var request;
+    if (window.XMLHttpRequest) {
+      request = new XMLHttpRequest();
+      if (request.overrideMimeType) {
+        request.overrideMimeType('text/plain');
+      }
+    } else {
+      throw 'XMLHttpRequest is disabled';
+    }
+    request.open('GET', url, false);
+    request.send(null);
+    if (request.readyState != 4) {
+      throw error;
+    }
+    return request.responseText;
+  };
+
+function start() {
+
+  function getEnv(env) {
+    netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+    var envsvc = Components.classes["@mozilla.org/process/environment;1"].getService(Components.interfaces.nsIEnvironment);
+    var val = envsvc.get(env);
+    if (val == "")
+      return null;
+    return val;
+  }
+
+  var reportType = WebGLTestHarnessModule.TestHarness.reportType;
+
+  var Page = function(reporter, url) {
+    this.reporter = reporter;
+    this.url = url;
+    this.totalTests = 0;
+    this.totalSuccessful = 0;
+    this.totalTimeouts = 0;
+
+    var li = reporter.localDoc.createElement('li');
+    var div = reporter.localDoc.createElement('div');
+    var a = reporter.localDoc.createElement('a');
+    a.href = url;
+    var node = reporter.localDoc.createTextNode(url);
+    a.appendChild(node);
+    div.appendChild(a);
+    li.setAttribute('class', 'testpage');
+    li.appendChild(div);
+    var ul = reporter.localDoc.createElement('ul');
+    var node = reporter.localDoc.createTextNode('');
+    li.appendChild(ul);
+    div.appendChild(node);
+    this.totalsElem = node;
+    this.resultElem = ul;
+    this.elem = li;
+  };
+
+  Page.prototype.isExpectedToFullyPass = function() {
+    return testsExpectedToFail.indexOf(this.url) == -1 && testsToIgnore.indexOf(this.url) == -1;
+  }
+
+  Page.prototype.errormsg = function(msg) {
+    return msg + ' (URL: ' + this.url + ')';
+  }
+
+  Page.prototype.addResult = function(msg, success) {
+    ++this.totalTests;
+    if (success === undefined) {
+      ++this.totalTimeouts;
+      var result = "timeout";
+      var css = "timeout";
+      // only few timeouts are actually caught here --- most are caught in finishPage().
+      if (this.isExpectedToFullyPass()) {
+        ok(false, this.errormsg('Test timed out, "' + msg + '"'));
+      }
+    } else if (success) {
+      ++this.totalSuccessful;
+      var result = "success";
+      var css = "success";
+      // don't report success.
+      return;
+    } else {
+      var result = "failed";
+      var css = "fail";
+      if (this.isExpectedToFullyPass()) {
+        ok(false, this.errormsg('Test failed, "' + msg + '"'));
+      }
+    }
+
+    var node = this.reporter.localDoc.createTextNode(result + ': ' + msg);
+    var li = this.reporter.localDoc.createElement('li');
+    li.appendChild(node);
+    li.setAttribute('class', css);
+    this.resultElem.appendChild(li);
+  };
+
+  Page.prototype.startPage = function() {
+    this.totalTests = 0;
+    this.totalSuccessful = 0;
+    this.totalTimeouts = 0;
+    // remove previous results.
+    while (this.resultElem.hasChildNodes()) {
+      this.resultElem.removeChild(this.resultElem.childNodes[0]);
+    }
+    this.totalsElem.textContent = '';
+    return true;
+  };
+
+  Page.prototype.finishPage = function(success) {
+    var msg = ' (' + this.totalSuccessful + ' of ' +
+              this.totalTests + ' passed)';
+    if (success === undefined) {
+      var css = 'testpagetimeout';
+      msg = '(*timeout*)';
+      ++this.totalTests;
+      ++this.totalTimeouts;
+      if (this.isExpectedToFullyPass()) {
+        ok(false, this.errormsg('Unexpected timeout in this test page'));
+        window.dump('WebGL test error: test page timeout: ' + this.url + '\n');
+      }
+    } else if (this.totalSuccessful != this.totalTests) {
+      var css = 'testpagefail';
+      if (this.isExpectedToFullyPass()) {
+        window.dump('WebGL test error: test page failure: ' + this.url + '\n');
+      }
+      // failures have already been reported for the sub-tests
+    } else {
+      var css = 'testpagesuccess';
+      if (this.isExpectedToFullyPass()) {
+        ok(true, this.errormsg('Successful test page'));
+      }
+      window.dump('WebGL test page successful: ' + this.url + '\n');
+      testsSuccessful.push(this.url);
+    }
+    this.elem.setAttribute('class', css);
+    this.totalsElem.textContent = msg;
+  };
+
+  var Reporter = function() {
+    this.localDoc = document;
+
+    this.fullResultsElem = document.getElementById("results-default");
+
+    this.resultElem = document.getElementById("results");
+    var node = this.localDoc.createTextNode('');
+    this.fullResultsElem.appendChild(node);
+    this.fullResultsNode = node;
+    this.iframe = document.getElementById("testframe");
+    this.currentPageElem = null;
+    this.totalPages = 0;
+    this.pagesByURL = {};
+    this.currentPage = null;
+    this.totalTests = 0;
+    this.totalSuccessful = 0;
+    this.totalTimeouts = 0;
+  };
+
+  Reporter.prototype.runTest = function(url) {
+    var page = this.pagesByURL[url];
+    page.startPage();
+    this.currentPage = page;
+    this.iframe.src = url;
+    return result;
+  };
+
+  Reporter.prototype.addPage = function(url) {
+    this.currentPage = new Page(this, url, this.resultElem);
+    this.resultElem.appendChild(this.currentPage.elem);
+    ++this.totalPages;
+    this.pagesByURL[url] = this.currentPage;
+  };
+
+  Reporter.prototype.startPage = function(url) {
+    dump('WebGL mochitest: starting page ' + url + '\n');
+    var page = this.pagesByURL[url];
+    this.currentPage = page;
+    statusTextNode.textContent = 'Running URL: ' + url;
+    expectedtofailTextNode.textContent = testsExpectedToFail.length +
+                                         ' test pages are expected to fail out of ' +
+                                         this.totalPages;
+    ignoredtestsTextNode.textContent = testsToIgnore.length +
+                                         ' test pages have their results ignored';
+    return page.startPage();
+  };
+
+  Reporter.prototype.totalFailed = function() {
+    return this.totalTests - this.totalSuccessful;
+  };
+
+  Reporter.prototype.displayStats = function() {
+    this.fullResultsNode.textContent =
+      this.totalSuccessful + ' passed, ' +
+      this.totalFailed() + ' failed, ' +
+      this.totalTimeouts + ' timed out';
+  };
+
+  Reporter.prototype.addResult = function(msg, success) {
+    if (this.currentPage != null) {
+      this.currentPage.addResult(msg, success);
+    }
+  };
+
+  Reporter.prototype.finishPage = function(success) {
+    if (this.currentPage != null) {
+      this.currentPage.finishPage(success); // must call that first, since this is where totalTimeouts is computed
+      this.totalTests += this.currentPage.totalTests;
+      this.totalSuccessful += this.currentPage.totalSuccessful;
+      this.totalTimeouts += this.currentPage.totalTimeouts;
+      this.currentPage = null;
+      this.displayStats();
+    }
+  };
+
+  Reporter.prototype.finishedTestSuite = function() {
+      for (var i = 0; i < testsExpectedToFail.length; ++i)
+        if (testsSuccessful.indexOf(testsExpectedToFail[i]) != -1)
+          todo(true, 'Test expected to fail, but passed: ' + testsExpectedToFail[i]);
+      statusTextNode.textContent = 'Finished';
+      SimpleTest.finish();
+  }
+
+  Reporter.prototype.reportFunc = function(type, msg, success) {
+    switch (type) {
+      case reportType.ADD_PAGE:
+        return this.addPage(msg);
+      case reportType.START_PAGE:
+        return this.startPage(msg);
+      case reportType.TEST_RESULT:
+        return this.addResult(msg, success);
+      case reportType.FINISH_PAGE:
+        return this.finishPage(success);
+      case reportType.FINISHED_ALL_TESTS:
+        this.finishedTestSuite();
+        return true;
+      default:
+        throw 'unhandled';
+        break;
+    };
+  };
+
+  function runTestSuite() {
+    var reporter = new Reporter();
+
+    // try to create a dummy WebGL context, just to catch context creation failures once here,
+    // rather than having them result in 100's of failures (one in each test page)
+    var canvas = document.getElementById("webglcheck-default");
+    var ctx = null;
+    try {
+        ctx = canvas.getContext("experimental-webgl");
+    } catch(e) {}
+
+    if (ctx) {
+        var iframe = document.getElementById("testframe");
+        var testHarness = new WebGLTestHarnessModule.TestHarness(
+            iframe,
+            '00_test_list.txt',
+            function(type, msg, success) {
+                return reporter.reportFunc(type, msg, success);
+            });
+        testHarness.setTimeoutDelay(20000); // and make it much higher when running under valgrind.
+        window.webglTestHarness = testHarness;
+        testHarness.runTests();
+    } else {
+        var errmsg = "Can't create a WebGL context";
+        reporter.fullResultsNode.textContent = errmsg;
+        ok(false, errmsg);
+        dump("WebGL mochitest failed: " + errmsg + "\n");
+        reporter.finishedTestSuite();
+    }
+  };
+
+  SimpleTest.waitForExplicitFinish();
+  SimpleTest.requestLongerTimeout(3);
+
+  var kIsWindows = false;
+  var kIsMac = false;
+  var kIsLinux = false;
+  if (navigator.platform.indexOf("Win") == 0)
+    kIsWindows = true;
+  else if (navigator.platform.indexOf("Linux") == 0)
+    kIsLinux = true;
+  else if (navigator.platform.indexOf("Mac") == 0)
+    kIsMac = true;
+
+  var kIsWindowsVistaOrHigher = false;
+  // we currently disable this test on versions of Windows older than Windows Vista,
+  // due to failure to load ANGLE on win 2003 test slaves, see bug 582053.
+  if (kIsWindows) {
+    // code borrowed from browser/components/wintaskbar/test/browser_taskbar_preview.js
+    netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+    var version = Components.classes["@mozilla.org/system-info;1"]
+                            .getService(Components.interfaces.nsIPropertyBag2)
+                            .getProperty("version");
+    kIsWindowsVistaOrHigher = (parseFloat(version) >= 6.0);
+  }
+
+  // we currently disable this test on version of Mac OSX older than 10.6,
+  // due to various weird failures, including one making getRenderbufferParameter tests
+  // on DEPTH_STENCIL fail
+  if (kIsMac) {
+    // code borrowed from browser/components/wintaskbar/test/browser_taskbar_preview.js
+    var is106orHigher = false;
+    netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+    var version = Components.classes["@mozilla.org/system-info;1"]
+                            .getService(Components.interfaces.nsIPropertyBag2)
+                            .getProperty("version");
+    // the next line is correct: Mac OS 10.6 corresponds to Darwin version 10 !
+    // Mac OS 10.5 would be Darwin version 9. the |version| string we've got here
+    // is the Darwin version.
+    is106orHigher = (parseFloat(version) >= 10.0);
+    if (!is106orHigher) {
+      dump("WebGL mochitest disabled on Mac OSX versions older than 10.6\n");
+      SimpleTest.finish();
+      return;
+    }
+  }
+
+  var statusElem = document.getElementById("status");
+  var statusTextNode = document.createTextNode('');
+  statusElem.appendChild(statusTextNode);
+
+  var expectedtofailElem = document.getElementById("expectedtofail");
+  var expectedtofailTextNode = document.createTextNode('');
+  expectedtofailElem.appendChild(expectedtofailTextNode);
+
+  var ignoredtestsElem = document.getElementById("ignoredtests");
+  var ignoredtestsTextNode = document.createTextNode('');
+  ignoredtestsElem.appendChild(ignoredtestsTextNode);
+
+  // Windows uses the ANGLE library for rendering. Until everything is perfect, this means a different set of
+  // failing tests. It's easier to do a platform check for Windows than for ANGLE itself.
+  // Moreover, we currently also have different tests failing on Mac and on Linux,
+  // presumably due to differences in the drivers.
+  var failingTestsFilename;
+  if (kIsWindows)
+    failingTestsFilename = 'failing_tests_windows.txt';
+  else if (kIsLinux)
+    failingTestsFilename = 'failing_tests_linux.txt';
+  else if (kIsMac)
+    failingTestsFilename = 'failing_tests_mac.txt';
+
+  var testsExpectedToFail = loadTextFileSynchronous(failingTestsFilename)
+                            .replace(/\r/g, '') // convert to unix line breaks
+                            .split('\n');
+
+  var testsToIgnore = [];
+
+  var testsSuccessful = [];
+
+  runTestSuite();
+}
+
+</script>
+</head>
+<body onload="start()">
+<p id="display"></p>
+<div id="content" style="display: none">
+
+</div>
+<table border="2">
+<tr style="height: 300px;">
+<td>
+<table>
+<tr><td><h4>WebGL Conformance Test Runner</h4>
+<tr><td>
+  <div style="border: 1px">
+    <b>Status:</b> <div><span id="status"></span></div><br />
+    <b>Results:</b>
+    <div><span id="results-default"></span></div>
+    <br />
+    <div><span id="expectedtofail"></span></div>
+    <br />
+    <div><span id="ignoredtests"></span></div>
+  </div>
+</td></tr>
+</table>
+</td>
+<td>
+<iframe id="testframe" scrolling="yes" width="100%" height="100%"></iframe>
+</td>
+</tr>
+<tr>
+<td colspan="2">
+<div style="text-align: left; width: 100%; height: 100%; overflow: auto;">
+<div><ul id="results"></ul></div>
+</div>
+</td>
+</tr>
+</table>
+<canvas id="webglcheck-default" style="display: none;"></canvas>
+</body>
+</html>

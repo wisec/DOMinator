@@ -1,0 +1,195 @@
+#
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is
+# Netscape Communications Corporation.
+# Portions created by the Initial Developer are Copyright (C) 1998
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either of the GNU General Public License Version 2 or later (the "GPL"),
+# or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH		= ../..
+topsrcdir	= @top_srcdir@
+srcdir		= @srcdir@
+
+include $(DEPTH)/config/autoconf.mk
+
+DIRS = \
+       $(NULL)
+
+ifdef ENABLE_TESTS
+  DIRS += tests
+endif
+
+ifeq ($(MOZ_WIDGET_TOOLKIT),os2)
+OSDIR		= os2
+else
+ifeq ($(MOZ_WIDGET_TOOLKIT),windows)
+OSDIR		= win
+else
+ifeq ($(MOZ_WIDGET_TOOLKIT),cocoa)
+OSDIR		= mac
+else
+ifeq ($(MOZ_WIDGET_TOOLKIT),android)
+OSDIR		= android
+else
+OSDIR		= unix
+endif
+endif
+endif
+endif
+
+VPATH		:= $(srcdir) $(srcdir)/$(OSDIR)
+
+MODULE = exthandler
+LIBRARY_NAME    = exthandler_s
+LIBXUL_LIBRARY  = 1
+
+
+ifeq ($(MOZ_WIDGET_TOOLKIT),cocoa)
+
+CMMSRCS	= nsOSHelperAppService.mm \
+			nsMIMEInfoMac.mm \
+			nsLocalHandlerAppMac.mm \
+			$(NULL)
+else
+OSHELPER	= nsOSHelperAppService.cpp
+endif
+
+LOCAL_INCLUDES = -I$(srcdir)
+
+LOCAL_INCLUDES += -I$(topsrcdir)/dom/base \
+            -I$(topsrcdir)/dom/ipc \
+            -I$(topsrcdir)/content/base/src \
+            -I$(topsrcdir)/content/events/src \
+            -I$(topsrcdir)/netwerk/base/src \
+            -I$(topsrcdir)/netwerk/protocol/http
+
+ifeq ($(MOZ_WIDGET_TOOLKIT),gtk2)
+OSHELPER	+= nsGNOMERegistry.cpp
+OSHELPER  += nsMIMEInfoUnix.cpp
+endif
+
+ifeq ($(MOZ_WIDGET_TOOLKIT),android)
+OSHELPER += nsMIMEInfoAndroid.cpp
+OSHELPER += nsAndroidHandlerApp.cpp
+OSHELPER += nsExternalSharingAppService.cpp
+EXPORTS += nsExternalSharingAppService.h
+OSHELPER += nsExternalURLHandlerService.cpp
+EXPORTS += nsExternalURLHandlerService.h
+endif
+
+ifeq ($(MOZ_WIDGET_TOOLKIT),qt)
+OSHELPER += nsGNOMERegistry.cpp
+OSHELPER += nsMIMEInfoUnix.cpp
+endif
+
+ifeq ($(MOZ_WIDGET_TOOLKIT),windows)
+OSHELPER  += nsMIMEInfoWin.cpp
+LOCAL_INCLUDES += -I$(srcdir)/win
+endif
+
+ifeq ($(MOZ_WIDGET_TOOLKIT),os2)
+OSHELPER  += nsMIMEInfoOS2.cpp
+endif
+
+EXPORTS_NAMESPACES = mozilla/dom
+
+EXPORTS_mozilla/dom = \
+    ExternalHelperAppParent.h \
+    ExternalHelperAppChild.h
+
+EXPORTS += \
+		$(OSDIR)/nsOSHelperAppService.h \
+		nsExternalHelperAppService.h \
+		$(NULL)
+
+XPIDLSRCS = \
+	nsCExternalHandlerService.idl	\
+	nsIExternalProtocolService.idl \
+	nsIExternalHelperAppService.idl	\
+	nsIHelperAppLauncherDialog.idl \
+	nsIContentDispatchChooser.idl \
+	nsIHandlerService.idl	\
+	nsIExternalSharingAppService.idl \
+	nsIExternalURLHandlerService.idl \
+	$(NULL)
+
+CPPSRCS	= \
+	nsExternalHelperAppService.cpp	\
+	nsExternalProtocolHandler.cpp \
+	nsMIMEInfoImpl.cpp \
+	nsLocalHandlerApp.cpp \
+	$(OSHELPER) \
+	ExternalHelperAppChild.cpp \
+	ExternalHelperAppParent.cpp \
+	$(NULL)
+
+ifdef MOZ_ENABLE_DBUS
+CPPSRCS += nsDBusHandlerApp.cpp
+LOCAL_INCLUDES   += $(TK_CFLAGS) $(MOZ_DBUS_CFLAGS)
+endif
+
+ifdef MOZ_ENABLE_MEEGOTOUCHSHARE
+OSHELPER  += nsMeegoExternalSharingAppService.cpp
+LOCAL_INCLUDES   += $(MOZ_PLATFORM_MAEMO_CFLAGS)
+EXPORTS += nsExternalSharingAppService.h
+endif
+
+ifeq ($(MOZ_PLATFORM_MAEMO),5)
+ifdef MOZ_ENABLE_GNOMEVFS
+LOCAL_INCLUDES   += $(MOZ_GNOMEVFS_CFLAGS)
+endif
+ifdef MOZ_ENABLE_GIO
+LOCAL_INCLUDES   += $(MOZ_GIO_CFLAGS)
+endif
+endif
+
+ifdef MOZ_ENABLE_CONTENTACTION
+CPPSRCS += nsContentHandlerApp.cpp
+endif
+
+EXTRA_COMPONENTS = \
+  nsHandlerService.js \
+  nsHandlerService.manifest \
+  nsWebHandlerApp.js \
+  nsWebHandlerApp.manifest \
+  $(NULL)
+
+# we don't want the shared lib, but we want to force the creation of a static lib.
+FORCE_STATIC_LIB = 1
+SRCS_IN_OBJDIR	= 1
+include $(topsrcdir)/config/config.mk
+include $(topsrcdir)/ipc/chromium/chromium-config.mk
+include $(topsrcdir)/config/rules.mk
+
+ifneq (,$(filter qt gtk2, $(MOZ_WIDGET_TOOLKIT)))
+CXXFLAGS += $(TK_CFLAGS) $(MOZ_DBUS_GLIB_CFLAGS)
+endif

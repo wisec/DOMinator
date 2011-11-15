@@ -1,0 +1,168 @@
+/** -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 2001
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Stuart Parmenter <pavlov@netscape.com>
+ *   Bobby Holley <bobbyholley@gmail.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+#include "imgIContainerObserver.idl"
+
+interface imgIRequest;
+interface imgIContainer;
+
+%{C++
+#include "nsRect.h"
+%}
+
+/**
+ * imgIDecoderObserver interface
+ *
+ * This interface is used both for observing imgIDecoder objects and for
+ * observing imgIRequest objects.  In the former case, aRequest is
+ * always null.
+ *
+ * We make the distinction here between "load" and "decode" notifications. Load
+ * notifications are fired as the image is loaded from the network or
+ * filesystem. Decode notifications are fired as the image is decoded. If an
+ * image is decoded on load and not visibly discarded, decode notifications are
+ * nested logically inside load notifications as one might expect. However, with
+ * decode-on-draw, the set of decode notifications can come completely _after_
+ * the load notifications, and can come multiple times if the image is
+ * discardable. Moreover, they can be interleaved in various ways. In general,
+ * any presumed ordering between load and decode notifications should not be
+ * relied upon.
+ *
+ * Decode notifications may or may not be synchronous, depending on the
+ * situation. If imgIDecoder::FLAG_SYNC_DECODE is passed to a function that
+ * triggers a decode, all notifications that can be generated from the currently
+ * loaded data fire before the call returns. If FLAG_SYNC_DECODE is not passed,
+ * all, some, or none of the notifications may fire before the call returns.
+ *
+ * This interface will be cleaned up in bug 505385.
+ *
+ * @author Stuart Parmenter <pavlov@netscape.com>
+ * @version 0.1
+ * @see imagelib2
+ */
+[scriptable, uuid(9f6bfbee-9e04-43a0-b8f6-2159973efec8)]
+interface imgIDecoderObserver : imgIContainerObserver
+{
+  /**
+   * Load notification.
+   *
+   * called at the same time that nsIRequestObserver::onStartRequest would be
+   * (used only for observers of imgIRequest objects, which are nsIRequests,
+   * not imgIDecoder objects)
+   */
+  void onStartRequest(in imgIRequest aRequest);
+
+  /**
+   * Decode notification.
+   *
+   * Called as soon as the image begins getting decoded. This does not include
+   * "header-only" decodes used by decode-on-draw to parse the width/height
+   * out of the image. Thus, it is a decode notification only.
+   */
+  void onStartDecode(in imgIRequest aRequest);
+
+  /**
+   * Load notification.
+   *
+   * Called once enough data has been loaded from the network that we were able
+   * to parse the width/height from the image. By the time this callback is been
+   * called, the size has been set on the container and STATUS_SIZE_AVAILABLE
+   * has been set on the associated imgRequest.
+   */
+  void onStartContainer(in imgIRequest aRequest, in imgIContainer aContainer);
+
+  /**
+   * Decode notification.
+   *
+   * called when each frame is created.
+   */
+  void onStartFrame(in imgIRequest aRequest, in unsigned long aFrame);
+
+  /**
+   * Decode notification.
+   *
+   * called when there is more to paint.
+   */
+  [noscript] void onDataAvailable(in imgIRequest aRequest, in boolean aCurrentFrame, [const] in nsIntRect aRect);
+
+  /**
+   * Decode notification.
+   *
+   * called when a frame is finished decoding.
+   */
+  void onStopFrame(in imgIRequest aRequest, in unsigned long aFrame);
+
+  /**
+   * Do not implement this. It is useless and going away.
+   */
+  void onStopContainer(in imgIRequest aRequest, in imgIContainer aContainer);
+
+  /**
+   * In theory a decode notification, but currently a load notification.
+   *
+   * Ideally this would be called when the decode is complete. Unfortunately,
+   * this is currently the only way to signal decoding errors to consumers,
+   * and the only decoding errors that consumers care about (indeed, the only
+   * ones that they're prepared to hear about) are failures to instantiate the
+   * decoder (<img src="foo.html"> for example). Thus, currently this is just
+   * a companion to onStopDecode to signal success or failure. This will be
+   * revisited in bug 505385. If you're thinking of doing something new with
+   * this, please talk to bholley first.
+   */
+  void onStopDecode(in imgIRequest aRequest, in nsresult status,
+                    in wstring statusArg);
+
+  /**
+   * Load notification.
+   *
+   * called at the same time that nsIRequestObserver::onStopRequest would be
+   * (used only for observers of imgIRequest objects, which are nsIRequests,
+   * not imgIDecoder objects)
+   */
+  void onStopRequest(in imgIRequest aRequest, in boolean aIsLastPart);
+
+  /**
+   * Called when the decoded image data is discarded. This means that the frames
+   * no longer exist in decoded form, and any attempt to access or draw the
+   * image will initiate a new series of progressive decode notifications.
+   */
+  void onDiscard(in imgIRequest aRequest);
+
+};

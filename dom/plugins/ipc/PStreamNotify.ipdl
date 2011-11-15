@@ -1,0 +1,36 @@
+/* -*- Mode: C++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 8 -*- */
+
+include protocol PPluginInstance;
+
+include "npapi.h";
+
+using NPReason;
+
+namespace mozilla {
+namespace plugins {
+
+rpc protocol PStreamNotify
+{
+  manager PPluginInstance;
+
+parent:
+
+  /**
+   * Represents NPN_URLRedirectResponse
+   */
+  async RedirectNotifyResponse(bool allow);
+
+child:
+  /**
+   * Represents NPP_URLRedirectNotify
+   */
+  async RedirectNotify(nsCString url, int32_t status);
+
+  /**
+   * Represents NPP_URLNotify
+   */
+  async __delete__(NPReason reason);
+};
+
+} // namespace plugins
+} // namespace mozilla

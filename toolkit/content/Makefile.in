@@ -1,0 +1,103 @@
+#
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is
+# Netscape Communications Corporation.
+# Portions created by the Initial Developer are Copyright (C) 1998
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either the GNU General Public License Version 2 or later (the "GPL"), or
+# the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+
+DEPTH     = ../..
+topsrcdir = @top_srcdir@
+srcdir    = @srcdir@
+VPATH     = @srcdir@
+
+CHROME_DEPS = buildconfig.html
+
+include $(DEPTH)/config/autoconf.mk
+
+DEFINES += \
+  -Dtarget="$(target)" \
+  -Dac_configure_args="$(ac_configure_args)" \
+  -DCC="$(CC)" \
+  -DCC_VERSION="$(CC_VERSION)" \
+  -DCFLAGS="$(CFLAGS)" \
+  -DCXX="$(CXX)" \
+  -DCXX_VERSION="$(CXX_VERSION)" \
+  -DCXXFLAGS="$(CXXFLAGS)" \
+  -DCPPFLAGS="$(CPPFLAGS)" \
+  $(NULL)
+
+MOZ_SOURCE_STAMP ?= $(shell hg -R $(topsrcdir) parent --template="{node|short}\n" 2>/dev/null)
+ifdef MOZ_SOURCE_STAMP
+DEFINES += -DSOURCE_CHANGESET="$(MOZ_SOURCE_STAMP)"
+endif
+
+ifeq (Android,$(OS_TARGET))
+DEFINES += -DANDROID_PACKAGE_NAME=$(ANDROID_PACKAGE_NAME)
+endif
+
+# strip a trailing slash from the repo URL because it's not always present,
+# and we want to construct a working URL in buildconfig.html
+# make+shell+sed = awful
+_dollar=$$
+SOURCE_REPO := $(shell cd $(topsrcdir) && hg showconfig paths.default 2>/dev/null | head -n1 | sed -e "s/^ssh:/http:/" -e "s/\/$(_dollar)//" )
+# extra sanity check for old versions of hg
+# that don't support showconfig
+ifeq (http,$(patsubst http%,http,$(SOURCE_REPO)))
+DEFINES += -DSOURCE_REPO="$(SOURCE_REPO)"
+endif
+
+ifdef MOZ_TOOLKIT_SEARCH
+DEFINES += -DMOZ_TOOLKIT_SEARCH
+endif
+
+ifdef ENABLE_TESTS
+DIRS += tests
+endif
+
+EXTRA_JS_MODULES = \
+  Geometry.jsm \
+  InlineSpellChecker.jsm \
+  PopupNotifications.jsm \
+  Dict.jsm \
+  $(NULL)
+
+EXTRA_PP_JS_MODULES = \
+  debug.js \
+  LightweightThemeConsumer.jsm \
+  Services.jsm \
+  WindowDraggingUtils.jsm \
+  PageMenu.jsm \
+  $(NULL)
+
+include $(topsrcdir)/config/rules.mk

@@ -1,0 +1,135 @@
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* vim:expandtab:shiftwidth=4:tabstop=4:
+ */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: NPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ *
+ * The contents of this file are subject to the Mozilla Public
+ * License Version 1.1 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of
+ * the License at http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS
+ * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * rights and limitations under the License.
+ *
+ * The Original Code is Novell code.
+ *
+ * The Initial Developer of the Original Code is Novell, Inc.
+ *
+ * Original Author: Robert O'Callahan (rocallahan@novell.com)
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the NPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the NPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+#include "nsISupports.idl"
+
+/**
+ * Network link status monitoring service.
+ */
+[scriptable, uuid(f7d3be87-7403-4a1e-b89f-2797776e9b08)]
+interface nsINetworkLinkService : nsISupports
+{
+  /* Link type constants */
+  const unsigned long LINK_TYPE_UNKNOWN = 0;
+  const unsigned long LINK_TYPE_ETHERNET = 1;
+  const unsigned long LINK_TYPE_USB = 2;
+  const unsigned long LINK_TYPE_WIFI = 3;
+  const unsigned long LINK_TYPE_WIMAX = 4;
+  const unsigned long LINK_TYPE_2G = 5;
+  const unsigned long LINK_TYPE_3G = 6;
+  const unsigned long LINK_TYPE_4G = 7;
+
+  /**
+   * This is set to true when the system is believed to have a usable
+   * network connection.
+   *
+   * The link is only up when network connections can be established. For
+   * example, the link is down during DHCP configuration (unless there
+   * is another usable interface already configured).
+   *
+   * If the link status is not currently known, we generally assume that
+   * it is up.
+   */
+  readonly attribute boolean isLinkUp;
+  
+  /**
+   * This is set to true when we believe that isLinkUp is accurate.
+   */
+  readonly attribute boolean linkStatusKnown;
+
+  /**
+   * The type of network connection.
+   */
+  readonly attribute unsigned long linkType;
+};
+
+%{C++
+/**
+ * We send notifications through nsIObserverService with topic
+ * NS_NETWORK_LINK_TOPIC whenever one of isLinkUp or linkStatusKnown
+ * changes. We pass one of the NS_NETWORK_LINK_DATA_ constants below
+ * as the aData parameter of the notification.
+ */
+#define NS_NETWORK_LINK_TOPIC "network:link-status-changed"
+
+/**
+ * isLinkUp is now true, linkStatusKnown is true.
+ */
+#define NS_NETWORK_LINK_DATA_UP      "up"
+/**
+ * isLinkUp is now false, linkStatusKnown is true.
+ */
+#define NS_NETWORK_LINK_DATA_DOWN    "down"
+/**
+ * linkStatusKnown is now false.
+ */
+#define NS_NETWORK_LINK_DATA_UNKNOWN "unknown"
+
+/**
+ * We send notifications through nsIObserverService with topic
+ * NS_NETWORK_LINK_TYPE_TOPIC whenever the network connection type
+ * changes. We pass one of the valid connection type constants
+ * below as the aData parameter of the notification.
+ */
+#define NS_NETWORK_LINK_TYPE_TOPIC "network:link-type-changed"
+
+/** We were unable to determine the network connection type */
+#define NS_NETWORK_LINK_TYPE_UNKNOWN  "unknown"
+
+/** A standard wired ethernet connection */
+#define NS_NETWORK_LINK_TYPE_ETHERNET    "ethernet"
+
+/** A connection via a USB port */
+#define NS_NETWORK_LINK_TYPE_USB    "usb"
+
+/** A connection via a WiFi access point (IEEE802.11) */
+#define NS_NETWORK_LINK_TYPE_WIFI "wifi"
+
+/** A connection via WiMax (IEEE802.16) */
+#define NS_NETWORK_LINK_TYPE_WIMAX "wimax"
+
+/** A '2G' mobile connection (e.g. GSM, GPRS, EDGE) */
+#define NS_NETWORK_LINK_TYPE_2G "2g"
+
+/** A '3G' mobile connection (e.g. UMTS, CDMA) */
+#define NS_NETWORK_LINK_TYPE_3G "3g"
+
+/** A '4G' mobile connection (e.g. LTE, UMB) */
+#define NS_NETWORK_LINK_TYPE_4G "4g"
+%}

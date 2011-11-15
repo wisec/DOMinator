@@ -1,0 +1,85 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Test for SpecialPowers extension</title>
+  <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script type="text/javascript" src="/tests/SimpleTest/EventUtils.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+<body onload="starttest();">
+
+<div id="content" style="display: none">
+  
+</div>
+<pre id="test">
+<script class="testbody" type="text/javascript">
+
+var eventCount = 0;
+function testEventListener(e) {
+  ++eventCount;
+}
+
+function testEventListener2(e) {
+  ++eventCount;
+}
+
+function dispatchTestEvent() {
+  var e = document.createEvent("Event");
+  e.initEvent("TestEvent", true, true);
+  window.dispatchEvent(e);
+}
+
+dump("\nSPECIALPTEST:::Test script loaded " + (new Date).getTime() + "\n");
+SimpleTest.waitForExplicitFinish();
+function starttest(){
+  dump("\nSPECIALPTEST:::Test script running after load " + (new Date).getTime() + "\n");
+  /** Test for SpecialPowers extension **/
+  is(SpecialPowers.sanityCheck(), "foo", "check to see whether the Special Powers extension is installed.");
+
+  // Test a sync call into chrome
+  SpecialPowers.setBoolPref('extensions.checkCompatibility', true);
+  is(SpecialPowers.getBoolPref('extensions.checkCompatibility'), true, "Check to see if we can set a preference properly");
+
+  // Test a int pref
+  SpecialPowers.setIntPref('extensions.foobar', 42);
+  is(SpecialPowers.getIntPref('extensions.foobar'), 42, "Check int pref");
+
+  // Test a string pref
+  SpecialPowers.setCharPref("extensions.foobaz", "hi there");
+  is(SpecialPowers.getCharPref("extensions.foobaz"), "hi there", "Check string pref");
+
+  // Test an invalid pref
+  var retVal = null;
+  try {
+    retVal = SpecialPowers.getBoolPref('extensions.checkCompat0123456789');
+  } catch (ex) {
+    retVal = ex;
+  }
+  is(retVal, 'Error getting pref', "received an exception trying to get an unset preference value");
+
+  SpecialPowers.addChromeEventListener("TestEvent", testEventListener, true, true);
+  SpecialPowers.addChromeEventListener("TestEvent", testEventListener2, true, false);
+  dispatchTestEvent();
+  is(eventCount, 1, "Should have got an event!");
+
+  SpecialPowers.removeChromeEventListener("TestEvent", testEventListener, true);
+  SpecialPowers.removeChromeEventListener("TestEvent", testEventListener2, true);
+  dispatchTestEvent();
+  is(eventCount, 1, "Shouldn't have got an event!");
+  
+  // Test Complex Pref - TODO: Without chrome access, I don't know how you'd actually
+  // set this preference since you have to create an XPCOM object.
+  // Leaving untested for now.
+
+  // Test a DOMWindowUtils method and property
+  is(SpecialPowers.DOMWindowUtils.getClassName(window), "Proxy");
+  is(SpecialPowers.DOMWindowUtils.docCharsetIsForced, false);
+
+  SimpleTest.finish();
+}
+//starttest();
+</script>
+</pre>
+</body>
+</html>
+

@@ -1,0 +1,123 @@
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is the Application Update Service.
+#
+# The Initial Developer of the Original Code is
+# Robert Strong <robert.bugzilla@gmail.com>.
+#
+# Portions created by the Initial Developer are Copyright (C) 2008
+# the Mozilla Foundation <http://www.mozilla.org/>. All Rights Reserved.
+#
+# Contributor(s):
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either of the GNU General Public License Version 2 or later (the "GPL"),
+# or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH     = ../../../..
+topsrcdir = @top_srcdir@
+srcdir    = @srcdir@
+VPATH     = @srcdir@
+relativesrcdir = toolkit/mozapps/update/test
+
+include $(DEPTH)/config/autoconf.mk
+
+XPCSHELL_TESTS = \
+  unit \
+  $(NULL)
+
+TESTROOT = $(call core_abspath,$(DEPTH))/_tests/xpcshell/$(relativesrcdir)
+
+DEFINES += \
+  -DAB_CD=$(AB_CD) \
+  -DMOZ_APP_NAME=$(MOZ_APP_NAME) \
+  -DBIN_SUFFIX=$(BIN_SUFFIX) \
+  -DNS_NO_XPCOM \
+  $(NULL)
+
+# Android doesn't build the updater binary, so it skips the things that test it.
+ifneq ($(OS_TARGET),Android)
+DIRS = \
+  chrome \
+  $(NULL)
+
+CPPSRCS = \
+  TestAUSReadStrings.cpp \
+  TestAUSHelper.cpp \
+  $(NULL)
+
+SIMPLE_PROGRAMS = $(CPPSRCS:.cpp=$(BIN_SUFFIX))
+
+INI_TEST_FILES = \
+  TestAUSReadStrings1.ini \
+  TestAUSReadStrings2.ini \
+  TestAUSReadStrings3.ini \
+  $(NULL)
+
+LOCAL_INCLUDES += \
+  -I$(srcdir) \
+  -I$(topsrcdir)/toolkit/mozapps/update \
+  $(NULL)
+
+MOZ_WINCONSOLE = 1
+
+LIBS += \
+  ../../readstrings/$(LIB_PREFIX)readstrings.$(LIB_SUFFIX) \
+  $(NULL)
+
+ifeq ($(OS_ARCH),WINNT)
+USE_STATIC_LIBS = 1
+DEFINES += -DUNICODE -D_UNICODE
+endif
+endif # Not Android
+
+include $(topsrcdir)/config/rules.mk
+
+ifneq ($(OS_TARGET),Android)
+# TestAUSReadStrings runs during check in the following directory with a Unicode
+# char in order to test bug 473417 on Windows.
+ifeq ($(OS_ARCH),WINNT)
+bug473417dir = test_bug473417-ó
+else
+bug473417dir = test_bug473417
+endif
+
+check::
+	$(RM) -rf $(DEPTH)/_tests/updater/ && $(NSINSTALL) -D $(DEPTH)/_tests/updater/$(bug473417dir)/
+	for i in $(INI_TEST_FILES); do \
+	  $(INSTALL) $(srcdir)/$$i $(DEPTH)/_tests/updater/$(bug473417dir)/; \
+	done
+	$(INSTALL) $(FINAL_TARGET)/TestAUSReadStrings$(BIN_SUFFIX) $(DEPTH)/_tests/updater/$(bug473417dir)/
+	@$(RUN_TEST_PROGRAM) $(DEPTH)/_tests/updater/$(bug473417dir)/TestAUSReadStrings$(BIN_SUFFIX)
+endif # Not Android
+
+libs:: unit/head_update.js.in
+	$(PYTHON) $(MOZILLA_DIR)/config/Preprocessor.py -Fsubstitution $(DEFINES) $(ACDEFINES) $^ > $(TESTROOT)/unit/head_update.js
+
+ifneq ($(OS_TARGET),Android)
+ifndef MOZ_PROFILE_GENERATE
+libs::
+	$(INSTALL) TestAUSHelper$(BIN_SUFFIX) $(DEPTH)/_tests/xpcshell/$(relativesrcdir)/unit
+endif
+endif # Not Android

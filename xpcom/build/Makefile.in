@@ -1,0 +1,148 @@
+# vim:set ts=8 sw=8 sts=8 noet:
+#
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is
+# Netscape Communications Corporation.
+# Portions created by the Initial Developer are Copyright (C) 1998
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either of the GNU General Public License Version 2 or later (the "GPL"),
+# or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH		= ../..
+topsrcdir	= @top_srcdir@
+srcdir		= @srcdir@
+VPATH		= @srcdir@
+
+include $(DEPTH)/config/autoconf.mk
+include $(srcdir)/../glue/objs.mk
+
+EXTRA_DEPS += $(srcdir)/../glue/objs.mk
+
+MODULE		= xpcom
+LIBRARY_NAME	= xpcom_core
+SHORT_LIBNAME	= xpcomcor
+LIBXUL_LIBRARY = 1
+EXPORT_LIBRARY = 1
+
+GRE_MODULE	= 1
+MOZILLA_INTERNAL_API = 1
+
+CPPSRCS		= \
+		$(XPCOM_GLUE_SRC_LCPPSRCS) \
+		$(XPCOM_GLUENS_SRC_LCPPSRCS) \
+		nsXPComInit.cpp \
+		nsXPCOMStrings.cpp \
+		Services.cpp \
+		Omnijar.cpp \
+		$(NULL)
+
+SHARED_LIBRARY_LIBS = \
+		$(DEPTH)/chrome/src/$(LIB_PREFIX)chrome_s.$(LIB_SUFFIX) \
+		../ds/$(LIB_PREFIX)xpcomds_s.$(LIB_SUFFIX) \
+		../io/$(LIB_PREFIX)xpcomio_s.$(LIB_SUFFIX) \
+		../components/$(LIB_PREFIX)xpcomcomponents_s.$(LIB_SUFFIX) \
+		../threads/$(LIB_PREFIX)xpcomthreads_s.$(LIB_SUFFIX) \
+		../proxy/src/$(LIB_PREFIX)xpcomproxy_s.$(LIB_SUFFIX) \
+		../base/$(LIB_PREFIX)xpcombase_s.$(LIB_SUFFIX) \
+		../reflect/xptcall/src/$(LIB_PREFIX)xptcall.$(LIB_SUFFIX) \
+		../reflect/xptcall/src/$(LIB_PREFIX)xptcmd.$(LIB_SUFFIX) \
+		../reflect/xptinfo/src/$(LIB_PREFIX)xptinfo.$(LIB_SUFFIX) \
+		$(DIST)/lib/$(LIB_PREFIX)xpt.$(LIB_SUFFIX) \
+		../string/src/$(LIB_PREFIX)string_s.$(LIB_SUFFIX) \
+		$(NULL)
+
+ifdef NS_TRACE_MALLOC
+SHARED_LIBRARY_LIBS += \
+		$(DEPTH)/tools/trace-malloc/lib/$(LIB_PREFIX)tracemalloc.$(LIB_SUFFIX) \
+		$(NULL)
+endif
+
+LOCAL_INCLUDES	= \
+		-I$(srcdir) \
+		-I.. \
+		-I$(srcdir)/../glue \
+		-I$(srcdir)/../base \
+		-I$(srcdir)/../ds \
+		-I$(srcdir)/../io \
+		-I$(srcdir)/../components \
+		-I$(srcdir)/../threads \
+		-I$(srcdir)/../threads/_xpidlgen \
+		-I$(srcdir)/../proxy/src \
+		-I$(srcdir)/../reflect/xptinfo/src \
+		-I$(topsrcdir)/chrome/src \
+		-I$(srcdir)/../../docshell/base \
+		$(NULL)
+
+EXPORTS_NAMESPACES = mozilla
+
+SDK_HEADERS =  \
+  nsXPCOM.h       \
+  nsXPCOMCID.h    \
+  $(NULL)
+
+EXPORTS	= \
+  nsXPCOMCIDInternal.h \
+  xrecore.h \
+  nsXULAppAPI.h \
+  $(NULL)
+
+EXPORTS_mozilla = \
+  XPCOM.h \
+  Services.h \
+  ServiceList.h \
+  Omnijar.h \
+  $(NULL)
+
+# Force use of PIC
+FORCE_USE_PIC	= 1 
+
+GARBAGE         += $(XPCOM_GLUE_SRC_LCPPSRCS) $(XPCOM_GLUENS_SRC_LCPPSRCS) $(wildcard *.$(OBJ_SUFFIX))
+
+include $(topsrcdir)/config/config.mk
+include $(topsrcdir)/ipc/chromium/chromium-config.mk
+include $(topsrcdir)/config/rules.mk
+
+DEFINES		+= \
+		-D_IMPL_NS_COM \
+		-D_IMPL_NS_STRINGAPI \
+		-DEXPORT_XPT_API \
+		-DEXPORT_XPTC_API
+
+ifdef TARGET_XPCOM_ABI
+DEFINES += -DTARGET_XPCOM_ABI=\"$(TARGET_XPCOM_ABI)\"
+endif
+
+ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT))
+CXXFLAGS	+= $(TK_CFLAGS)
+endif
+
+export:: $(XPCOM_GLUE_SRC_CPPSRCS) $(XPCOM_GLUENS_SRC_CPPSRCS)
+	$(INSTALL) $^ .

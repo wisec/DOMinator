@@ -1,0 +1,123 @@
+#
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is
+# Mozilla Foundation.
+# Portions created by the Initial Developer are Copyright (C) 2007
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either of the GNU General Public License Version 2 or later (the "GPL"),
+# or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH		= ../../../..
+topsrcdir	= @top_srcdir@
+srcdir		= @srcdir@
+VPATH		= @srcdir@
+relativesrcdir  = content/html/document/test
+
+include $(DEPTH)/config/autoconf.mk
+include $(topsrcdir)/config/rules.mk
+
+_TEST_FILES = 	test_bug1682.html \
+		test_bug1823.html \
+		test_bug57600.html \
+		test_bug196523.html \
+		bug196523-subframe.html \
+		test_bug199692.html \
+		bug199692-nested.html \
+		bug199692-nested-d2.html \
+		bug199692-popup.html \
+		bug199692-scrolled.html \
+		test_bug172261.html \
+		test_bug255820.html \
+		test_bug259332.html \
+		test_bug311681.html \
+		test_bug311681.xhtml \
+		test_bug324378.html \
+		test_bug332848.xhtml \
+		test_bug340017.xhtml \
+		test_bug359657.html \
+		test_bug369370.html \
+		bug369370-popup.png \
+		test_bug380383.html \
+		test_bug391777.html \
+		test_bug402680.html \
+		test_bug403868.html \
+		test_bug403868.xhtml \
+		test_bug404320.html \
+		$(warning test_bug435128.html disabled because it takes 60 seconds) \
+		test_bug463104.html \
+		test_bug468353.html \
+		test_form-parsing.html \
+		test_viewport.html \
+		test_documentAll.html \
+		test_bug445004.html \
+		bug445004-inner.js \
+		bug445004-outer-rel.html \
+		bug445004-outer-abs.html \
+		bug445004-outer-write.html \
+		bug445004-inner.html \
+		test_bug446483.html \
+		bug446483-iframe.html \
+		test_bug448564.html \
+		bug448564-iframe-1.html \
+		bug448564-iframe-2.html \
+		bug448564-iframe-3.html \
+		bug448564-echo.sjs \
+		bug448564-submit.js \
+		test_bug478251.html \
+		test_bug481440.html \
+		test_bug481647.html \
+		test_bug482659.html \
+		test_bug486741.html \
+		test_bug489532.html \
+		test_bug497242.xhtml \
+		test_bug499092.html \
+		bug499092.xml \
+		bug499092.html \
+		test_bug512367.html \
+		test_bug571981.html \
+		test_bug677495.html \
+		test_bug677495-1.html \
+		$(NULL)
+
+ifneq (mobile,$(MOZ_BUILD_APP))
+_BROWSER_TEST_FILES = \
+		browser_bug592641.js \
+		bug592641_img.jpg \
+		$(NULL)
+endif
+
+libs:: $(_TEST_FILES)
+	$(INSTALL) $(foreach f,$^,"$f") $(DEPTH)/_tests/testing/mochitest/tests/$(relativesrcdir)
+
+ifneq (mobile,$(MOZ_BUILD_APP))
+libs:: $(_BROWSER_TEST_FILES)
+	$(INSTALL) $(foreach f,$^,"$f") $(DEPTH)/_tests/testing/mochitest/browser/$(relativesrcdir)
+endif

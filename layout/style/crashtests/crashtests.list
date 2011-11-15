@@ -1,0 +1,73 @@
+load 105619-1.html
+load 147777-1.html
+load 187671-1.html
+load 192408-1.html
+load 286707-1.html
+load 285727-1.html
+load 317561-1.html
+load 330998-1.html
+load 368175-1.html
+load 379788-1.html
+load 383979-1.xhtml
+load 383979-2.html
+load 386939-1.html
+load 391034-1.xhtml
+load 397022-1.html
+load 399289-1.svg
+load 404470-1.html
+load 411603-1.html
+load 412588-1.html
+asserts-if(winWidget,2) load 413274-1.xhtml # Bug 576435
+load 416461-1.xul
+load 418007-1.xhtml
+load 431705-1.xul
+load 432561-1.html
+load 437170-1.html
+load 437532-1.html
+skip load 439184-1.html # skip until we figure out how to test this
+load 444237-1.html
+load 444848-1.html 
+load 447776-1.html
+load 447783-1.html
+load 448161-1.html
+load 448161-2.html
+load 452150-1.xhtml
+load 456196.html
+load 460217-1.html
+load 466845-1.html
+load 469432-1.xhtml
+load 472195-1.html
+load 472237-1.html # will fail, test for leak (474704)
+HTTP(..) load 472237-1.html
+load 473720-1.html
+load 473892-1.html
+load 473914-1.html
+load 478321-1.xhtml
+load 512851-1.xhtml
+load 539613-1.xhtml
+load 588627-1.html
+skip load long-url-list-stack-overflow.html # skipped due to being slow (bug 477490)
+load 495269-1.html
+load 495269-2.html
+load 498036-1.html
+load 509155-1.html
+load 509156-1.html
+load 509569-1.html
+load 524252-1.html
+load font-face-truncated-src.html 
+load 536789-1.html
+load 565248-1.html
+load 558943-1.xhtml
+load 571105-1.xhtml
+load 573127-1.html
+load 580685.html
+load 592698-1.html
+load 601437-1.html
+load 601439-1.html
+load 605689-1.html
+load 645142.html
+load 611922-1.html
+== 645951-1.html 645951-1-ref.html
+load 665209-1.html
+asserts(2) load 671799-1.html
+asserts(2) load 671799-2.html

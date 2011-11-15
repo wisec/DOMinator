@@ -1,0 +1,269 @@
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is
+# Google Inc.
+# Portions created by the Initial Developer are Copyright (C) 2005
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#  Brian Ryner <bryner@brianryner.com>
+#  Stuart Parmenter <pavlov@pavlov.net>
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either of the GNU General Public License Version 2 or later (the "GPL"),
+# or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH           = ../../../..
+topsrcdir       = @top_srcdir@
+srcdir          = @srcdir@
+VPATH           = @srcdir@
+
+include $(DEPTH)/config/autoconf.mk
+
+MODULE          = cairo
+LIBRARY_NAME    = mozcairo
+LIBXUL_LIBRARY = 1
+
+ifdef GNU_CC
+OS_CXXFLAGS := $(filter-out -pedantic,$(OS_CXXFLAGS))
+ifeq ($(OS_TARGET),Android)
+MODULE_OPTIMIZE_FLAGS = -O2
+endif
+endif
+
+
+CSRCS   = \
+        cairo.c \
+        cairo-analysis-surface.c \
+        cairo-arc.c \
+        cairo-array.c \
+	cairo-atomic.c \
+        cairo-base64-stream.c \
+        cairo-bentley-ottmann.c \
+	cairo-bentley-ottmann-rectilinear.c \
+	cairo-bentley-ottmann-rectangular.c \
+	cairo-botor-scan-converter.c \
+	cairo-boxes.c \
+	cairo-cache.c \
+        cairo-clip.c \
+        cairo-color.c \
+	cairo-composite-rectangles.c \
+        cairo-debug.c \
+        cairo-deflate-stream.c \
+	cairo-device.c \
+        cairo-fixed.c \
+	cairo-font-face.c \
+	cairo-font-face-twin.c \
+	cairo-font-face-twin-data.c \
+        cairo-font-options.c \
+	cairo-freed-pool.c \
+        cairo-freelist.c \
+        cairo-gstate.c \
+        cairo-hash.c \
+        cairo-hull.c \
+	cairo-image-info.c \
+        cairo-image-surface.c \
+        cairo-lzw.c \
+        cairo-matrix.c \
+	cairo-misc.c \
+	cairo-mutex.c \
+	cairo-observer.c \
+        cairo-output-stream.c \
+        cairo-paginated-surface.c \
+        cairo-path.c \
+        cairo-path-bounds.c \
+        cairo-path-fill.c \
+        cairo-path-fixed.c \
+        cairo-path-in-fill.c \
+        cairo-path-stroke.c \
+        cairo-pattern.c \
+        cairo-pen.c \
+        cairo-polygon.c \
+	cairo-recording-surface.c \
+        cairo-rectangle.c \
+	cairo-rectangular-scan-converter.c \
+        cairo-region.c \
+        cairo-scaled-font.c \
+        cairo-scaled-font-subsets.c \
+        cairo-slope.c \
+        cairo-spans.c \
+        cairo-spline.c \
+        cairo-stroke-style.c \
+        cairo-surface.c \
+	cairo-surface-clipper.c \
+        cairo-surface-fallback.c \
+	cairo-surface-offset.c \
+	cairo-surface-snapshot.c \
+	cairo-surface-subsurface.c \
+	cairo-surface-wrapper.c \
+	cairo-tee-surface.c \
+        cairo-tor-scan-converter.c \
+        cairo-toy-font-face.c \
+        cairo-traps.c \
+        cairo-unicode.c \
+	cairo-user-font.c \
+	cairo-version.c \
+        cairo-wideint.c \
+        $(NULL)
+
+EXPORTS_NAMESPACES = cairo
+
+EXPORTS_cairo = cairo.h cairo-version.h cairo-features.h cairo-platform.h cairo-deprecated.h cairo-rename.h cairo-tee.h
+
+# cairo-type1-subset.c should be here, but it's only supported on freetype platforms
+
+PSPDF_BASE_CSRCS = \
+	cairo-base85-stream.c \
+	cairo-type1-fallback.c \
+	cairo-type3-glyph-surface.c \
+	cairo-truetype-subset.c \
+	cairo-cff-subset.c \
+	$(NULL)
+
+PDF_CSRCS = \
+	cairo-pdf-surface.c \
+	cairo-pdf-operators.c \
+	$(NULL)
+
+PS_CSRCS = cairo-ps-surface.c
+
+PDF_EXPORTS = cairo-pdf.h
+PS_EXPORTS = cairo-ps.h
+
+ifeq ($(MOZ_WIDGET_TOOLKIT),windows)
+DEFINES += -DDISABLE_SOME_FLOATING_POINT
+CSRCS	+=	cairo-win32-surface.c
+
+ifdef MOZ_ENABLE_DWRITE_FONT
+CPPSRCS +=	cairo-dwrite-font.cpp
+endif
+ifdef MOZ_ENABLE_D2D_SURFACE
+CPPSRCS +=	cairo-d2d-surface.cpp
+endif
+CSRCS	+=	cairo-win32-font.c
+
+ifdef NS_PRINTING
+CSRCS   += cairo-win32-printing-surface.c
+else
+DEFINES += -DCAIRO_OMIT_WIN32_PRINTING
+endif
+
+EXPORTS_cairo += cairo-win32.h
+CSRCS   += $(PSPDF_BASE_CSRCS) $(PDF_CSRCS)
+EXPORTS_cairo += $(PDF_EXPORTS)
+endif
+
+ifeq ($(MOZ_WIDGET_TOOLKIT),os2)
+DEFINES += -DOS2_USE_PLATFORM_ALLOC
+ifdef MOZ_OS2_HIGH_MEMORY
+DEFINES += -DOS2_HIGH_MEMORY
+endif
+CSRCS   += cairo-os2-surface.c
+EXPORTS_cairo += cairo-os2.h cairo-os2-private.h
+CSRCS   += $(PSPDF_BASE_CSRCS) $(PDF_CSRCS)
+EXPORTS_cairo += $(PDF_EXPORTS)
+endif
+
+ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT))
+CSRCS   += cairo-quartz-surface.c cairo-quartz-image-surface.c cairo-quartz-font.c
+EXPORTS_cairo += cairo-quartz.h cairo-quartz-image.h
+endif
+
+ifeq ($(MOZ_WIDGET_TOOLKIT),beos)
+CPPSRCS += cairo-beos-surface.cpp
+EXPORTS_cairo += cairo-beos.h
+endif
+
+ifeq ($(MOZ_WIDGET_TOOLKIT),gtk2)
+CSRCS   += $(PSPDF_BASE_CSRCS) $(PDF_CSRCS) $(PS_CSRCS)
+EXPORTS_cairo += $(PDF_EXPORTS) $(PS_EXPORTS)
+endif
+
+ifeq ($(MOZ_WIDGET_TOOLKIT),android)
+CSRCS   += $(PSPDF_BASE_CSRCS) $(PDF_CSRCS)
+EXPORTS_cairo += $(PDF_EXPORTS)
+endif
+
+ifeq ($(MOZ_WIDGET_TOOLKIT),qt)
+CPPSRCS += cairo-qt-surface.cpp
+CSRCS   += $(PSPDF_BASE_CSRCS) $(PDF_CSRCS) 
+EXPORTS_cairo += cairo-qt.h
+EXPORTS_cairo += $(PDF_EXPORTS)
+OS_INCLUDES += $(MOZ_QT_CFLAGS)
+endif
+
+ifdef BUILD_CAIRO_SVG
+CSRCS	+= cairo-svg-surface.c
+EXPORTS_cairo += cairo-svg.h
+endif
+
+ifdef MOZ_X11
+CSRCS   += cairo-xlib-surface.c \
+	   cairo-xlib-screen.c \
+	   cairo-xlib-visual.c \
+	   cairo-xlib-display.c
+EXPORTS_cairo += cairo-xlib.h cairo-xlib-xrender.h
+OS_INCLUDES += $(XCFLAGS)
+endif
+
+ifdef MOZ_ENABLE_CAIRO_FT
+CSRCS   += cairo-ft-font.c cairo-type1-subset.c
+EXPORTS_cairo += cairo-ft.h
+OS_INCLUDES += $(CAIRO_FT_CFLAGS)
+endif
+
+LOCAL_INCLUDES  += -I$(srcdir)
+
+FORCE_STATIC_LIB = 1
+# This library is used by other shared libs in a static build
+FORCE_USE_PIC = 1
+
+include $(topsrcdir)/config/rules.mk
+
+# Disable spammy "missing initializer" GCC warning
+ifdef GNU_CC
+CFLAGS += -Wno-missing-field-initializers
+endif # GNU_CC
+
+DEFINES += -DPACKAGE_VERSION="\"moz\"" -DPACKAGE_BUGREPORT="\"http://bugzilla.mozilla.org/\""
+
+ifeq ($(MOZ_WIDGET_TOOLKIT),windows)
+DEFINES += -DCAIRO_WIN32_STATIC_BUILD
+endif
+
+ifdef MOZ_TREE_CAIRO
+DEFINES += -DMOZ_TREE_CAIRO
+endif
+
+ifndef MOZ_TREE_PIXMAN
+CFLAGS += $(MOZ_CAIRO_CFLAGS)
+CXXFLAGS += $(MOZ_CAIRO_CFLAGS)
+else
+DEFINES += -DMOZ_TREE_PIXMAN
+endif
+
+cairo-features.h: $(srcdir)/cairo-features.h.in $(GLOBAL_DEPS)
+	$(PERL) $(AUTOCONF_TOOLS)/make-makefile -t $(topsrcdir) -d $(DEPTH) ./$@

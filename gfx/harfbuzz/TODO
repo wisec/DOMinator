@@ -1,0 +1,23 @@
+- Rename get_table to reference_table
+
+- Avoid allocating blob objects internally for for_data() faces
+
+- head table access cleanup (div by zero now!)
+- cache various expensive scale computation
+
+- SFNT api?  get_num_faces?
+
+- GNOME Bug 612402 - (hb-arm) HarfBuzz compilation fix for arm
+
+- Make sure LangSys default feature is only applied once...
+
+- kern/GPOS interaction
+
+- Use size_t in sanitize?
+- Better define HB_INTERNAL
+- Future-proof metrics struct
+
+hb-ot:
+- Rename hb_internal_glyph_info_t to hb_ot_glyph_info_t
+- Add query API for aalt-like features
+- HB_OT_LAYOUT_GLYPH_CLASS_BASE_GLYPH vs LookupType::... mess

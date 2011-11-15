@@ -1,0 +1,541 @@
+#
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is
+# Mozilla Foundation.
+# Portions created by the Initial Developer are Copyright (C) 2007
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either of the GNU General Public License Version 2 or later (the "GPL"),
+# or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH		= ../../..
+topsrcdir	= @top_srcdir@
+srcdir		= @srcdir@
+VPATH		= @srcdir@
+relativesrcdir  = content/base/test
+
+include $(DEPTH)/config/autoconf.mk
+
+DIRS += \
+  chrome \
+  $(NULL)
+
+MODULE = content
+
+CPP_UNIT_TESTS = \
+                 TestNativeXMLHttpRequest.cpp \
+                 TestGetURL.cpp \
+                 TestPlainTextSerializer.cpp \
+                 $(NULL)
+
+
+XPCSHELL_TESTS = \
+               unit \
+               $(NULL)
+# FIXME/bug 575918: out-of-process xpcshell is broken on OS X
+ifneq ($(OS_ARCH),Darwin)
+XPCSHELL_TESTS += unit_ipc
+endif
+
+include $(topsrcdir)/config/rules.mk
+
+# Split files arbitrarily in two groups to not run into too-long command lines
+# which break on Windows (see bug 563151)
+_TEST_FILES1 = 	test_bug5141.html \
+		test_bug51034.html \
+		test_bug166235.html \
+		test_bug199959.html \
+		test_bug218236.html \
+		file_bug218236_multipart.txt \
+		file_bug218236_multipart.txt^headers^ \
+		test_bug218277.html \
+		test_bug238409.html \
+		test_bug254337.html \
+		test_bug276037-1.html \
+		test_bug276037-2.xhtml \
+		test_bug298064.html \
+		bug298064-subframe.html \
+		test_xhr_forbidden_headers.html \
+		test_bug311681.xml \
+		test_bug322317.html \
+		test_bug330925.xhtml \
+		test_bug331959.html \
+		test_bug333673.html \
+		test_bug337631.html \
+		test_bug338541.xhtml \
+		test_bug338679.html \
+		test_bug339494.html \
+		test_bug339494.xhtml \
+		test_bug340571.html \
+		test_bug343596.html \
+		test_bug345339.html \
+		345339_iframe.html \
+		test_bug352728.html \
+		test_bug352728.xhtml \
+		test_bug353334.html \
+		test_bug355026.html \
+		test_bug357450.js \
+		test_bug357450.html \
+		test_bug357450.xhtml \
+		test_bug357450_svg.xhtml \
+		test_bug357509.html \
+		test_bug358660.html \
+		test_bug362391.xhtml \
+		test_bug364092.xhtml \
+		test_bug364413.xhtml \
+		test_bug366946.html \
+		test_bug367164.html \
+		test_bug371576-1.html \
+		test_bug371576-2.html \
+		test_bug371576-3.html \
+		test_bug371576-4.html \
+		test_bug371576-5.html \
+		test_bug372086.html \
+		test_bug372964.html \
+		test_bug372964-2.html \
+		test_bug373181.xhtml \
+		test_bug375314.html \
+		test_bug378969.html \
+		test_bug382113.html \
+		test_bug382871.html \
+		test_bug383430.html \
+		test_bug384003.xhtml \
+		test_bug390219.html \
+		test_bug390735.html \
+		test_bug392318.html \
+		test_bug392511.html \
+		test_bug393968.html \
+		test_bug395915.html \
+		test_bug397234.html \
+		test_bug398243.html \
+		test_bug419132.html \
+		bug419132.html \
+		formReset.html \
+		bug382113_object.html \
+		test_bug326337.html \
+		file_bug326337_inner.html \
+		file_bug326337_outer.html \
+		file_bug326337.xml \
+		file_bug326337_multipart.txt \
+		file_bug326337_multipart.txt^headers^ \
+		test_bug333198.html \
+		test_bug402150.html \
+		test_bug402150.html^headers^ \
+		test_bug401662.html \
+		test_bug403852.html \
+		test_fileapi.html \
+		test_fileapi_slice.html \
+		test_bug403868.xml \
+		test_bug405182.html \
+		test_bug403841.html \
+		test_bug409380.html \
+		test_bug410229.html \
+		test_bug413974.html \
+		test_bug415860.html \
+		test_bug414190.html \
+		test_bug527896.html \
+		test_bug416317-1.html \
+		test_bug416317-2.html \
+		test_XHRSendData.html \
+		file_XHRSendData.sjs \
+		file_XHRSendData_doc.xml \
+		file_XHRSendData_doc.xml^headers^ \
+		file_bug416317.xhtml \
+		test_bug416383.html \
+		test_bug417255.html \
+		test_bug417384.html \
+		test_bug418214.html \
+		test_bug419527.xhtml \
+		test_bug420609.xhtml \
+		test_bug420700.html \
+		test_bug421602.html \
+		test_bug422537.html \
+		test_bug424359-1.html \
+		test_bug499656.html \
+		test_bug499656.xhtml \
+		file_htmlserializer_1.html \
+		file_htmlserializer_1_bodyonly.html \
+		file_htmlserializer_1_format.html \
+		file_htmlserializer_1_linebreak.html \
+		file_htmlserializer_1_links.html \
+		file_htmlserializer_1_noflag.html \
+		file_htmlserializer_1_noformatpre.html \
+		file_htmlserializer_1_raw.html \
+		file_htmlserializer_1_nested_body.html \
+		file_htmlserializer_1_sibling_body.html \
+		file_htmlserializer_1_sibling_body_only_body.html \
+		file_htmlserializer_1_no_body.html \
+		file_htmlserializer_1_wrap.html \
+		test_bug424359-2.html \
+		file_htmlserializer_2.html \
+		test_bug431082.html \
+		file_htmlserializer_2_basic.html \
+		file_htmlserializer_2_enthtml.html \
+		file_htmlserializer_2_entw3c.html \
+		file_htmlserializer_2_latin1.html \
+		test_bug424212.html \
+		test_bug425013.html \
+		bug426308-redirect.sjs \
+		test_bug426308.html \
+		test_bug426646.html \
+		file_bug426646-1.html \
+		file_bug426646-2.html \
+		test_bug429157.html \
+		test_XHR.html \
+		file_XHR_pass1.xml \
+		file_XHR_pass2.txt \
+		file_XHR_pass3.txt \
+		file_XHR_pass3.txt^headers^ \
+		file_XHR_fail1.txt \
+		file_XHR_fail1.txt^headers^ \
+		file_XHR_binary1.bin \
+		file_XHR_binary1.bin^headers^ \
+		test_bug428847.html \
+		file_bug428847-1.xhtml \
+		file_bug428847-2.xhtml \
+		test_bug431701.html \
+		test_bug431833.html \
+		test_bug435425.html \
+		bug435425.sjs \
+		bug435425_redirect.sjs \
+		test_bug438519.html \
+		test_bug444722.html \
+		test_bug451376.html \
+		test_text_replaceWholeText.html \
+		test_text_wholeText.html \
+		test_bug433533.html \
+		wholeTexty-helper.xml \
+		test_bug444030.xhtml \
+		test_NodeIterator_basics_filters.xhtml \
+		test_NodeIterator_mutations_1.xhtml \
+		test_NodeIterator_mutations_2.html \
+		test_NodeIterator_mutations_3.html \
+		test_bug28293.html \
+		test_bug28293.xhtml \
+		file_bug28293.sjs \
+		test_bug445225.html \
+		file_bug445225_multipart.txt \
+		file_bug445225_multipart.txt^headers^ \
+		test_title.html \
+		test_bug453521.html \
+		test_bug454325.html \
+		test_bug456262.html \
+		test_bug482935.html \
+		     bug482935.sjs \
+		test_bug590870.html \
+		file_bug590870.html \
+		test_bug590812.html \
+		file_bug590812.xml \
+		file_bug590812-ref.xhtml \
+		test_bug368972.html \
+		test_bug448993.html \
+		test_bug450160.html \
+		test_bug453736.html \
+		test_bug454326.html \
+		test_bug505783.html \
+		test_bug457746.html \
+		test_bug587931.html \
+		test_bug592829.html \
+		test_bug518104.html \
+		bug457746.sjs \
+		test_CrossSiteXHR.html \
+		test_CrossSiteXHR_origin.html \
+		file_CrossSiteXHR_inner.html \
+		file_CrossSiteXHR_inner_data.sjs \
+		file_CrossSiteXHR_inner.jar \
+		file_CrossSiteXHR_server.sjs \
+		test_CrossSiteXHR_cache.html \
+		file_CrossSiteXHR_cache_server.sjs \
+		test_XHRDocURI.html \
+		file_XHRDocURI.xml \
+		file_XHRDocURI.xml^headers^ \
+		file_XHRDocURI.text \
+		file_XHRDocURI.text^headers^ \
+		test_DOMException.html \
+		$(NULL)
+
+_TEST_FILES2 = \
+		test_bug459424.html \
+		bug461735-redirect1.sjs \
+		bug461735-redirect2.sjs \
+		bug461735-post-redirect.js \
+		test_bug513194.html \
+		test_bug461735.html \
+		test_bug380418.html \
+		test_bug469304.html \
+		test_bug465767.html \
+		test_bug380418.html^headers^ \
+		test_bug422403-1.html \
+		file_xhtmlserializer_1.xhtml \
+		file_xhtmlserializer_1_bodyonly.xhtml \
+		file_xhtmlserializer_1_format.xhtml \
+		file_xhtmlserializer_1_linebreak.xhtml \
+		file_xhtmlserializer_1_links.xhtml \
+		file_xhtmlserializer_1_noflag.xhtml \
+		file_xhtmlserializer_1_noformatpre.xhtml \
+		file_xhtmlserializer_1_raw.xhtml \
+		file_xhtmlserializer_1_nested_body.xhtml \
+		file_xhtmlserializer_1_sibling_body.xhtml \
+		file_xhtmlserializer_1_sibling_body_only_body.xhtml \
+		file_xhtmlserializer_1_no_body.xhtml \
+		file_xhtmlserializer_1_wrap.xhtml \
+		test_bug422403-2.xhtml \
+		file_xhtmlserializer_2.xhtml \
+		file_xhtmlserializer_2_basic.xhtml \
+		file_xhtmlserializer_2_enthtml.xhtml \
+		file_xhtmlserializer_2_entw3c.xhtml \
+		file_xhtmlserializer_2_latin1.xhtml \
+		test_bug500937.html \
+		test_htmlcopyencoder.html \
+		test_bug313646.html \
+		bug313646.txt \
+		test_htmlcopyencoder.xhtml \
+		test_bug270145.xhtml \
+		test_elementTraversal.html \
+		test_w3element_traversal.html \
+		test_w3element_traversal.xhtml \
+		test_bug469020.html \
+		test_w3element_traversal_svg.html \
+		w3element_traversal.svg \
+		test_bug444322.html \
+		bug444322.txt \
+		bug444322.js \
+		test_bug455472.html \
+		test_bug455629.html \
+		bug455629-helper.svg \
+		test_bug473162-1.html \
+		test_bug473162-2.html \
+		test_bug466751.xhtml \
+		test_bug461555.html \
+		test_sync_xhr_timer.xhtml \
+		test_bug498240.html \
+		file_htmlserializer_ipv6.html \
+		file_htmlserializer_ipv6_out.html \
+		test_bug498433.html \
+		test_bug498897.html \
+		file_bug498897.html \
+		file_bug498897.html^headers^ \
+		file_bug498897.css \
+		test_bug493881.js \
+		test_bug493881.html \
+		bug466409-page.html \
+		bug466409-empty.css \
+		test_bug466409.html \
+		test_classList.html \
+		test_bug514487.html \
+		test_range_bounds.html \
+		test_mozfiledataurl.html \
+		file_mozfiledataurl_audio.ogg \
+		file_mozfiledataurl_img.jpg \
+		file_mozfiledataurl_inner.html \
+		file_mozfiledataurl_doc.html \
+		file_mozfiledataurl_text.txt \
+		test_bug475156.html \
+		bug475156.sjs \
+		test_bug544642.html \
+		test_bug564863.xhtml \
+		test_bug588990.html \
+		test_copypaste.html \
+		test_bug503481.html \
+		file_bug503481.sjs \
+		test_bug503481b.html \
+		file_bug503481b_inner.html \
+		test_viewport_scroll.html \
+		test_CSP.html \
+		file_CSP.sjs \
+		file_CSP_main.html \
+		file_CSP_main.html^headers^ \
+		file_CSP_main.js \
+		test_CSP_frameancestors.html \
+		file_CSP_frameancestors.sjs \
+		file_CSP_frameancestors_main.html \
+		file_CSP_frameancestors_main.js \
+		test_CSP_inlinescript.html \
+		file_CSP_inlinescript_main.html \
+		file_CSP_inlinescript_main.html^headers^ \
+		test_CSP_evalscript.html \
+		file_CSP_evalscript_main.html \
+		file_CSP_evalscript_main.html^headers^ \
+		file_CSP_evalscript_main.js \
+		test_bug540854.html \
+		bug540854.sjs \
+		test_bug548463.html \
+		test_bug545644.html \
+		test_bug545644.xhtml \
+		test_bug553896.xhtml \
+		test_bug515401.html \
+		test_bug541937.html \
+		file_bug541937.html \
+		file_bug541937.xhtml \
+		test_bug558726.html \
+		test_bug557892.html \
+		file_bug557892.html \
+		test_bug559526.html \
+		test_csp_redirects.html \
+		file_csp_redirects_page.sjs \
+		file_csp_redirects_main.html \
+		file_csp_redirects_resource.sjs \
+		test_bug346485.html \
+		test_bug560780.html \
+		test_bug562652.html \
+		test_bug562137.html \
+		file_bug562137.txt \
+		test_bug548193.html \
+		file_bug548193.sjs \
+		test_html_colors_quirks.html \
+		test_html_colors_standards.html \
+		test_bug300992.html \
+		test_websocket_hello.html \
+		file_websocket_hello_wsh.py \
+		test_websocket_basic.html \
+		file_websocket_basic_wsh.py \
+		test_websocket.html \
+		file_websocket_wsh.py \
+		file_websocket_http_resource.txt \
+		test_x-frame-options.html \
+		file_x-frame-options_main.html \
+		file_x-frame-options_page.sjs \
+		test_createHTMLDocument.html \
+		test_bug622088.html \
+		file_bug622088_inner.html \
+		file_bug622088.sjs \
+		test_bug564047.html \
+		test_bug567350.html \
+		test_bug578096.html \
+		test_bug585978.html \
+		test_bug592366.html \
+		test_bug597345.html \
+		script-1_bug597345.sjs \
+		script-2_bug597345.js \
+		test_bug598877.html \
+		test_bug599588.html \
+		test_bug600466.html \
+		test_bug600468.html \
+		test_bug600471.html \
+		test_bug601803.html \
+		file_bug601803a.html \
+		file_bug601803b.html \
+		test_bug602838.html \
+		script_bug602838.sjs \
+		test_bug614583.html \
+		test_bug604660.html \
+		file_bug604660-1.xml \
+		file_bug604660-2.xsl \
+		file_bug604660-3.js \
+		file_bug604660-4.js \
+		file_bug604660-5.xml \
+		file_bug604660-6.xsl \
+		test_bug605982.html \
+		test_bug606729.html \
+		test_treewalker_nextsibling.xml \
+		test_bug614058.html \
+		test_bug590771.html \
+		test_bug622117.html \
+		test_base.xhtml \
+		file_base_xbl.xml \
+		test_bug622246.html \
+		test_bug484396.html \
+		test_bug466080.html \
+		bug466080.sjs \
+		test_bug625722.html \
+		test_bug631615.html \
+		test_bug558431.html \
+		file_bug558431.html \
+		file_bug558431.html^headers^ \
+		test_bug604592.html \
+		test_bug628938.html \
+		test_bug626262.html \
+		test_plugin_freezing.html \
+		test_bug638112.html \
+		bug638112-response.txt \
+		bug638112.sjs \
+		test_bug656283.html \
+		test_blobbuilder.html \
+		fileutils.js \
+		test_bug338583.html \
+		eventsource.resource \
+		eventsource.resource^headers^ \
+		badContentType.eventsource \
+		badContentType.eventsource^headers^ \
+		badEventFieldName.eventsource \
+		badEventFieldName.eventsource^headers^ \
+		badHTTPResponseCode.eventsource \
+		badHTTPResponseCode.eventsource^headers^ \
+		badMessageEvent.eventsource \
+		badMessageEvent.eventsource^headers^ \
+		forRemoval.resource \
+		forRemoval.resource^headers^ \
+		accesscontrol.resource \
+		accesscontrol.resource^headers^ \
+		invalid_accesscontrol.resource \
+		invalid_accesscontrol.resource^headers^ \
+		somedatas.resource \
+		somedatas.resource^headers^ \
+		delayedServerEvents.sjs \
+		test_bug664916.html \
+		test_bug666604.html \
+		test_bug675121.html \
+		file_bug675121.sjs \
+		$(NULL)
+
+_CHROME_FILES =	\
+		test_bug357450.js \
+		$(NULL)
+
+# This test fails on the Mac for some reason
+ifneq (,$(filter gtk2 windows,$(MOZ_WIDGET_TOOLKIT)))
+_TEST_FILES2 += 	test_copyimage.html \
+		$(NULL)
+endif
+
+# Disabled for now. Mochitest isn't reliable enough for these.
+# test_bug444546.html \
+# bug444546.sjs \
+
+# Disabled due to making the harness time out
+#		test_bug503473.html \
+#		file_bug503473-frame.sjs \
+
+_BROWSER_TEST_FILES = \
+		browser_bug593387.js \
+		$(NULL)
+
+libs:: $(_TEST_FILES1)
+	$(INSTALL) $(foreach f,$^,"$f") $(DEPTH)/_tests/testing/mochitest/tests/$(relativesrcdir)
+
+libs:: $(_TEST_FILES2)
+	$(INSTALL) $(foreach f,$^,"$f") $(DEPTH)/_tests/testing/mochitest/tests/$(relativesrcdir)
+
+libs:: $(_BROWSER_TEST_FILES)
+	$(INSTALL) $(foreach f,$^,"$f") $(DEPTH)/_tests/testing/mochitest/browser/$(relativesrcdir)
+
+libs:: $(_CHROME_FILES)
+	$(INSTALL) $(foreach f,$^,"$f") $(DEPTH)/_tests/testing/mochitest/chrome/$(relativesrcdir)
+

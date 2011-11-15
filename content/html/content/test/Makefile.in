@@ -1,0 +1,289 @@
+#
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is
+# Mozilla Foundation.
+# Portions created by the Initial Developer are Copyright (C) 2007
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either of the GNU General Public License Version 2 or later (the "GPL"),
+# or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH          = ../../../..
+topsrcdir      = @top_srcdir@
+srcdir         = @srcdir@
+VPATH          = @srcdir@
+relativesrcdir = content/html/content/test
+
+include $(DEPTH)/config/autoconf.mk
+
+ifdef ENABLE_TESTS
+# This extra subdirectory is needed due to the nature of this test.
+# With the bug, the test loads the base URL of the bug649134/file_*.sjs
+# files, and the mochitest server responds with the contents of index.html if
+# it exists in that case, which we use to detect failure.
+# We can't have index.html in this directory because it would prevent
+# running the tests here.
+DIRS		+= bug649134
+
+# For form-related test suite.
+DIRS		+= forms
+endif
+
+include $(topsrcdir)/config/rules.mk
+
+_TEST_FILES = \
+		test_hidden.html \
+		test_bug589.html \
+		test_bug691.html \
+		nnc_lockup.gif \
+		test_bug694.html \
+		test_bug696.html \
+		test_bug1297.html \
+		test_bug1366.html \
+		test_bug1400.html \
+		test_bug2082.html \
+		test_bug3348.html \
+		test_bug6296.html \
+		test_bug24958.html \
+		bug100533_load.html \
+		bug100533_iframe.html \
+		test_bug100533.html \
+		image.png \
+		test_bug109445.html \
+		test_bug109445.xhtml \
+		test_bug143220.html \
+		test_bug182279.html \
+		test_bug237071.html \
+		bug242709_iframe.html \
+		bug242709_load.html \
+		test_bug242709.html \
+		bug277724_iframe1.html \
+		bug277724_iframe2.xhtml \
+		test_bug277724.html \
+		bug277890_iframe.html \
+		bug277890_load.html \
+		test_bug277890.html \
+		test_bug274626.html \
+		test_bug287465.html \
+		test_bug209275.xhtml \
+		file_bug209275_1.html \
+		file_bug209275_2.html \
+		file_bug209275_3.html \
+		test_bug295561.html \
+		test_bug300691-1.html \
+		test_bug300691-2.html \
+		test_bug300691-3.xhtml \
+		test_bug330705-1.html \
+		test_bug332246.html \
+		test_bug332893-1.html \
+		test_bug332893-2.html \
+		test_bug332893-3.html \
+		test_bug332893-4.html \
+		test_bug332893-5.html \
+		test_bug332893-6.html \
+		test_bug332893-7.html \
+		bug340800_iframe.txt \
+		test_bug340800.html \
+		test_bug353415-1.html \
+		test_bug353415-2.html \
+		test_bug371375.html \
+		test_bug373589.html \
+		bug372098-link-target.html \
+		test_bug372098.html \
+		test_bug375003-1.html \
+		test_bug375003-2.html \
+		test_bug383383.html \
+		test_bug383383_2.xhtml \
+		test_bug384419.html \
+		test_bug386496.html \
+		test_bug386728.html \
+		test_bug386996.html \
+		test_bug388558.html \
+		test_bug388746.html \
+		test_bug388794.html \
+		test_bug389797.html \
+		test_bug390975.html \
+		test_bug391994.html \
+		test_bug392567.html \
+		bug392567.jar       \
+		bug392567.jar^headers^ \
+		test_bug394700.html \
+		test_bug395107.html \
+		test_bug401160.xhtml \
+		test_bug405242.html \
+		test_bug406596.html \
+		test_bug408231.html \
+		test_bug417760.html \
+		file_bug417760.png \
+		test_formSubmission.html \
+		test_formSubmission2.html \
+		file_formSubmission_text.txt \
+		file_formSubmission_img.jpg \
+		test_bug421640.html \
+		test_bug424698.html \
+		test_bug428135.xhtml \
+		test_bug430351.html \
+		test_bug430392.html \
+		bug441930_iframe.html \
+		test_bug441930.html \
+		test_bug442801.html \
+		test_bug448166.html \
+		test_bug460568.html \
+		test_bug347174.html \
+		test_bug347174_write.html \
+		test_bug347174_xsl.html \
+		test_bug347174_xslp.html \
+		347174transformable.xml \
+		347174transform.xsl \
+		test_a_text.html \
+		test_anchor_href_cache_invalidation.html \
+		test_bug481335.xhtml \
+		test_bug500885.html \
+		test_bug514856.html \
+		bug514856_iframe.html \
+		test_bug518122.html \
+		test_bug519987.html \
+		test_bug579079.html \
+		test_bug523771.html \
+		form_submit_server.sjs \
+		test_bug529819.html \
+		test_bug529859.html \
+		test_bug535043.html \
+		test_bug547850.html \
+		test_bug536891.html \
+		test_bug536895.html \
+		test_bug458037.xhtml \
+		test_bug556645.html \
+		test_bug555567.html \
+		test_bug557620.html \
+		test_bug456229.html \
+		test_bug546995.html \
+		test_bug377624.html \
+		test_bug551846.html \
+		test_bug564001.html \
+		test_bug566046.html \
+		test_bug567938-1.html \
+		test_bug567938-2.html \
+		test_bug567938-3.html \
+		test_bug567938-4.html \
+		test_bug569955.html \
+		test_bug573969.html \
+		test_bug549475.html \
+		test_bug585508.html \
+		test_bug345624-1.html \
+		test_bug345624-2.html \
+		test_bug561640.html \
+		test_bug566064.html \
+		test_bug582412-1.html \
+		test_bug582412-2.html \
+		test_bug558788-1.html \
+		test_bug558788-2.html \
+		test_bug561634.html \
+		test_bug588683-1.html \
+		test_bug588683-2.html \
+		test_bug588683-3.html \
+		test_bug588683-4.html \
+		test_bug590353-1.html \
+		test_bug590353-2.html \
+		test_bug593689.html \
+		test_bug555840.html \
+		test_bug561636.html \
+		test_bug590363.html \
+		test_bug557628.html \
+		test_bug592802.html \
+		test_bug595429.html \
+		test_bug595447.html \
+		test_bug595449.html \
+		test_bug595457.html \
+		test_bug557087-1.html \
+		test_bug557087-2.html \
+		test_bug557087-3.html \
+		test_bug557087-4.html \
+		test_bug557087-5.html \
+		test_bug557087-6.html \
+		test_bug586763.html \
+		test_bug587469.html \
+		test_bug598643.html \
+		test_bug596350.html \
+		test_bug598833-1.html \
+		test_bug600155.html \
+		test_bug556007.html \
+		test_bug606817.html \
+		test_bug297761.html \
+		file_bug297761.html \
+		test_bug607145.html \
+		test_bug596511.html \
+		reflect.js \
+		test_bug611189.html \
+		test_bug613113.html \
+		test_bug605124-1.html \
+		test_bug605124-2.html \
+		test_bug605125-1.html \
+		test_bug605125-2.html \
+		test_bug612730.html \
+		test_bug613722.html \
+		test_bug613979.html \
+		test_bug615833.html \
+		test_bug601030.html \
+		test_bug610687.html \
+		test_bug618948.html \
+		test_bug623291.html \
+		test_bug619278.html \
+		test_bug622558.html \
+		test_bug622597.html \
+		test_bug636336.html \
+		test_bug610212.html \
+		test_bug633058.html \
+		test_bug641219.html \
+		test_bug643051.html \
+		test_bug583514.html \
+		test_bug514437.html \
+		test_bug560112.html \
+		test_bug586786.html \
+		test_bug646157.html \
+		test_bug649134.html \
+		test_bug658746.html \
+		test_bug659596.html \
+		test_bug659743.xml \
+		test_bug660663.html \
+		test_bug664299.html \
+		test_bug666200.html \
+		test_bug666666.html \
+		test_bug674558.html \
+		test_bug583533.html \
+		test_restore_from_parser_fragment.html \
+		test_bug617528.html \
+		test_checked.html \
+		test_bug677658.html \
+		test_bug677463.html \
+		$(NULL)
+
+libs:: $(_TEST_FILES)
+	$(INSTALL) $(foreach f,$^,"$f") $(DEPTH)/_tests/testing/mochitest/tests/$(relativesrcdir)

@@ -1,0 +1,364 @@
+<?xml version="1.0"?>
+
+# -*- Mode: Java; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+# 
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+# 
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+# 
+# The Original Code is Mozilla.org Code.
+# 
+# The Initial Developer of the Original Code is
+# Blake Ross.
+# Portions created by the Initial Developer are Copyright (C) 2001
+# the Initial Developer. All Rights Reserved.
+# 
+# Contributor(s):
+#   Ben Goodger <ben@bengoodger.com> (v2.0) 
+#   Blake Ross <blakeross@telocity.com>
+#   Shawn Wilsher <me@shawnwilsher.com> (v3.0)
+#   Edward Lee <edward.lee@engineering.uiuc.edu>
+# 
+# Alternatively, the contents of this file may be used under the terms of
+# either the GNU General Public License Version 2 or later (the "GPL"), or
+# the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+# 
+# ***** END LICENSE BLOCK *****
+
+<!DOCTYPE bindings [
+  <!ENTITY % downloadDTD SYSTEM "chrome://mozapps/locale/downloads/downloads.dtd" >
+  %downloadDTD;
+]>
+
+<bindings id="downloadBindings"
+          xmlns="http://www.mozilla.org/xbl"
+          xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+          xmlns:xbl="http://www.mozilla.org/xbl">
+
+  <binding id="download-base" extends="chrome://global/content/bindings/richlistbox.xml#richlistitem">
+    <resources>
+      <stylesheet src="chrome://mozapps/skin/downloads/downloads.css"/>
+    </resources>
+    <implementation>
+      <property name="paused">
+        <getter>
+        <![CDATA[
+          return parseInt(this.getAttribute("state")) == Components.interfaces.nsIDownloadManager.DOWNLOAD_PAUSED;
+        ]]>
+        </getter>
+      </property>
+      <property name="openable">
+        <getter>
+        <![CDATA[
+          return parseInt(this.getAttribute("state")) == Components.interfaces.nsIDownloadManager.DOWNLOAD_FINISHED;
+        ]]>
+        </getter>
+      </property>
+      <property name="inProgress">
+        <getter>
+        <![CDATA[
+          var state = parseInt(this.getAttribute("state"));
+          const dl = Components.interfaces.nsIDownloadManager;
+          return state == dl.DOWNLOAD_NOTSTARTED || 
+                 state == dl.DOWNLOAD_QUEUED ||
+                 state == dl.DOWNLOAD_DOWNLOADING || 
+                 state == dl.DOWNLOAD_PAUSED ||
+                 state == dl.DOWNLOAD_SCANNING;
+        ]]>
+        </getter>
+      </property>
+      <property name="removable">
+        <getter>
+        <![CDATA[
+          var state = parseInt(this.getAttribute("state"));
+          const dl = Components.interfaces.nsIDownloadManager;
+          return state == dl.DOWNLOAD_FINISHED || 
+                 state == dl.DOWNLOAD_CANCELED || 
+                 state == dl.DOWNLOAD_BLOCKED_PARENTAL || 
+                 state == dl.DOWNLOAD_BLOCKED_POLICY || 
+                 state == dl.DOWNLOAD_DIRTY || 
+                 state == dl.DOWNLOAD_FAILED;
+        ]]>
+        </getter>
+      </property>
+      <property name="buttons">
+        <getter>
+        <![CDATA[
+          var startEl = document.getAnonymousNodes(this);
+          if (!startEl.length)
+            startEl = [this];
+
+          const XULNS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
+          return startEl[0].getElementsByTagNameNS(XULNS, "button");
+        ]]>
+        </getter>
+      </property>
+    </implementation>
+  </binding>
+  
+  <binding id="download-starting" extends="chrome://mozapps/content/downloads/download.xml#download-base">
+    <content>
+      <xul:hbox flex="1">
+        <xul:vbox pack="center">
+          <xul:image class="downloadTypeIcon" validate="always"
+                     xbl:inherits="src=image"/>
+        </xul:vbox>
+        <xul:vbox pack="start" flex="1">
+          <xul:label xbl:inherits="value=target,tooltiptext=target"
+                     crop="center" class="name"/>
+          <xul:progressmeter mode="normal" value="0" flex="1"
+                             anonid="progressmeter"/>
+          <xul:label value="&starting.label;" class="status"/>
+          <xul:spacer flex="1"/>
+        </xul:vbox>
+        <xul:vbox pack="center">
+          <xul:button class="cancel mini-button" tooltiptext="&cmd.cancel.label;"
+                      cmd="cmd_cancel" ondblclick="event.stopPropagation();"
+                      oncommand="performCommand('cmd_cancel', this);"/>
+        </xul:vbox>
+      </xul:hbox>
+    </content>  
+  </binding>
+  
+  <binding id="download-downloading" extends="chrome://mozapps/content/downloads/download.xml#download-base">
+    <content>
+      <xul:hbox flex="1" class="downloadContentBox">
+        <xul:vbox pack="center">
+          <xul:image class="downloadTypeIcon" validate="always"
+                     xbl:inherits="src=image"/>
+        </xul:vbox>
+        <xul:vbox flex="1">
+          <xul:label xbl:inherits="value=target,tooltiptext=target"
+                       crop="center" flex="2" class="name"/>
+          <xul:hbox>
+            <xul:vbox flex="1">
+              <xul:progressmeter mode="normal" value="0" flex="1"
+                                 anonid="progressmeter"
+                                 xbl:inherits="value=progress,mode=progressmode"/>
+            </xul:vbox>
+            <xul:button class="pause mini-button" tooltiptext="&cmd.pause.label;"
+                        cmd="cmd_pause" ondblclick="event.stopPropagation();"
+                        oncommand="performCommand('cmd_pause', this);"/>
+            <xul:button class="cancel mini-button" tooltiptext="&cmd.cancel.label;"
+                        cmd="cmd_cancel" ondblclick="event.stopPropagation();"
+                        oncommand="performCommand('cmd_cancel', this);"/>
+          </xul:hbox>
+          <xul:label xbl:inherits="value=status,tooltiptext=statusTip" flex="1"
+                     crop="right" class="status"/>
+          <xul:spacer flex="1"/>
+        </xul:vbox>
+      </xul:hbox>
+    </content>
+  </binding>
+  
+  <binding id="download-paused" extends="chrome://mozapps/content/downloads/download.xml#download-base">
+    <content>
+      <xul:hbox flex="1">
+        <xul:vbox pack="center">
+          <xul:image class="downloadTypeIcon" validate="always"
+                     xbl:inherits="src=image"/>
+        </xul:vbox>
+        <xul:vbox flex="1">
+          <xul:label xbl:inherits="value=target,tooltiptext=target"
+                     crop="center" flex="2" class="name"/>
+          <xul:hbox>
+            <xul:vbox flex="1">
+              <xul:progressmeter mode="normal" value="0" flex="1"
+                                 anonid="progressmeter"
+                                 xbl:inherits="value=progress,mode=progressmode"/>
+            </xul:vbox>
+            <xul:button class="resume mini-button" tooltiptext="&cmd.resume.label;"
+                        cmd="cmd_resume" ondblclick="event.stopPropagation();"
+                        oncommand="performCommand('cmd_resume', this);"/>
+            <xul:button class="cancel mini-button" tooltiptext="&cmd.cancel.label;"
+                        cmd="cmd_cancel" ondblclick="event.stopPropagation();"
+                        oncommand="performCommand('cmd_cancel', this);"/>
+          </xul:hbox>
+          <xul:label xbl:inherits="value=status,tooltiptext=statusTip" flex="1"
+                     crop="right" class="status"/>
+          <xul:spacer flex="1"/>
+        </xul:vbox>
+      </xul:hbox>
+    </content>
+  </binding>
+  
+  <binding id="download-done" extends="chrome://mozapps/content/downloads/download.xml#download-base">
+    <content>
+      <xul:hbox flex="1">
+        <xul:vbox pack="center">
+          <xul:image class="downloadTypeIcon" validate="always"
+                     xbl:inherits="src=image"/>
+        </xul:vbox>
+        <xul:vbox pack="start" flex="1">
+          <xul:hbox align="center" flex="1">
+            <xul:label xbl:inherits="value=target,tooltiptext=target"
+                       crop="center" flex="1" class="name"/>
+            <xul:label xbl:inherits="value=dateTime,tooltiptext=dateTimeTip"
+                       class="dateTime"/>
+          </xul:hbox>
+          <xul:hbox align="center" flex="1">
+            <xul:label xbl:inherits="value=status,tooltiptext=statusTip"
+                       crop="end" flex="1" class="status"/>
+          </xul:hbox>
+        </xul:vbox>
+      </xul:hbox>
+    </content>  
+  </binding>
+  
+  <binding id="download-canceled" extends="chrome://mozapps/content/downloads/download.xml#download-base">
+    <content>
+      <xul:hbox flex="1">
+        <xul:vbox pack="center">
+          <xul:image class="downloadTypeIcon" validate="always"
+                     xbl:inherits="src=image"/>
+        </xul:vbox>
+        <xul:vbox pack="start" flex="1">
+          <xul:hbox align="center" flex="1">
+            <xul:label xbl:inherits="value=target,tooltiptext=target"
+                       crop="center" flex="1" class="name"/>
+            <xul:label xbl:inherits="value=dateTime,tooltiptext=dateTimeTip"
+                       class="dateTime"/>
+          </xul:hbox>
+          <xul:hbox align="center" flex="1">
+            <xul:label xbl:inherits="value=status,tooltiptext=statusTip"
+                       crop="end" flex="1" class="status"/>
+            <xul:button class="retry mini-button" tooltiptext="&cmd.retry.label;"
+                        cmd="cmd_retry" ondblclick="event.stopPropagation();"
+                        oncommand="performCommand('cmd_retry', this);"/>
+          </xul:hbox>
+        </xul:vbox>
+      </xul:hbox>
+    </content>  
+  </binding>
+  
+  <binding id="download-failed" extends="chrome://mozapps/content/downloads/download.xml#download-base">
+    <content>
+      <xul:hbox flex="1">
+        <xul:vbox pack="center">
+          <xul:image class="downloadTypeIcon" validate="always"
+                     xbl:inherits="src=image"/>
+        </xul:vbox>
+        <xul:vbox pack="start" flex="1">
+          <xul:hbox align="center" flex="1">
+            <xul:label xbl:inherits="value=target,tooltiptext=target"
+                       crop="center" flex="1" class="name"/>
+            <xul:label xbl:inherits="value=dateTime,tooltiptext=dateTimeTip"
+                       class="dateTime"/>
+          </xul:hbox>
+          <xul:hbox align="center" flex="1">
+            <xul:label xbl:inherits="value=status,tooltiptext=statusTip"
+                       crop="end" flex="1" class="status"/>
+            <xul:button class="retry mini-button" tooltiptext="&cmd.retry.label;"
+                        cmd="cmd_retry" ondblclick="event.stopPropagation();"
+                        oncommand="performCommand('cmd_retry', this);"/>
+          </xul:hbox>
+        </xul:vbox>
+      </xul:hbox>
+    </content>  
+  </binding>
+
+  <binding id="download-blocked-parental" extends="chrome://mozapps/content/downloads/download.xml#download-base">
+    <content>
+      <xul:hbox flex="1">
+        <xul:vbox pack="center">
+          <xul:image class="downloadTypeIcon blockedIcon"/>
+        </xul:vbox>
+        <xul:vbox pack="start" flex="1">
+          <xul:hbox align="center" flex="1">
+            <xul:label xbl:inherits="value=target,tooltiptext=target"
+                       crop="center" flex="1" class="name"/>
+            <xul:label xbl:inherits="value=dateTime,tooltiptext=dateTimeTip"
+                       class="dateTime"/>
+          </xul:hbox>
+          <xul:hbox align="center" flex="1">
+            <xul:label xbl:inherits="value=status,tooltiptext=statusTip"
+                       crop="end" flex="1" class="status"/>
+          </xul:hbox>
+        </xul:vbox>
+      </xul:hbox>
+    </content>
+  </binding>
+
+  <binding id="download-blocked-policy" extends="chrome://mozapps/content/downloads/download.xml#download-base">
+    <content>
+      <xul:hbox flex="1">
+        <xul:vbox pack="center">
+          <xul:image class="downloadTypeIcon blockedIcon"/>
+        </xul:vbox>
+        <xul:vbox pack="start" flex="1">
+          <xul:hbox align="center" flex="1">
+            <xul:label xbl:inherits="value=target,tooltiptext=target"
+                       crop="center" flex="1" class="name"/>
+            <xul:label xbl:inherits="value=dateTime,tooltiptext=dateTimeTip"
+                       class="dateTime"/>
+          </xul:hbox>
+          <xul:hbox align="center" flex="1">
+            <xul:label xbl:inherits="value=status,tooltiptext=statusTip"
+                       crop="end" flex="1" class="status"/>
+          </xul:hbox>
+        </xul:vbox>
+      </xul:hbox>
+    </content>
+  </binding>
+
+  <binding id="download-scanning" extends="chrome://mozapps/content/downloads/download.xml#download-base">
+    <content>
+      <xul:hbox flex="1">
+        <xul:vbox pack="center">
+          <xul:image class="downloadTypeIcon" validate="always"
+                     xbl:inherits="src=image"/>
+        </xul:vbox>
+        <xul:vbox pack="start" flex="1">
+          <xul:label xbl:inherits="value=target,tooltiptext=target"
+                       crop="center" flex="2" class="name"/>
+          <xul:hbox>
+            <xul:vbox flex="1">
+              <xul:progressmeter mode="undetermined" flex="1" />
+            </xul:vbox>
+          </xul:hbox>
+          <xul:label value="&scanning.label;" class="status"/>
+          <xul:spacer flex="1"/>
+        </xul:vbox>
+      </xul:hbox>
+    </content>  
+  </binding>
+
+  <binding id="download-dirty" extends="chrome://mozapps/content/downloads/download.xml#download-base">
+    <content>
+      <xul:hbox flex="1">
+        <xul:vbox pack="center">
+          <xul:image class="downloadTypeIcon blockedIcon"/>
+        </xul:vbox>
+        <xul:vbox pack="start" flex="1">
+          <xul:hbox align="center" flex="1">
+            <xul:label xbl:inherits="value=target,tooltiptext=target"
+                       crop="center" flex="1" class="name"/>
+            <xul:label xbl:inherits="value=dateTime,tooltiptext=dateTimeTip"
+                       class="dateTime"/>
+          </xul:hbox>
+          <xul:hbox align="center" flex="1">
+            <xul:label xbl:inherits="value=status,tooltiptext=statusTip"
+                       crop="end" flex="1" class="status"/>
+          </xul:hbox>
+        </xul:vbox>
+      </xul:hbox>
+    </content>
+  </binding>
+
+</bindings>

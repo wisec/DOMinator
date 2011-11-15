@@ -1,0 +1,22 @@
+== basic.xul basic-ref.xul
+random-if(Android) == basic-negcoord.xul basic-negcoord-ref.xul
+!= blur.xul blur-notref.xul
+== color-inherit.xul color-inherit-ref.xul
+== multiple-noblur.xul multiple-noblur-ref.xul
+
+== basic.html basic-ref.html
+== basic-negcoord.html basic-negcoord-ref.html
+!= blur.html blur-notref.html
+== color-inherit.html color-inherit-ref.html
+== color-parserorder.html color-parserorder-ref.html
+== decorations-multiple-zorder.html decorations-multiple-zorder-ref.html
+== multiple-noblur.html multiple-noblur-ref.html
+== quirks-decor-noblur.html quirks-decor-noblur-ref.html
+== standards-decor-noblur.html standards-decor-noblur-ref.html
+== padding-decoration.html padding-decoration-ref.html
+== textindent.html textindent-ref.html
+== lineoverflow.html lineoverflow-ref.html
+
+== overflow-not-scrollable-1.html overflow-not-scrollable-1-ref.html
+== overflow-not-scrollable-1.html overflow-not-scrollable-1-ref2.html
+== overflow-not-scrollable-2.html overflow-not-scrollable-2-ref.html

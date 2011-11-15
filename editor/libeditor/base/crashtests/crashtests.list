@@ -1,0 +1,10 @@
+load 336104.html
+load 382527-1.html
+load 402172-1.html
+load 407079-1.html
+load 407256-1.html
+load 430624-1.html
+load 459613.html
+load 475132-1.xhtml
+load 633709.xhtml
+asserts(6) load 636074-1.html # Bug 439258, charged to the wrong test due to bug 635550

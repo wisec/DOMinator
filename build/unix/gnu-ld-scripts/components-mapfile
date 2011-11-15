@@ -1,0 +1,6 @@
+{
+   global:
+		NSModule;
+		NSGetModule;
+   local: *;
+};

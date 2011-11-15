@@ -1,0 +1,234 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Test for XMLHttpRequest</title>
+  <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>        
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+<body>
+<p id="display"></p>
+<div id="content" style="display: none">
+  
+</div>
+<pre id="test">
+<script class="testbody" type="text/javascript">
+SimpleTest.waitForExplicitFinish();
+
+var path = "/tests/content/base/test/";
+
+var passFiles = [['file_XHR_pass1.xml', 'GET'],
+                 ['file_XHR_pass2.txt', 'GET'],
+                 ['file_XHR_pass3.txt', 'GET'],
+                 ];
+
+var failFiles = [['//example.com' + path + 'file_XHR_pass1.xml', 'GET'],
+                 ['ftp://localhost' + path + 'file_XHR_pass1.xml', 'GET'],
+                 ['file_XHR_fail1.txt', 'GET'],
+                 ];
+
+for (i = 0; i < passFiles.length; ++i) {
+  xhr = new XMLHttpRequest();
+  is(xhr.responseType, "", "wrong initial responseType");
+  xhr.open(passFiles[i][1], passFiles[i][0], false); 
+  xhr.send(null);
+  is(xhr.status, 200, "wrong status");
+  if (xhr.responseXML) {
+    is((new XMLSerializer()).serializeToString(xhr.responseXML.documentElement),
+       "<res>hello</res>",
+       "wrong responseXML");
+    is(xhr.response, "<res>hello</res>\n", "wrong response");
+  }
+  else {
+    is(xhr.responseText, "hello pass\n", "wrong responseText");
+    is(xhr.response, "hello pass\n", "wrong response");
+  }
+}
+
+for (i = 0; i < failFiles.length; ++i) {
+  xhr = new XMLHttpRequest();
+  didthrow = false;
+  try {
+    xhr.open(failFiles[i][1], failFiles[i][0], false); 
+    xhr.send(null);
+  }
+  catch (e) {
+    didthrow = true;
+  }
+  if (!didthrow) {
+    is(xhr.status, 301, "wrong status");
+    is(xhr.responseText, "redirect file\n", "wrong response");
+  }
+  else {
+    ok(1, "should have thrown or given incorrect result");
+  }
+}
+
+// test response (responseType='document')
+function checkResponseTextAccessThrows(xhr) {
+  var didthrow = false;
+  try { xhr.responseText } catch (e) { didthrow = true; }
+  ok(didthrow, "should have thrown when accessing responseText");
+}
+function checkResponseXMLAccessThrows(xhr) {
+  var didthrow = false;
+  try { xhr.responseXML } catch (e) { didthrow = true; }
+  ok(didthrow, "should have thrown when accessing responseXML");
+}
+function checkSetResponseTypeThrows(xhr) {
+  var didthrow = false;
+  try { xhr.responseType = 'document'; } catch (e) { didthrow = true; }
+  ok(didthrow, "should have thrown when accessing responseType");
+}
+
+xhr = new XMLHttpRequest();
+checkSetResponseTypeThrows(xhr);
+xhr.open("GET", 'file_XHR_pass1.xml', false); 
+xhr.responseType = 'document';
+xhr.send(null);
+checkSetResponseTypeThrows(xhr);
+is(xhr.status, 200, "wrong status");
+checkResponseTextAccessThrows(xhr);
+is((new XMLSerializer()).serializeToString(xhr.response.documentElement),
+   "<res>hello</res>",
+   "wrong response");
+
+// test response (responseType='text')
+xhr = new XMLHttpRequest();
+xhr.open("GET", 'file_XHR_pass2.txt', false); 
+xhr.responseType = 'text';
+xhr.send(null);
+is(xhr.status, 200, "wrong status");
+checkResponseXMLAccessThrows(xhr);
+is(xhr.response, "hello pass\n", "wrong response");
+
+// test response (responseType='arraybuffer')
+function arraybuffer_equals_to(ab, s) {
+  is(ab.byteLength, s.length, "wrong arraybuffer byteLength");
+
+  u8v = new Uint8Array(ab);
+  is(String.fromCharCode.apply(String, u8v), s, "wrong values");
+}
+
+// with a simple text file
+xhr = new XMLHttpRequest();
+xhr.open("GET", 'file_XHR_pass2.txt', false); 
+xhr.responseType = 'arraybuffer';
+xhr.send(null);
+is(xhr.status, 200, "wrong status");
+checkResponseTextAccessThrows(xhr);
+checkResponseXMLAccessThrows(xhr);
+ab = xhr.response;
+ok(ab != null, "should have a non-null arraybuffer");
+arraybuffer_equals_to(ab, "hello pass\n");
+
+// test reusing the same XHR (Bug 680816)
+xhr.open("GET", 'file_XHR_binary1.bin', false);
+xhr.responseType = 'arraybuffer';
+xhr.send(null);
+is(xhr.status, 200, "wrong status");
+ab2 = xhr.response;
+ok(ab2 != null, "should have a non-null arraybuffer");
+ok(ab2 != ab, "arraybuffer on XHR reuse should be distinct");
+arraybuffer_equals_to(ab, "hello pass\n");
+arraybuffer_equals_to(ab2, "\xaa\xee\0\x03\xff\xff\xff\xff\xbb\xbb\xbb\xbb");
+
+// with a binary file
+xhr = new XMLHttpRequest();
+xhr.open("GET", 'file_XHR_binary1.bin', false); 
+xhr.responseType = 'arraybuffer';
+xhr.send(null)
+is(xhr.status, 200, "wrong status");
+checkResponseTextAccessThrows(xhr);
+checkResponseXMLAccessThrows(xhr);
+ab = xhr.response;
+ok(ab != null, "should have a non-null arraybuffer");
+arraybuffer_equals_to(ab, "\xaa\xee\0\x03\xff\xff\xff\xff\xbb\xbb\xbb\xbb");
+
+// test array buffer GetResult returns the same object
+xhr = new XMLHttpRequest();
+xhr.open("GET", 'file_XHR_binary1.bin', false); 
+xhr.responseType = 'arraybuffer';
+xhr.send(null)
+is(xhr.status, 200, "wrong status");
+checkResponseTextAccessThrows(xhr);
+checkResponseXMLAccessThrows(xhr);
+is(xhr.response, xhr.response, "returns the same ArrayBuffer");
+
+// test response (responseType='blob')
+var onloadCount = 0;
+function checkOnloadCount() {
+  if (++onloadCount >= 2) SimpleTest.finish();
+};
+
+// with a simple text file
+xhr = new XMLHttpRequest();
+xhr.open("GET", 'file_XHR_pass2.txt', false); 
+xhr.responseType = 'blob';
+xhr.send(null);
+is(xhr.status, 200, "wrong status");
+checkResponseTextAccessThrows(xhr);
+checkResponseXMLAccessThrows(xhr);
+b = xhr.response;
+ok(b, "should have a non-null blob");
+ok(b instanceof Blob, "should be a Blob");
+ok(!(b instanceof File), "should not be a File");
+is(b.size, "hello pass\n".length, "wrong blob size");
+
+var fr = new FileReader();
+fr.onload = function() {
+  ok(fr.result, "hello pass\n", "wrong values");
+  checkOnloadCount();
+};
+fr.readAsBinaryString(b);
+
+// with a binary file
+xhr = new XMLHttpRequest();
+xhr.onreadystatechange = function() {
+  switch (xhr.readyState) {
+  case 2:
+    is(xhr.status, 200, "wrong status");
+    xhr.responseType = 'blob';
+    break;
+  case 4:
+    b = xhr.response;
+    ok(b != null, "should have a non-null blob");
+    is(b.size, 12, "wrong blob size");
+
+    var fr = new FileReader();
+    fr.onload = function() {
+      is(fr.result, "\xaa\xee\0\x03\xff\xff\xff\xff\xbb\xbb\xbb\xbb", "wrong values");
+      checkOnloadCount();
+    };
+    xhr = null; // kill the XHR object
+    SpecialPowers.gc();
+    fr.readAsBinaryString(b);
+    break;
+  }
+};
+xhr.open("GET", 'file_XHR_binary1.bin', true);
+xhr.send(null);
+
+var client = new XMLHttpRequest();
+client.onreadystatechange = function() {
+    if(client.readyState == 4) {
+      try {
+        is(client.responseXML, null, "responseXML should be null.");
+        is(client.responseText, "", "responseText should be empty string.");
+        is(client.response, "", "response should be empty string.");
+        is(client.status, 0, "status should be 0.");
+        is(client.statusText, "", "statusText should be empty string.");
+        is(client.getAllResponseHeaders(), "",
+           "getAllResponseHeaders() should return empty string.");
+      } catch(ex) {
+        ok(false, "Shouldn't throw! [" + ex + "]");
+      }
+    }
+  }
+client.open("GET", "file_XHR_pass1.xml", true);
+client.send();
+client.abort();
+
+</script>
+</pre>
+</body>
+</html>

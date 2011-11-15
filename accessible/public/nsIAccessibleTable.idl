@@ -1,0 +1,304 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is the Mozilla browser.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1999
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Paul Sandoz (paul.sandoz@sun.com)
+ *   Bill Haneman (bill.haneman@sun.com)
+ *   John Gaunt (jgaunt@netscape.com)
+ *   Alexander Surkov <surkov.alexander@gmail.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+#include "nsISupports.idl"
+
+interface nsIAccessible;
+interface nsIArray;
+
+[scriptable, uuid(cb0bf7b9-117e-40e2-9e46-189c3d43ce4a)]
+interface nsIAccessibleTable : nsISupports
+{
+  /**
+   * Return the caption accessible for the table. For example, html:caption
+   * element of html:table element.
+   */
+  readonly attribute nsIAccessible caption;
+
+  /**
+   * Return summary description for the table. For example, @summary attribute
+   * on html:table element.
+   */
+  readonly attribute AString summary;
+
+  /**
+   * Return columns count in the table.
+   */
+  readonly attribute long columnCount;
+
+  /**
+   * Return rows count in the table.
+   */
+  readonly attribute long rowCount;
+
+  /**
+   * Return the accessible object at the specified row and column in the table.
+   * If both row and column index are valid then the corresponding accessible
+   * object is returned that represents the requested cell regardless of whether
+   * the cell is currently visible (on the screen).
+   *
+   * @param  rowIndex     [in] the row index to retrieve the cell at
+   * @param  columnIndex  [in] the column index to retrieve the cell at
+   */
+  nsIAccessible getCellAt(in long rowIndex, in long columnIndex);
+
+  /**
+   * Translate the given row and column indices into the corresponding cell
+   * index.
+   *
+   * @param  rowIndex    [in] the row index to return cell index at
+   * @param  columnIndex [in] the column index to return cell index at
+   */
+  long getCellIndexAt(in long rowIndex, in long columnIndex);
+
+  /**
+   * Translate the given cell index into the corresponding column index.
+   *
+   * @param  cellIndex  [in] index of the table cell to return column index for
+   */
+  long getColumnIndexAt(in long cellIndex);
+
+  /**
+   * Translate the given cell index into the corresponding row index.
+   *
+   * @param cellIndex  [in] index of the table cell to return row index for
+   */
+  long getRowIndexAt(in long cellIndex);
+
+  /**
+   * Translate the given cell index into the corresponding row and column
+   * indices.
+   *
+   * @param cellIndex    [in] cell index to return row and column indices for
+   * @param rowIndex     [out] row index at the given cell index
+   * @param columnIndex  [out] column index at the given cell index
+   */
+  void getRowAndColumnIndicesAt(in long cellIndex,
+                                out long rowIndex, out long columnIndex);
+
+  /**
+   * Return the number of columns occupied by the accessible cell at
+   * the specified row and column in the table. The result differs from 1 if
+   * the specified cell spans multiple columns.
+   *
+   * @param  row     [in] row index of the cell to return the column extent for
+   * @param  column  [in] column index of the cell to return the column extent
+   *                  for
+   */
+  long getColumnExtentAt(in long row, in long column);
+
+  /**
+   * Return the number of rows occupied by the accessible cell at the specified
+   * row and column in the table. The result differs from 1 if the specified
+   * cell spans multiple rows.
+   *
+   * @param  row     [in] row index of the cell to return the column extent for
+   * @param  column  [in] column index of the cell to return the column extent
+   *                  for
+   */
+  long getRowExtentAt(in long row, in long column);
+
+  /**
+   * Return the description text of the specified column in the table.
+   *
+   * @param  columnIndex  [in] the column index to retrieve description for
+   */
+  AString getColumnDescription(in long columnIndex);
+
+  /**
+   * Return the description text of the specified row in the table.
+   *
+   * @param  rowIndex  [in] the row index to retrieve description for
+   */
+  AString getRowDescription(in long rowIndex);
+
+  /**
+   * Return a boolean value indicating whether the specified column is
+   * selected, i.e. all cells within the column are selected.
+   *
+   * @param  columnIndex  [in] the column index to determine if it's selected
+   */
+  boolean isColumnSelected(in long columnIndex);
+
+  /**
+   * Return a boolean value indicating whether the specified row is selected,
+   * i.e. all cells within the row are selected.
+   *
+   * @param  rowIndex  [in] the row index to determine whether it's selected
+   */
+  boolean isRowSelected(in long rowIndex);
+
+  /**
+   * Return a boolean value indicating whether the specified cell is selected.
+   *
+   * @param  rowIndex     [in] the row index of the cell
+   * @param  columnIndex  [in] the column index of the cell
+   */
+  boolean isCellSelected(in long rowIndex, in long columnIndex);
+
+  /**
+   * Return the total number of selected cells.
+   */
+  readonly attribute unsigned long selectedCellCount;
+
+  /**
+   * Return the total number of selected columns.
+   */
+  readonly attribute unsigned long selectedColumnCount;
+
+  /**
+   * Return the total number of selected rows.
+   */
+  readonly attribute unsigned long selectedRowCount;
+
+  /**
+   * Return an array of selected cells.
+   */
+  readonly attribute nsIArray selectedCells;
+
+  /**
+   * Return an array of cell indices currently selected.
+   *
+   * @param  cellsArraySize  [in] length of array
+   * @param  cellsArray      [in] array of indexes of selected cells
+   */
+  void getSelectedCellIndices(out unsigned long cellsArraySize,
+                              [retval, array, size_is(cellsArraySize)] out long cellsArray);
+
+  /**
+   * Return an array of column indices currently selected.
+   *
+   * @param  columnsArraySize  [in] length of array
+   * @param  columnsArray      [in] array of indices of selected columns
+   */
+  void getSelectedColumnIndices(out unsigned long columnsArraySize,
+                                [retval, array, size_is(columnsArraySize)] out long columnsArray);
+
+  /**
+   * Return an array of row indices currently selected.
+   *
+   * @param  rowsArraySize  [in] Length of array
+   * @param  rowsArray      [in] array of indices of selected rows
+   */
+  void getSelectedRowIndices(out unsigned long rowsArraySize,
+                             [retval, array, size_is(rowsArraySize)] out long rowsArray);
+
+  /**
+   * Select a row and unselects all previously selected rows.
+   *
+   * @param  rowIndex  [in] the row index to select
+   */
+  void selectRow(in long rowIndex);
+
+  /**
+   * Select a column and unselects all previously selected columns.
+   *
+   * @param  columnIndex  [in] the column index to select
+   */
+  void selectColumn(in long columnIndex);
+
+  /**
+   * Unselect the given row, leaving other selected rows selected (if any).
+   *
+   * @param  rowIndex  [in] the row index to select
+  */
+  void unselectRow(in long rowIndex);
+
+  /**
+   * Unselect the given column, leaving other selected columns selected (if any).
+   *
+   * @param  columnIndex  [in] the column index to select
+   */
+  void unselectColumn(in long columnIndex);
+
+  /**
+   * Use heuristics to determine if table is most likely used for layout.
+   */
+  boolean isProbablyForLayout();
+};
+
+
+[scriptable, uuid(654e296d-fae6-452b-987d-746b20b9514b)]
+interface nsIAccessibleTableCell : nsISupports
+{
+  /**
+   * Return host table accessible.
+   */
+  readonly attribute nsIAccessibleTable table;
+
+  /**
+   * Return column index of this cell.
+   */
+  readonly attribute long columnIndex;
+
+  /**
+   * Return row index of this cell.
+   */
+  readonly attribute long rowIndex;
+
+  /**
+   * Return the number of columns occupied by this cell. The result differs
+   * from 1 if the specified cell spans multiple columns.
+   */
+  readonly attribute long columnExtent;
+
+  /**
+   * Return the number of rows occupied by this accessible cell. The result
+   * differs from 1 if the specified cell spans multiple rows.
+   */
+  readonly attribute long rowExtent;
+
+  /**
+   * Return an array of column header cells for this cell.
+   */
+  readonly attribute nsIArray columnHeaderCells;
+
+  /**
+   * Return an array of row header cells for this cell.
+   */
+  readonly attribute nsIArray rowHeaderCells;
+
+  /**
+   * Return a boolean value indicating whether this cell is selected.
+   */
+  boolean isSelected();
+};

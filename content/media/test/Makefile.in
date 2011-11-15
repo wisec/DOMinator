@@ -1,0 +1,301 @@
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is Mozilla code.
+#
+# The Initial Developer of the Original Code is the Mozilla Corporation.
+# Portions created by the Initial Developer are Copyright (C) 2007
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#  Chris Double <chris.double@double.co.nz>
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either the GNU General Public License Version 2 or later (the "GPL"), or
+# the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH		= ../../..
+topsrcdir	= @top_srcdir@
+srcdir		= @srcdir@
+VPATH		= @srcdir@
+relativesrcdir	= content/media/test
+
+include $(DEPTH)/config/autoconf.mk
+include $(topsrcdir)/config/rules.mk
+
+# Media tests should be backend independent, i.e., not conditioned on
+# MOZ_OGG, MOZ_WAVE etc. (The only exception is the can_play_type tests,
+# which necessarily depend on the backend(s) configured.) As far as possible,
+# each test should work with any resource type. This makes it
+# easy to add new backends and reduces the amount of test duplication.
+
+# For each supported backend, resources that can be played by that backend
+# should be added to the lists in manifest.js. Media tests that aren't
+# testing for a bug in handling a specific resource type should pick one of
+# the lists in manifest.js and run the test for each resource in the list
+# that is supported in the current build (the canPlayType API is useful
+# for this).
+
+# To test whether a valid resource can simply be played through correctly,
+# and optionally that its metadata is read correctly, just
+# add it to gPlayTests in manifest.js. To test whether an invalid
+# resource correctly throws an error (and does not cause a crash or hang),
+# just add it to gErrorTests in manifest.js.
+
+# To test for a specific bug in handling a specific resource type,
+# make the test first check canPlayType for the type, and if it's not
+# supported, just do ok(true, "Type not supported") and stop the test.
+
+_TEST_FILES = \
+		allowed.sjs \
+		can_play_type_ogg.js \
+		can_play_type_wave.js \
+		can_play_type_webm.js \
+		cancellable_request.sjs \
+		dynamic_redirect.sjs \
+		file_access_controls.html \
+		manifest.js \
+		reactivate_helper.html \
+		redirect.sjs \
+		referer.sjs \
+		seek1.js \
+		seek2.js \
+		seek3.js \
+		seek4.js \
+		seek5.js \
+		seek6.js \
+		seek7.js \
+		seek8.js \
+		seek9.js \
+		seek10.js \
+		seek11.js \
+		seek12.js \
+		seek13.js \
+		seekLies.sjs \
+		test_access_control.html \
+		test_audio1.html \
+		test_audio2.html \
+		test_autoplay.html \
+		test_autoplay_contentEditable.html \
+		test_buffered.html \
+		test_bug448534.html \
+		test_bug463162.xhtml \
+		test_bug465498.html \
+		test_bug493187.html \
+		test_bug495145.html \
+		test_bug495300.html \
+		test_can_play_type.html \
+		test_closing_connections.html \
+		test_constants.html \
+		test_controls.html \
+		test_currentTime.html \
+		test_decode_error.html \
+		test_decoder_disable.html \
+		test_delay_load.html \
+		test_error_on_404.html \
+		test_error_in_video_document.html \
+		test_info_leak.html \
+		test_load.html \
+		test_load_candidates.html \
+		test_load_source.html \
+		test_media_selection.html \
+		test_mozLoadFrom.html \
+		test_networkState.html \
+		test_new_audio.html \
+		test_paused.html \
+		test_paused_after_ended.html \
+		test_play_events.html \
+		test_play_events_2.html \
+		test_playback.html \
+		test_playback_errors.html \
+ 		test_seekable1.html \
+		test_preload_actions.html \
+		test_preload_attribute.html \
+		test_progress.html \
+		test_reactivate.html \
+		test_readyState.html \
+		test_replay_metadata.html \
+		test_seek.html \
+		test_seek2.html \
+		test_seekLies.html \
+		test_seek_out_of_range.html \
+		test_source.html \
+		test_source_write.html \
+		test_standalone.html \
+		test_timeupdate_small_files.html \
+		test_volume.html \
+		test_video_to_canvas.html \
+		use_large_cache.js \
+		test_audiowrite.html \
+		$(NULL)
+
+# Don't run in suite
+ifndef MOZ_SUITE
+_TEST_FILES += test_play_twice.html
+else
+$(warning test_play_twice.html is disabled pending investigation. Bug 598252)
+endif
+
+# These tests are disabled until we figure out random failures.
+# When these tests are fixed, we should also make them backend-independent.
+#		test_resume.html \
+# Bug 492821:
+#   test_videoDocumentTitle.html
+# Bug 493692:
+#   test_preload_suspend.html
+# Bug 567954 and Bug 574586:
+#   test_mixed_principals.html
+# Disabled since we don't play Wave files standalone, for now
+#		test_audioDocumentTitle.html
+
+# sample files
+_TEST_FILES += \
+		320x240.ogv \
+		448636.ogv \
+		audio-overhang.ogg \
+		audio-gaps.ogg \
+		beta-phrasebook.ogg \
+		bogus.ogv \
+		bug495129.ogv \
+		bug495794.ogg \
+		bug461281.ogg \
+		bug482461.ogv \
+		bug482461-theora.ogv \
+		bug498380.ogv \
+		bug498855-1.ogv \
+		bug498855-2.ogv \
+		bug498855-3.ogv \
+		bug499519.ogv \
+		bug500311.ogv \
+		bug500311.ogv^headers^ \
+		bug501279.ogg \
+		bug504613.ogv \
+		bug504644.ogv \
+		bug504843.ogv \
+		bug506094.ogv \
+		bug516323.ogv \
+		bug516323.indexed.ogv \
+		bug520493.ogg \
+		bug520500.ogg \
+		bug520908.ogv \
+		bug520908.ogv^headers^ \
+		bug523816.ogv \
+		bug533822.ogg \
+		bug557094.ogv \
+		bug556821.ogv \
+		bug580982.webm \
+		bug603918.webm \
+		bug604067.webm \
+		chain.ogv \
+		dirac.ogg \
+		multiple-bos.ogg \
+		split.webm \
+		seek.ogv \
+		seek.webm \
+		seek.yuv \
+		short-video.ogv \
+		small-shot.ogg \
+		sound.ogg \
+		spacestorm-1000Hz-100ms.ogg \
+		video-overhang.ogg \
+		file_a4_tone.ogg \
+		$(NULL)
+
+# Wave sample files
+_TEST_FILES += \
+		big.wav \
+		bogus.wav \
+		r11025_msadpcm_c1.wav \
+		r11025_s16_c1.wav \
+		r11025_s16_c1_trailing.wav \
+		r11025_u8_c1.wav \
+		r11025_u8_c1_trunc.wav \
+		r16000_u8_c1_list.wav \
+		wavedata_u8.wav \
+		wavedata_s16.wav \
+		audio.wav \
+		$(NULL)
+
+# Other files
+_TEST_FILES += \
+		bogus.duh \
+		$(NULL)
+
+# These tests contain backend-specific tests. Try to write backend
+# independent tests rather than adding to this list.
+ifdef MOZ_OGG
+_TEST_FILES += \
+		test_can_play_type_ogg.html \
+		test_contentDuration1.html \
+		test_contentDuration2.html \
+		test_contentDuration3.html \
+		test_contentDuration4.html \
+		test_contentDuration5.html \
+		test_contentDuration6.html \
+		test_contentDuration7.html \
+		contentDuration1.sjs \
+		contentDuration2.sjs \
+		contentDuration3.sjs \
+		contentDuration4.sjs \
+		contentDuration5.sjs \
+		contentDuration6.sjs \
+		contentDuration7.sjs \
+		noContentLength.sjs \
+		test_seekable2.html \
+		test_seekable3.html \
+		test_a4_tone.html \
+		file_audio_event_adopt_iframe.html \
+		test_audio_event_adopt.html \
+		test_framebuffer.html \
+		test_referer.html \
+		$(NULL)
+else
+_TEST_FILES += \
+		test_can_play_type_no_ogg.html \
+		$(NULL)
+endif
+
+ifdef MOZ_WEBM
+_TEST_FILES += \
+		test_can_play_type_webm.html \
+		$(NULL)
+else
+_TEST_FILES += \
+		test_can_play_type_no_webm.html \
+		$(NULL)
+endif
+
+ifdef MOZ_WAVE
+_TEST_FILES += \
+		test_can_play_type_wave.html \
+		test_wave_data_u8.html \
+		test_wave_data_s16.html \
+		$(NULL)
+else
+_TEST_FILES += \
+		test_can_play_type_no_wave.html \
+		$(NULL)
+endif
+
+libs:: $(_TEST_FILES)
+	$(INSTALL) $(foreach f,$^,"$f") $(DEPTH)/_tests/testing/mochitest/tests/$(relativesrcdir)

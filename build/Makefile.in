@@ -1,0 +1,220 @@
+#
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is Mozilla Communicator client code, released
+# March 31, 1998.
+#
+# The Initial Developer of the Original Code is
+# Netscape Communications Corporation.
+# Portions created by the Initial Developer are Copyright (C) 1998
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either of the GNU General Public License Version 2 or later (the "GPL"),
+# or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH		= ..
+topsrcdir	= @top_srcdir@
+srcdir		= @srcdir@
+VPATH		= @srcdir@
+
+include $(DEPTH)/config/autoconf.mk
+
+MODULE = build
+
+ifeq (,$(filter WINNT OS2,$(OS_ARCH)))
+DIRS		= unix
+endif
+
+ifeq (WINNT,$(OS_ARCH))
+DIRS = win32
+endif
+
+DIRS += pgo
+
+ifdef ENABLE_TESTS
+ifeq (Android,$(OS_TARGET))
+  DIRS += mobile/sutagent/android \
+          mobile/sutagent/android/watcher \
+          mobile/sutagent/android/ffxcp \
+          mobile/sutagent/android/fencp \
+          $(NULL)
+endif
+endif
+
+include $(topsrcdir)/config/rules.mk
+
+# we install to _leaktest/
+TARGET_DEPTH = ..
+include $(srcdir)/automation-build.mk
+
+_LEAKTEST_DIR = $(DEPTH)/_leaktest
+GARBAGE_DIRS += $(_LEAKTEST_DIR)
+
+_LEAKTEST_FILES =    \
+		automation.py \
+		automationutils.py \
+		leaktest.py \
+		bloatcycle.html \
+		$(topsrcdir)/build/pgo/server-locations.txt \
+		$(topsrcdir)/build/pgo/favicon.ico \
+		$(topsrcdir)/build/pgo/blueprint/sample.html \
+		$(topsrcdir)/build/pgo/blueprint/elements.html \
+		$(topsrcdir)/build/pgo/blueprint/forms.html \
+		$(topsrcdir)/build/pgo/blueprint/grid.html \
+		$(topsrcdir)/build/pgo/blueprint/test.jpg \
+		$(topsrcdir)/build/pgo/blueprint/test-small.jpg \
+		$(topsrcdir)/build/pgo/blueprint/valid.png \
+		$(topsrcdir)/build/pgo/blueprint/screen.css \
+		$(topsrcdir)/build/pgo/blueprint/print.css \
+		$(topsrcdir)/build/pgo/blueprint/grid.png \
+		$(topsrcdir)/build/pgo/blueprint/fancytype-screen.css \
+		$(NULL)
+
+leaktest.py: leaktest.py.in
+	$(PYTHON) $(topsrcdir)/config/Preprocessor.py $^ > $@
+	chmod +x $@
+GARBAGE += leaktest.py
+
+libs:: $(_LEAKTEST_FILES)
+	$(INSTALL) $^ $(_LEAKTEST_DIR)
+
+ifdef MOZ_VALGRIND
+_VALGRIND_DIR = $(DEPTH)/_valgrind
+GARBAGE_DIRS += $(_VALGRIND_DIR)
+
+_VALGRIND_FILES = \
+		$(topsrcdir)/build/valgrind/i686-redhat-linux-gnu.sup \
+		$(topsrcdir)/build/valgrind/x86_64-redhat-linux-gnu.sup \
+		$(NULL)
+
+libs:: $(_VALGRIND_FILES)
+	$(INSTALL) $^ $(_VALGRIND_DIR)
+endif
+
+ifdef ENABLE_TESTS
+libs:: $(topsrcdir)/tools/rb/fix_stack_using_bpsyms.py
+	$(INSTALL) $< $(DIST)/bin
+
+# Unit tests for ManifestParser
+check::
+	$(PYTHON) $(topsrcdir)/config/pythonpath.py -I$(srcdir) \
+	  $(srcdir)/tests/test.py
+
+ifeq ($(OS_ARCH),Darwin)
+libs:: $(topsrcdir)/tools/rb/fix-macosx-stack.pl
+	$(INSTALL) $< $(DIST)/bin
+libs:: $(topsrcdir)/tools/rb/fix_macosx_stack.py
+	$(INSTALL) $< $(DIST)/bin
+
+# Basic unit tests for some stuff in the unify script
+check::
+# build x64/i386 binaries, and unify them
+	rm -f unify-test-x64 unify-test-i386 unify-test-universal
+	$(HOST_CC) -arch x86_64 $(srcdir)/unify-test.c -o unify-test-x64
+	$(HOST_CC) -arch i386 $(srcdir)/unify-test.c -o unify-test-i386
+	@if ! $(srcdir)/macosx/universal/unify ./unify-test-x64 ./unify-test-i386 \
+          ./unify-test-universal; then \
+          echo "TEST-UNEXPECTED-FAIL | build/ | unify failed to produce a universal binary!"; \
+          false; \
+        fi
+	@if test ! -f ./unify-test-universal; then \
+          echo "TEST-UNEXPECTED-FAIL | build/ | unify failed to produce a universal binary!"; \
+          false; \
+        fi
+	@if ! file -b ./unify-test-universal | head -n1 | grep -q "^Mach-O universal binary"; then \
+          echo "TEST-UNEXPECTED-FAIL | build/ | unify failed to produce a universal binary!"; \
+          false; \
+        else \
+          echo "TEST-PASS | build/ | unify produced a universal binary!"; \
+        fi
+# try building an x86-64 binary. if that succeeds, try unifying it
+# with an i386 binary
+	rm -f unify-test-x86_64 unify-test-universal-64
+	-$(HOST_CC) -arch x86_64 $(srcdir)/unify-test.c -o unify-test-x86_64
+	@if test -f ./unify-test-x86_64; then \
+          if ! $(srcdir)/macosx/universal/unify ./unify-test-x86_64 ./unify-test-i386 \
+            ./unify-test-universal-64; then \
+            echo "TEST-UNEXPECTED-FAIL | build/ | unify failed to produce a universal binary with a 64-bit input!"; \
+            false; \
+          fi; \
+          if test ! -f ./unify-test-universal-64; then \
+            echo "TEST-UNEXPECTED-FAIL | build/ | unify failed to produce a universal binary with a 64-bit input!"; \
+            false; \
+          fi; \
+          if ! file -b ./unify-test-universal-64 | head -n1 | grep -q "^Mach-O universal binary"; then \
+            echo "TEST-UNEXPECTED-FAIL | build/ | unify failed to produce a universal binary with a 64-bit input!"; \
+            false; \
+          else \
+            echo "TEST-PASS | build/ | unify produced a universal binary with a 64-bit input!"; \
+          fi \
+        fi
+# try unifying two identical Java class files
+	rm -f unifytesta.class unifytestb.class unifytestc.class
+	cp $(srcdir)/unifytest.class ./unifytesta.class
+	cp $(srcdir)/unifytest.class ./unifytestb.class
+	@if ! $(srcdir)/macosx/universal/unify ./unifytesta.class ./unifytestb.class \
+          ./unifytestc.class; then \
+          echo "TEST-UNEXPECTED-FAIL | build/ | unify failed to unify a Java class file!"; \
+          false; \
+        fi
+	@if test ! -f ./unifytestc.class; then \
+          echo "TEST-UNEXPECTED-FAIL | build/ | unify failed to unify a Java class file!"; \
+          false; \
+        fi
+	@if ! diff -q ./unifytesta.class ./unifytestc.class; then \
+          echo "TEST-UNEXPECTED-FAIL | build/ | unify failed to unify a Java class file!"; \
+          false; \
+        else \
+          echo "TEST-PASS | build/ | unify unified a Java class file!"; \
+        fi
+# try unifying some files that differ only in line ordering
+	rm -rf unify-sort-test
+	mkdir unify-sort-test unify-sort-test/a unify-sort-test/b
+	printf "lmn\nabc\nxyz\n" > unify-sort-test/a/file.foo
+	printf "xyz\nlmn\nabc" > unify-sort-test/b/file.foo
+	printf "lmn\nabc\nxyz\n" > unify-sort-test/expected-result
+	@if ! $(srcdir)/macosx/universal/unify --unify-with-sort "\.foo$$" \
+          ./unify-sort-test/a ./unify-sort-test/b \
+          ./unify-sort-test/c; then \
+          echo "TEST-UNEXPECTED-FAIL | build/ | unify failed to unify files with differing line ordering!"; \
+          false; \
+        fi
+	@if ! diff -q ./unify-sort-test/expected-result ./unify-sort-test/c/file.foo; then \
+          echo "TEST-UNEXPECTED-FAIL | build/ | unify failed to unify files with differing line ordering!"; \
+          false; \
+        else \
+          echo "TEST-PASS | build/ | unify unified files with differing line ordering!"; \
+        fi
+endif
+
+ifeq ($(OS_ARCH),Linux)
+libs:: $(topsrcdir)/tools/rb/fix-linux-stack.pl
+	$(INSTALL) $< $(DIST)/bin
+endif
+
+GARBAGE += $(srcdir)/automationutils.pyc
+endif # ENABLE_TESTS

@@ -1,0 +1,168 @@
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is
+# Netscape Communications Corporation.
+# Portions created by the Initial Developer are Copyright (C) 1998
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either of the GNU General Public License Version 2 or later (the "GPL"),
+# or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH		= ../..
+topsrcdir	= @top_srcdir@
+srcdir		= @srcdir@
+VPATH		= @srcdir@
+
+include $(DEPTH)/config/autoconf.mk
+
+ifdef ENABLE_TESTS
+DIRS		+= test
+endif
+
+MODULE		= layout
+LIBRARY_NAME	= gkgeneric_s
+LIBXUL_LIBRARY	= 1
+
+
+
+EXPORTS		= \
+		nsQueryFrame.h \
+		nsFrameList.h \
+		nsCanvasFrame.h \
+		nsHTMLParts.h \
+		nsHTMLReflowMetrics.h \
+		nsHTMLReflowState.h \
+		nsIAnonymousContentCreator.h \
+		nsIFrame.h \
+		nsIFrameUtil.h \
+		nsILineIterator.h \
+		nsIObjectFrame.h \
+		nsIPageSequenceFrame.h \
+		nsIScrollableFrame.h \
+		nsIStatefulFrame.h \
+		nsFrameSelection.h \
+		nsSubDocumentFrame.h \
+		nsObjectFrame.h \
+		$(NULL)
+
+CPPSRCS		= \
+		nsAbsoluteContainingBlock.cpp \
+		nsBRFrame.cpp \
+		nsBlockFrame.cpp \
+		nsBlockReflowContext.cpp \
+		nsBlockReflowState.cpp \
+		nsBulletFrame.cpp \
+		nsColumnSetFrame.cpp \
+		nsContainerFrame.cpp \
+		nsFirstLetterFrame.cpp \
+		nsFloatManager.cpp \
+		nsFrame.cpp \
+		nsFrameList.cpp \
+		nsFrameSetFrame.cpp \
+		nsFrameUtil.cpp \
+		nsGfxScrollFrame.cpp \
+		nsHTMLCanvasFrame.cpp \
+		nsHTMLContainerFrame.cpp \
+		nsCanvasFrame.cpp \
+		nsHTMLReflowMetrics.cpp \
+		nsHTMLReflowState.cpp \
+		nsImageFrame.cpp \
+		nsImageMap.cpp \
+		nsInlineFrame.cpp \
+		nsIntervalSet.cpp \
+		nsLeafFrame.cpp \
+		nsLineBox.cpp \
+		nsLineLayout.cpp \
+		nsObjectFrame.cpp \
+		nsPageContentFrame.cpp \
+		nsPageFrame.cpp \
+		nsPlaceholderFrame.cpp \
+		nsSelection.cpp \
+		nsSimplePageSequence.cpp \
+		nsSplittableFrame.cpp \
+		nsSubDocumentFrame.cpp \
+		nsTextFrameThebes.cpp \
+		nsTextFrameUtils.cpp \
+		TextOverflow.cpp \
+		nsTextRunTransformations.cpp \
+		nsViewportFrame.cpp \
+		$(NULL)
+
+ifdef MOZ_MEDIA
+CPPSRCS		+= \
+		nsVideoFrame.cpp \
+		$(NULL)
+endif
+
+ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT))
+CMMSRCS		+= \
+		nsPluginUtilsOSX.mm \
+		$(NULL)
+endif
+
+RESOURCES_HTML = \
+		$(srcdir)/folder.png \
+		$(NULL)
+
+FORCE_STATIC_LIB = 1
+
+include $(topsrcdir)/config/config.mk
+include $(topsrcdir)/ipc/chromium/chromium-config.mk
+include $(topsrcdir)/config/rules.mk
+
+LOCAL_INCLUDES += \
+		-I$(srcdir) \
+		-I$(srcdir)/../base \
+		-I$(srcdir)/../forms \
+		-I$(srcdir)/../style \
+		-I$(srcdir)/../tables \
+		-I$(srcdir)/../xul/base/src \
+		-I$(srcdir)/../../content/xul/content/src \
+		-I$(srcdir)/../../content/base/src \
+		-I$(srcdir)/../../content/html/content/src \
+		-I$(srcdir)/../../dom/base \
+		-I$(srcdir)/../../dom/plugins/base \
+		$(MOZ_CAIRO_CFLAGS) \
+		$(NULL)
+
+ifdef MOZ_ENABLE_GTK2
+CXXFLAGS += $(MOZ_GTK2_CFLAGS)
+endif
+
+ifdef MOZ_ENABLE_QT
+CXXFLAGS += $(MOZ_QT_CFLAGS)
+endif
+
+libs::
+	$(INSTALL) $(RESOURCES_HTML) $(DIST)/bin/res/html
+
+install::
+	$(SYSINSTALL) $(IFLAGS1) $(RESOURCES_HTML) $(DESTDIR)$(mozappdir)/res/html
+
+DEFINES += -D_IMPL_NS_LAYOUT

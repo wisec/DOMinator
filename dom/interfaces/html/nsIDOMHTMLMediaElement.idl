@@ -1,0 +1,121 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla code.
+ *
+ * The Initial Developer of the Original Code is the Mozilla Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 2007
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *  Chris Double <chris.double@double.co.nz>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+#include "nsIDOMHTMLElement.idl"
+#include "nsIDOMMediaError.idl"
+#include "nsIDOMTimeRanges.idl"
+
+/**
+ * The nsIDOMHTMLMediaElement interface is an interface to be implemented by the HTML
+ * <audio> and <video> elements.
+ *
+ * For more information on this interface, please see
+ * http://www.whatwg.org/specs/web-apps/current-work/#htmlmediaelement
+ *
+ * @status UNDER_DEVELOPMENT
+ */
+
+// undef the GetCurrentTime macro defined in WinBase.h from the MS Platform SDK
+%{C++
+#ifdef GetCurrentTime
+#undef GetCurrentTime
+#endif
+%}
+
+[scriptable, uuid(9441effd-fbe1-4f48-aa90-1741c1e390a1)]
+interface nsIDOMHTMLMediaElement : nsIDOMHTMLElement
+{
+  // error state
+  readonly attribute nsIDOMMediaError error;
+
+  // network state
+           attribute DOMString src;
+  readonly attribute DOMString currentSrc;
+  const unsigned short NETWORK_EMPTY = 0;
+  const unsigned short NETWORK_IDLE = 1;
+  const unsigned short NETWORK_LOADING = 2;
+  const unsigned short NETWORK_NO_SOURCE = 3;
+  readonly attribute unsigned short networkState;
+           attribute DOMString preload;  
+  readonly attribute nsIDOMTimeRanges buffered;
+  void load();
+  DOMString canPlayType(in DOMString type);
+
+  // ready state
+  const unsigned short HAVE_NOTHING = 0;
+  const unsigned short HAVE_METADATA = 1;
+  const unsigned short HAVE_CURRENT_DATA = 2;
+  const unsigned short HAVE_FUTURE_DATA = 3;
+  const unsigned short HAVE_ENOUGH_DATA = 4;
+  readonly attribute unsigned short readyState;
+  readonly attribute boolean seeking;
+
+  // playback state
+           attribute double currentTime;
+  readonly attribute double duration;
+  readonly attribute boolean paused;
+  readonly attribute nsIDOMTimeRanges seekable;
+  readonly attribute boolean ended;
+  readonly attribute boolean mozAutoplayEnabled;
+           attribute boolean autoplay;
+  void play();
+  void pause();
+
+  // controls
+           attribute boolean controls;
+           attribute double volume;
+           attribute boolean muted;
+
+  // Mozilla extension: extra stream metadata information, used as part
+  // of MozAudioAvailable events and the mozWriteAudio() method.  The
+  // mozFrameBufferLength method allows for the size of the framebuffer
+  // used within MozAudioAvailable events to be changed.  The new size must
+  // be between 512 and 16384.  The default size, for a  media element with
+  // audio is (mozChannels * 1024).
+  readonly attribute unsigned long mozChannels;
+  readonly attribute unsigned long mozSampleRate;
+           attribute unsigned long mozFrameBufferLength;
+
+  // Mozilla extension: load data from another media element. This is like
+  // load() but we don't run the resource selection algorithm; instead
+  // we just set our source to other's currentSrc. This is optimized
+  // so that this element will get access to all of other's cached/
+  // buffered data. In fact any future data downloaded by this element or
+  // other will be sharable by both elements.
+  void mozLoadFrom(in nsIDOMHTMLMediaElement other);
+};

@@ -1,0 +1,262 @@
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is
+# Netscape Communications.
+# Portions created by the Initial Developer are Copyright (C) 2001
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#  Brian Ryner <bryner@brianryner.com>
+#  Benjamin Smedberg <benjamin@smedbergs.us>
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either the GNU General Public License Version 2 or later (the "GPL"), or
+# the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH = ../..
+topsrcdir = @top_srcdir@
+srcdir = @srcdir@
+VPATH = @srcdir@
+
+include $(DEPTH)/config/autoconf.mk
+
+MODULE = xulapp
+LIBRARY_NAME = xulapp_s
+LIBXUL_LIBRARY = 1
+
+FORCE_STATIC_LIB = 1
+
+XPIDLSRCS = \
+  nsINativeAppSupport.idl \
+  $(NULL)
+
+ifeq ($(OS_ARCH),WINNT)
+XPIDLSRCS += nsIWinAppHelper.idl
+endif
+
+CPPSRCS = \
+  nsAppRunner.cpp \
+  nsConsoleWriter.cpp \
+  nsXREDirProvider.cpp \
+  nsNativeAppSupportBase.cpp \
+  nsAppData.cpp \
+  nsSigHandlers.cpp \
+  nsEmbedFunctions.cpp \
+  $(NULL)
+
+ifdef MOZ_X11
+ifndef MOZ_PLATFORM_MAEMO
+CPPSRCS += glxtest.cpp
+endif
+endif
+
+ifdef MOZ_INSTRUMENT_EVENT_LOOP
+CPPSRCS += EventTracer.cpp
+endif
+
+DEFINES += -DIMPL_XREAPI -DMOZ_APP_NAME='"$(MOZ_APP_NAME)"'
+
+ifdef MOZ_UPDATER
+ifneq ($(OS_TARGET),Android)
+CPPSRCS += nsUpdateDriver.cpp
+DEFINES += -DMOZ_UPDATER
+endif
+endif
+
+ifeq ($(MOZ_WIDGET_TOOLKIT),windows)
+CPPSRCS += nsNativeAppSupportWin.cpp
+CPPSRCS += nsWindowsDllBlocklist.cpp
+DEFINES += -DWIN32_LEAN_AND_MEAN -DUNICODE -D_UNICODE
+EXPORTS = nsWindowsDllInterceptor.h
+else
+ifeq ($(MOZ_WIDGET_TOOLKIT),cocoa)
+CMMSRCS = nsNativeAppSupportCocoa.mm
+else
+ifeq ($(MOZ_WIDGET_TOOLKIT),os2)
+CPPSRCS += nsNativeAppSupportOS2.cpp
+else
+ifeq ($(MOZ_WIDGET_TOOLKIT),gtk2)
+CPPSRCS += nsNativeAppSupportUnix.cpp
+else
+ifeq ($(MOZ_WIDGET_TOOLKIT),qt)
+CPPSRCS += nsNativeAppSupportQt.cpp
+CPPSRCS += nsQAppInstance.cpp
+EXPORTS += nsQAppInstance.h
+else
+CPPSRCS += nsNativeAppSupportDefault.cpp
+endif
+endif
+endif
+endif
+endif
+
+ifeq ($(MOZ_WIDGET_TOOLKIT),cocoa)
+CMMSRCS += MacLaunchHelper.mm
+CMMSRCS += MacApplicationDelegate.mm
+CMMSRCS += MacAutoreleasePool.mm
+CPPSRCS += nsCommandLineServiceMac.cpp
+ENABLE_CXX_EXCEPTIONS = 1
+endif
+
+ifdef MOZ_X11
+CPPSRCS += nsX11ErrorHandler.cpp
+endif
+
+ifeq ($(OS_TARGET),Android)
+CPPSRCS += nsAndroidStartup.cpp
+DEFINES += -DANDROID_PACKAGE_NAME='"$(ANDROID_PACKAGE_NAME)"'
+endif
+
+SHARED_LIBRARY_LIBS += ../profile/$(LIB_PREFIX)profile_s.$(LIB_SUFFIX)
+
+ifdef MOZ_ENABLE_XREMOTE
+SHARED_LIBRARY_LIBS += $(DEPTH)/widget/src/xremoteclient/$(LIB_PREFIX)xremote_client_s.$(LIB_SUFFIX)
+LOCAL_INCLUDES += -I$(topsrcdir)/widget/src/xremoteclient
+endif
+
+ifdef MOZ_CRASHREPORTER
+SHARED_LIBRARY_LIBS += $(DEPTH)/toolkit/crashreporter/$(LIB_PREFIX)exception_handler_s.$(LIB_SUFFIX)
+ifeq ($(OS_ARCH),WINNT)
+SHARED_LIBRARY_LIBS += \
+  $(DEPTH)/toolkit/crashreporter/google-breakpad/src/client/windows/handler/$(LIB_PREFIX)exception_handler_s.$(LIB_SUFFIX) \
+  $(DEPTH)/toolkit/crashreporter/google-breakpad/src/client/windows/crash_generation/$(LIB_PREFIX)crash_generation_s.$(LIB_SUFFIX) \
+  $(DEPTH)/toolkit/crashreporter/google-breakpad/src/common/windows/$(LIB_PREFIX)breakpad_windows_common_s.$(LIB_SUFFIX)
+endif
+
+ifeq ($(OS_ARCH),Darwin)
+SHARED_LIBRARY_LIBS += \
+  $(DEPTH)/toolkit/crashreporter/google-breakpad/src/client/$(LIB_PREFIX)minidump_file_writer_s.$(LIB_SUFFIX) \
+  $(DEPTH)/toolkit/crashreporter/google-breakpad/src/client/mac/crash_generation/$(LIB_PREFIX)crash_generation_s.$(LIB_SUFFIX) \
+  $(DEPTH)/toolkit/crashreporter/google-breakpad/src/client/mac/handler/$(LIB_PREFIX)exception_handler_s.$(LIB_SUFFIX) \
+  $(DEPTH)/toolkit/crashreporter/google-breakpad/src/common/$(LIB_PREFIX)breakpad_common_s.$(LIB_SUFFIX) \
+  $(DEPTH)/toolkit/crashreporter/google-breakpad/src/common/mac/$(LIB_PREFIX)breakpad_mac_common_s.$(LIB_SUFFIX)
+endif
+
+ifeq ($(OS_ARCH),Linux)
+SHARED_LIBRARY_LIBS += \
+  $(DEPTH)/toolkit/crashreporter/google-breakpad/src/client/linux/crash_generation/$(LIB_PREFIX)crash_generation_s.$(LIB_SUFFIX) \
+  $(DEPTH)/toolkit/crashreporter/google-breakpad/src/client/linux/handler/$(LIB_PREFIX)exception_handler_s.$(LIB_SUFFIX) \
+  $(DEPTH)/toolkit/crashreporter/google-breakpad/src/client/linux/minidump_writer/$(LIB_PREFIX)minidump_writer_s.$(LIB_SUFFIX) \
+  $(DEPTH)/toolkit/crashreporter/google-breakpad/src/client/$(LIB_PREFIX)minidump_file_writer_s.$(LIB_SUFFIX) \
+  $(DEPTH)/toolkit/crashreporter/google-breakpad/src/common/$(LIB_PREFIX)breakpad_common_s.$(LIB_SUFFIX) \
+  $(DEPTH)/toolkit/crashreporter/google-breakpad/src/common/linux/$(LIB_PREFIX)breakpad_linux_common_s.$(LIB_SUFFIX) \
+  $(NULL)
+endif
+
+ifeq ($(OS_ARCH),SunOS)
+SHARED_LIBRARY_LIBS += \
+  $(DEPTH)/toolkit/crashreporter/google-breakpad/src/client/solaris/handler/$(LIB_PREFIX)exception_handler_s.$(LIB_SUFFIX) \
+  $(DEPTH)/toolkit/crashreporter/google-breakpad/src/client/$(LIB_PREFIX)minidump_file_writer_s.$(LIB_SUFFIX) \
+  $(DEPTH)/toolkit/crashreporter/google-breakpad/src/common/$(LIB_PREFIX)breakpad_common_s.$(LIB_SUFFIX) \
+  $(DEPTH)/toolkit/crashreporter/google-breakpad/src/common/solaris/$(LIB_PREFIX)breakpad_solaris_common_s.$(LIB_SUFFIX) \
+  $(NULL)
+endif
+endif
+
+ifdef ENABLE_TESTS
+DIRS += test
+endif
+
+include $(topsrcdir)/config/config.mk
+include $(topsrcdir)/ipc/chromium/chromium-config.mk
+include $(topsrcdir)/config/rules.mk
+
+LOCAL_INCLUDES += \
+  -I$(topsrcdir)/dom/ipc \
+  -I$(topsrcdir)/toolkit/crashreporter \
+  -I$(topsrcdir)/dom/base \
+  -I$(topsrcdir)/xpcom/build \
+  $(NULL)
+
+LOCAL_INCLUDES += \
+  -I$(srcdir) \
+  -I$(srcdir)/../profile \
+  -I$(topsrcdir)/config \
+  $(NULL)
+
+CXXFLAGS += $(TK_CFLAGS) $(MOZ_DBUS_CFLAGS) $(MOZ_DBUS_GLIB_CFLAGS)
+
+ifeq ($(MOZ_WIDGET_TOOLKIT),gtk2)
+CXXFLAGS += $(MOZ_PANGO_CFLAGS)
+endif
+
+DEFINES += \
+  -DOS_TARGET=\"$(OS_TARGET)\" \
+  -DMOZ_WIDGET_TOOLKIT=\"$(MOZ_WIDGET_TOOLKIT)\"
+
+ifdef TARGET_XPCOM_ABI
+DEFINES += \
+  -DTARGET_XPCOM_ABI=\"$(TARGET_XPCOM_ABI)\" \
+  -DTARGET_OS_ABI=\"$(OS_TARGET)_$(TARGET_XPCOM_ABI)\" \
+  $(NULL)
+endif
+
+DEFINES += -DTOOLKIT_EM_VERSION=\"$(shell $(PERL) $(topsrcdir)/config/milestone.pl --topsrcdir=$(topsrcdir))\"
+
+ifdef WRAP_SYSTEM_INCLUDES
+DEFINES += -DWRAP_SYSTEM_INCLUDES
+endif
+
+ifeq ($(OS_ARCH),Linux)
+ifneq (,$(findstring lib64,$(libdir)))
+DEFINES += -DHAVE_USR_LIB64_DIR
+endif
+endif
+
+MOZ_SOURCE_STAMP ?= $(firstword $(shell hg -R $(topsrcdir) parent --template="{node|short}\n" 2>/dev/null))
+# strip a trailing slash from the repo URL because it's not always present,
+# and we want to construct a working URL in buildconfig.html
+# make+shell+sed = awful
+_dollar=$$
+SOURCE_REPO := $(shell cd $(topsrcdir) && hg showconfig paths.default 2>/dev/null | head -n1 | sed -e "s/^ssh:/http:/" -e "s/\/$(_dollar)//" )
+
+ifdef MOZ_SOURCE_STAMP
+INIARGS = --sourcestamp=$(MOZ_SOURCE_STAMP)
+# extra sanity check for old versions of hg
+# that don't support showconfig
+ifeq (http,$(patsubst http%,http,$(SOURCE_REPO)))
+INIARGS += --sourcerepo=$(SOURCE_REPO)
+endif
+endif
+
+# Solaris /usr/bin/diff doesn't have -n option
+GRE_MILESTONE := $(shell tail -n 1 $(topsrcdir)/config/milestone.txt 2>/dev/null || tail -1 $(topsrcdir)/config/milestone.txt)
+GRE_BUILDID := $(shell cat $(DEPTH)/config/buildid)
+ 
+DEFINES += -DGRE_MILESTONE=$(GRE_MILESTONE) -DGRE_BUILDID=$(GRE_BUILDID)
+
+$(srcdir)/nsAppRunner.cpp: $(DEPTH)/config/buildid $(topsrcdir)/config/milestone.txt
+
+platform.ini: FORCE
+	$(PYTHON) $(srcdir)/make-platformini.py --buildid=$(shell cat $(DEPTH)/config/buildid) $(INIARGS) $(topsrcdir)/config/milestone.txt > $@
+
+GARBAGE += platform.ini
+
+libs:: platform.ini
+	$(INSTALL) $^ $(DIST)/bin
+
+install::
+	$(INSTALL) $(IFLAGS1) $^ $(DESTDIR)$(mozappdir)

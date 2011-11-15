@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/css" href="chrome://global/skin"?>
+<?xml-stylesheet href="chrome://mochikit/content/tests/SimpleTest/test.css"
+                 type="text/css"?>
+<window xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+  <script type="application/javascript"
+          src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+
+  <!-- test results are displayed in the html:body -->
+  <body xmlns="http://www.w3.org/1999/xhtml">
+  </body>
+
+  <!-- test code goes here -->
+  <script type="application/javascript">
+  <![CDATA[
+    SimpleTest.waitForExplicitFinish();
+
+    var version = Components.classes["@mozilla.org/system-info;1"]
+                            .getService(Components.interfaces.nsIPropertyBag2)
+                            .getProperty("version");
+    var winXP = navigator.platform.indexOf("Win") == 0 && parseFloat(version) < 6.0;
+    var tests = [{maximize:false}, {maximize:true}];
+    var testIndex = 0;
+    var win;
+
+    function testInfo() {
+      return tests[testIndex].maximize ? " (maximized)" : " (non-maximized)";
+    }
+
+    function doTest(evt) {
+      if (tests[testIndex].maximize) {
+        var wm = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+                           .getService(Components.interfaces.nsIWindowMediator);
+        wm.getMostRecentWindow("navigator:browser").maximize();
+      }
+
+      var initialCount = win.mozPaintCount;
+
+      function nextStep() {
+        if (win.mozPaintCount == initialCount) {
+          // Do not use SimpleTest.executeSoon() here: give a little more time.
+          setTimeout(nextStep, 0);
+          return;
+        }
+
+        isnot(win.mozPaintCount, initialCount, "mozPaintCount has increased" + testInfo());
+
+        var utils = win.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+                       .getInterface(Components.interfaces.nsIDOMWindowUtils);
+        ok(utils.leafLayersPartitionWindow(),
+           "Leaf layers should form a non-overlapping partition of the browser window" + testInfo());
+
+        win.close();
+        ++testIndex;
+        nextTest();
+      }
+
+      SimpleTest.executeSoon(nextStep);
+    }
+
+    function nextTest() {
+      if (testIndex >= tests.length) {
+        SimpleTest.finish();
+        return;
+      }
+
+      // Skip non-maximized tests on WinXP since the resizer causes overlapping layers
+      if (winXP && !tests[testIndex].maximize) {
+        ++testIndex;
+        nextTest();
+        return;
+      }
+
+      // Run the test in a separate window so we get a clean browser window.
+      win = window.open("data:text/html,<html style='overflow:scroll'>",
+                "", "scrollbars=yes,toolbar,menubar,width=500,height=500");
+      win.addEventListener('load', doTest, false);
+    }
+
+    nextTest();
+  ]]>
+  </script>
+</window>

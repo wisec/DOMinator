@@ -1,0 +1,59 @@
+<!DOCTYPE HTML>
+<html>
+<!--
+https://bugzilla.mozilla.org/show_bug.cgi?id=478911
+-->
+<head>
+  <title>Test for watchPosition and clearWatch</title>
+  <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script type="text/javascript" src="geolocation_common.js"></script>
+
+<link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+<body>
+<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=478911">Mozilla Bug 478911</a>
+<p id="display"></p>
+<div id="content" style="display: none">
+  
+</div>
+<pre id="test">
+<script class="testbody" type="text/javascript">
+
+SimpleTest.waitForExplicitFinish();
+resume_geolocationProvider();
+force_prompt(true)
+
+var hasBeenCleared = false;
+var successWasCalledAfterClear = false;
+
+function failureCallback(error)
+{
+  ok(0, "we should not be seeing failures from this watchPosition");
+}
+
+function successCallback(position) {
+  if (hasBeenCleared == true) {
+    successWasCalledAfterClear = true;
+  }
+  SimpleTest.executeSoon(clearWatch);
+}
+
+function clearWatch() {
+  navigator.geolocation.clearWatch(watchID);
+  hasBeenCleared = true;
+  SimpleTest.executeSoon(testAccepted);
+}
+
+function testAccepted() {
+  ok(!successWasCalledAfterClear, "The successCallback should not be called after clear");
+  reset_prompt();
+  SimpleTest.finish();
+}
+
+
+watchID = navigator.geolocation.watchPosition(successCallback, failureCallback, null);
+
+</script>
+</pre>
+</body>
+</html>

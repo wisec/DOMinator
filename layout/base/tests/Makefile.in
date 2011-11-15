@@ -1,0 +1,357 @@
+#
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is
+# Netscape Communications Corporation.
+# Portions created by the Initial Developer are Copyright (C) 1998
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either of the GNU General Public License Version 2 or later (the "GPL"),
+# or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH		= ../../..
+topsrcdir	= @top_srcdir@
+srcdir		= @srcdir@
+VPATH		= @srcdir@
+relativesrcdir	= layout/base/tests
+
+include $(DEPTH)/config/autoconf.mk
+
+PARALLEL_DIRS += \
+  chrome \
+  $(NULL)
+
+# We can't use CPP_UNIT_TESTS for TestPoisonArea because libxpcom
+# (which it does not need) isn't available at this point in the build.
+
+BARE_UNIT_TESTS = \
+		TestPoisonArea.cpp \
+		$(NULL)
+
+CPPSRCS += $(BARE_UNIT_TESTS)
+SIMPLE_PROGRAMS += $(BARE_UNIT_TESTS:.cpp=$(BIN_SUFFIX))
+
+include $(topsrcdir)/config/rules.mk
+
+DEFINES += -D_IMPL_NS_LAYOUT
+
+_TEST_FILES =	\
+		border_radius_hit_testing_iframe.html \
+		bug369950-subframe.xml \
+		decoration_line_rendering.js \
+		test_after_paint_pref.html \
+		test_border_radius_hit_testing.html \
+		test_bug66619.html \
+		test_bug114649.html \
+		$(warning test_bug369950.html disabled due to random orange; see bug 492575) \
+		test_bug386575.xhtml \
+		test_bug388019.html \
+		test_bug394057.html \
+		test_bug399284.html \
+		test_bug399951.html \
+		test_bug404209.xhtml \
+		test_bug416896.html \
+		test_bug423523.html \
+		test_bug445810.html \
+		test_bug449781.html \
+		test_bug450930.xhtml \
+		test_bug458898.html \
+		test_bug465448.xul \
+		test_bug469170.html \
+		test_bug471126.html \
+		test_bug435293-scale.html \
+		test_bug435293-interaction.html \
+		test_bug435293-skew.html \
+		test_reftests_with_caret.html \
+		     bug106855-1.html \
+		     bug106855-2.html \
+		     bug106855-1-ref.html \
+		     bug240933-1.html \
+		     bug240933-2.html \
+		     bug240933-1-ref.html \
+		     bug389321-1.html \
+		     bug389321-1-ref.html \
+		     bug389321-2.html \
+		     bug389321-2-ref.html \
+		     bug389321-3.html \
+		     bug389321-3-ref.html \
+		     bug482484.html \
+		     bug482484-ref.html \
+		     bug512295-1.html \
+		     bug512295-1-ref.html \
+		     bug512295-2.html \
+		     bug512295-2-ref.html \
+		     bug585922.html \
+		     bug585922-ref.html \
+		     bug597519-1.html \
+		     bug597519-1-ref.html \
+		     bug602141-1.html \
+		     bug602141-1-ref.html \
+		     bug602141-2.html \
+		     bug602141-2-ref.html \
+		     bug602141-3.html \
+		     bug602141-3-ref.html \
+		     bug602141-4.html \
+		     bug602141-4-ref.html \
+		     bug612271-1.html \
+		     bug612271-2.html \
+		     bug612271-3.html \
+		     bug612271-ref.html \
+		     bug613433-1.html \
+		     bug613433-2.html \
+		     bug613433-3.html \
+		     bug613433-ref.html \
+		     bug613807-1.html \
+		     bug613807-1-ref.html \
+		     bug632215-1.html \
+		     bug632215-2.html \
+		     bug632215-ref.html \
+		     bug633044-1.html \
+		     bug633044-1-ref.html \
+		     bug634406-1.html \
+		     bug634406-1-ref.html \
+		     bug644428-1.html \
+		     bug644428-1-ref.html \
+		     bug646382-1.html \
+		     bug646382-1-ref.html \
+		     bug646382-2.html \
+		     bug646382-2-ref.html \
+		     bug664087-1.html \
+		     bug664087-1-ref.html \
+		     bug664087-2.html \
+		     bug664087-2-ref.html \
+		test_bug514127.html \
+		test_bug518777.html \
+		test_bug548545.xhtml \
+		test_bug558663.html \
+		test_bug559499.html \
+		test_bug582181-1.html \
+		test_bug582181-2.html \
+		test_bug677878.html \
+		test_flush_on_paint.html \
+		test_mozPaintCount.html \
+		test_scroll_selection_into_view.html \
+		test_bug583889.html \
+		bug583889_inner1.html \
+		bug583889_inner2.html \
+		test_bug582771.html \
+		test_bug603550.html \
+		test_bug629838.html \
+		test_bug646757.html \
+		$(NULL)
+
+# Tests for bugs 441782, 467672 and 570378 don't pass reliably on Windows, because of bug 469208
+ifeq (,$(filter windows,$(MOZ_WIDGET_TOOLKIT)))
+_TEST_FILES += \
+		bidi_numeral_test.js \
+		test_bug332655-1.html \
+		test_bug332655-2.html \
+		test_bug441782-1a.html \
+		test_bug441782-1b.html \
+		test_bug441782-1c.html \
+		test_bug441782-1d.html \
+		test_bug441782-1e.html \
+		bug441782-1.html \
+		bug441782-1-ref.html \
+		test_bug441782-2a.html \
+		test_bug441782-2b.html \
+		test_bug441782-2c.html \
+		test_bug441782-2d.html \
+		test_bug441782-2e.html \
+		bug441782-2.html \
+		bug441782-2-ref.html \
+		test_bug441782-3a.html \
+		test_bug441782-3b.html \
+		test_bug441782-3c.html \
+		test_bug441782-3d.html \
+		test_bug441782-3e.html \
+		bug441782-3.html \
+		bug441782-3-ref.html \
+		test_bug441782-4a.html \
+		test_bug441782-4b.html \
+		test_bug441782-4c.html \
+		test_bug441782-4d.html \
+		test_bug441782-4e.html \
+		bug441782-4.html \
+		bug441782-4-ref.html \
+		test_bug441782-5a.html \
+		test_bug441782-5b.html \
+		test_bug441782-5c.html \
+		test_bug441782-5d.html \
+		test_bug441782-5e.html \
+		bug441782-5.html \
+		bug441782-5-ref.html \
+		test_bug467672-1a.html \
+		test_bug467672-1b.html \
+		test_bug467672-1c.html \
+		test_bug467672-1d.html \
+		test_bug467672-1e.html \
+		test_bug467672-1f.html \
+		test_bug467672-1g.html \
+		bug467672-1.html \
+		bug467672-1-ref.html \
+		test_bug467672-2a.html \
+		test_bug467672-2b.html \
+		test_bug467672-2c.html \
+		test_bug467672-2d.html \
+		test_bug467672-2e.html \
+		test_bug467672-2f.html \
+		test_bug467672-2g.html \
+		bug467672-2.html \
+		bug467672-2-ref.html \
+		test_bug467672-3a.html \
+		test_bug467672-3b.html \
+		test_bug467672-3c.html \
+		test_bug467672-3d.html \
+		test_bug467672-3e.html \
+		test_bug467672-3f.html \
+		test_bug467672-3g.html \
+		bug467672-3.html \
+		bug467672-3-ref.html \
+		test_bug467672-4a.html \
+		test_bug467672-4b.html \
+		test_bug467672-4c.html \
+		test_bug467672-4d.html \
+		test_bug467672-4e.html \
+		test_bug467672-4f.html \
+		test_bug467672-4g.html \
+		bug467672-4.html \
+		bug467672-4-ref.html \
+		test_bug467672-5a.html \
+		test_bug467672-5b.html \
+		test_bug467672-5c.html \
+		test_bug467672-5d.html \
+		test_bug467672-5e.html \
+		test_bug467672-5f.html \
+		test_bug467672-5g.html \
+		bug467672-5.html \
+		bug467672-5-ref.html \
+		test_bug499538-1.html \
+		test_bug569520.html \
+		test_bug570378-arabic-1a.html \
+		test_bug570378-arabic-1b.html \
+		test_bug570378-arabic-1c.html \
+		test_bug570378-arabic-1d.html \
+		test_bug570378-arabic-1e.html \
+		bug570378-arabic-1.html \
+		bug570378-arabic-1-ref.html \
+		test_bug570378-arabic-2a.html \
+		test_bug570378-arabic-2b.html \
+		test_bug570378-arabic-2c.html \
+		test_bug570378-arabic-2d.html \
+		test_bug570378-arabic-2e.html \
+		bug570378-arabic-2.html \
+		bug570378-arabic-2-ref.html \
+		test_bug570378-arabic-3a.html \
+		test_bug570378-arabic-3b.html \
+		test_bug570378-arabic-3c.html \
+		test_bug570378-arabic-3d.html \
+		test_bug570378-arabic-3e.html \
+		bug570378-arabic-3.html \
+		bug570378-arabic-3-ref.html \
+		test_bug570378-arabic-4a.html \
+		test_bug570378-arabic-4b.html \
+		test_bug570378-arabic-4c.html \
+		test_bug570378-arabic-4d.html \
+		test_bug570378-arabic-4e.html \
+		bug570378-arabic-4.html \
+		bug570378-arabic-4-ref.html \
+		test_bug570378-arabic-5a.html \
+		test_bug570378-arabic-5b.html \
+		test_bug570378-arabic-5c.html \
+		test_bug570378-arabic-5d.html \
+		test_bug570378-arabic-5e.html \
+		bug570378-arabic-5.html \
+		bug570378-arabic-5-ref.html \
+		test_bug570378-persian-1a.html \
+		test_bug570378-persian-1b.html \
+		test_bug570378-persian-1c.html \
+		test_bug570378-persian-1d.html \
+		test_bug570378-persian-1e.html \
+		test_bug570378-persian-1f.html \
+		test_bug570378-persian-1g.html \
+		bug570378-persian-1.html \
+		bug570378-persian-1-ref.html \
+		test_bug570378-persian-2a.html \
+		test_bug570378-persian-2b.html \
+		test_bug570378-persian-2c.html \
+		test_bug570378-persian-2d.html \
+		test_bug570378-persian-2e.html \
+		test_bug570378-persian-2f.html \
+		test_bug570378-persian-2g.html \
+		bug570378-persian-2.html \
+		bug570378-persian-2-ref.html \
+		test_bug570378-persian-3a.html \
+		test_bug570378-persian-3b.html \
+		test_bug570378-persian-3c.html \
+		test_bug570378-persian-3d.html \
+		test_bug570378-persian-3e.html \
+		test_bug570378-persian-3f.html \
+		test_bug570378-persian-3g.html \
+		bug570378-persian-3.html \
+		bug570378-persian-3-ref.html \
+		test_bug570378-persian-4a.html \
+		test_bug570378-persian-4b.html \
+		test_bug570378-persian-4c.html \
+		test_bug570378-persian-4d.html \
+		test_bug570378-persian-4e.html \
+		test_bug570378-persian-4f.html \
+		test_bug570378-persian-4g.html \
+		bug570378-persian-4.html \
+		bug570378-persian-4-ref.html \
+		test_bug570378-persian-5a.html \
+		test_bug570378-persian-5b.html \
+		test_bug570378-persian-5c.html \
+		test_bug570378-persian-5d.html \
+		test_bug570378-persian-5e.html \
+		test_bug570378-persian-5f.html \
+		test_bug570378-persian-5g.html \
+		bug570378-persian-5.html \
+		bug570378-persian-5-ref.html \
+		test_bug588174.html \
+		test_bug607529.html \
+		file_bug607529.html \
+		test_bug644768.html \
+		$(NULL)
+endif
+
+_BROWSER_FILES = \
+	browser_bug617076.js \
+	$(NULL)
+
+libs:: $(_TEST_FILES)
+	$(INSTALL) $(foreach f,$^,"$f") $(DEPTH)/_tests/testing/mochitest/tests/$(relativesrcdir)
+libs:: $(_BROWSER_FILES)
+	$(INSTALL) $(foreach f,$^,"$f") $(DEPTH)/_tests/testing/mochitest/browser/$(relativesrcdir)
+
+check::
+	@$(EXIT_ON_ERROR) \
+	  for f in $(subst .cpp,$(BIN_SUFFIX),$(BARE_UNIT_TESTS)); do \
+	    $(RUN_TEST_PROGRAM) $(DIST)/bin/$$f; \
+	  done

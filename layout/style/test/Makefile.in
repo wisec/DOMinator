@@ -1,0 +1,254 @@
+#
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is mozilla.org code.
+#
+# The Initial Developer of the Original Code is
+# Mozilla Foundation.
+# Portions created by the Initial Developer are Copyright (C) 2007
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either of the GNU General Public License Version 2 or later (the "GPL"),
+# or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH		= ../../..
+topsrcdir	= @top_srcdir@
+srcdir		= @srcdir@
+VPATH		= @srcdir@
+relativesrcdir  = layout/style/test
+
+include $(DEPTH)/config/autoconf.mk
+
+MODULE		= layout
+
+DIRS +=		chrome \
+		$(NULL)
+
+HOST_CPPSRCS	= \
+		ListCSSProperties.cpp \
+		$(NULL)
+
+HOST_SIMPLE_PROGRAMS	= $(addprefix host_, $(HOST_CPPSRCS:.cpp=$(HOST_BIN_SUFFIX)))
+
+# ParseCSS.cpp used to be built as a test program, but it was not
+# being used for anything, and recent changes to the CSS loader have
+# made it fail to link.  Further changes are planned which should make
+# it buildable again.
+#
+# TestCSSPropertyLookup.cpp needs the internal XPCOM APIs and so cannot
+# be built with libxul enabled.
+#
+#CPP_UNIT_TESTS = TestCSSPropertyLookup.cpp
+#LIBS += ../nsCSSKeywords.$(OBJ_SUFFIX) ../nsCSSProps.$(OBJ_SUFFIX) $(XPCOM_LIBS)
+
+include $(topsrcdir)/config/rules.mk
+
+DEFINES += -DMOZILLA_INTERNAL_API -D_IMPL_NS_LAYOUT
+
+# FIXME: We don't seem to do auto-generated dependencies here.
+host_ListCSSProperties.$(OBJ_SUFFIX): $(srcdir)/../nsCSSPropList.h
+TestCSSPropertyLookup.$(OBJ_SUFFIX): $(srcdir)/../nsCSSProps.h $(srcdir)/../nsCSSKeywords.h
+
+css_properties.js: host_ListCSSProperties$(HOST_BIN_SUFFIX) css_properties_like_longhand.js Makefile
+	$(RM) $@
+	./host_ListCSSProperties$(HOST_BIN_SUFFIX) > $@
+	cat $(srcdir)/css_properties_like_longhand.js >> $@
+
+GARBAGE += css_properties.js
+
+
+_TEST_FILES =	test_acid3_test46.html \
+		test_animations.html \
+		test_any_dynamic.html \
+		test_at_rule_parse_serialize.html \
+		test_bug73586.html \
+		test_bug74880.html \
+		test_bug98997.html \
+		test_bug160403.html \
+		test_bug200089.html \
+		test_bug221428.html \
+		test_bug229915.html \
+		test_bug302186.html \
+		test_bug319381.html \
+		test_bug357614.html \
+		test_bug363146.html \
+		test_bug365932.html \
+		test_bug372770.html \
+		test_bug373293.html \
+		test_bug377947.html \
+		test_bug379440.html \
+		test_bug379741.html \
+		test_bug382027.html \
+		test_bug383075.html \
+		test_bug387615.html \
+		test_bug389464.html \
+		test_bug391034.html \
+		test_bug391221.html \
+		test_bug397427.html \
+		test_bug399349.html \
+		test_bug401046.html \
+		test_bug405818.html \
+		test_bug412901.html \
+		test_bug437915.html \
+		test_bug450191.html \
+		test_bug453896_deck.html \
+		test_bug470769.html \
+		test_bug499655.html \
+		test_bug499655.xhtml \
+		test_bug517224.html \
+		test_bug524175.html \
+		test_bug534804.html \
+		test_bug573255.html \
+		test_bug580685.html \
+		test_bug635286.html \
+		test_bug652486.html \
+		test_bug657143.html \
+		test_bug664955.html \
+		test_bug667520.html \
+		test_bug645998.html \
+		file_bug645998-1.css \
+		file_bug645998-2.css \
+		test_cascade.html \
+		test_ch_ex_no_infloops.html \
+		test_compute_data_with_start_struct.html \
+		test_computed_style.html \
+		test_computed_style_no_pseudo.html \
+		test_css_cross_domain.html \
+		test_css_eof_handling.html \
+		test_descriptor_storage.html \
+		test_descriptor_syntax_errors.html \
+		test_dont_use_document_colors.html \
+		test_font_face_parser.html \
+		test_garbage_at_end_of_declarations.html \
+		test_html_attribute_computed_values.html \
+		test_ident_escaping.html \
+		test_inherit_computation.html \
+		test_inherit_storage.html \
+		test_initial_computation.html \
+		test_initial_storage.html \
+		test_keyframes_rules.html \
+		test_media_queries.html \
+		test_media_queries_dynamic.html \
+		test_media_queries_dynamic_xbl.html \
+		test_media_query_list.html \
+		test_moz_device_pixel_ratio.html \
+		test_namespace_rule.html \
+		test_of_type_selectors.xhtml \
+		test_parse_ident.html \
+		test_parse_rule.html \
+		test_parse_url.html \
+		test_pixel_lengths.html \
+		test_pointer-events.html \
+		test_property_database.html \
+		test_priority_preservation.html \
+		test_property_syntax_errors.html \
+		test_rem_unit.html \
+		test_rule_serialization.html \
+		test_rules_out_of_sheets.html \
+		test_selectors.html \
+		test_selectors_on_anonymous_content.html \
+		test_shorthand_property_getters.html \
+		test_style_struct_copy_constructors.html \
+		test_system_font_serialization.html \
+		test_transitions_and_zoom.html \
+		test_transitions_cancel_near_end.html \
+		test_transitions_computed_values.html \
+		test_transitions_computed_value_combinations.html \
+		test_transitions_events.html \
+		test_transitions.html \
+		test_transitions_per_property.html \
+		test_transitions_step_functions.html \
+		test_transitions_dynamic_changes.html \
+		test_transitions_bug537151.html \
+		test_unclosed_parentheses.html \
+		test_units_angle.html \
+		test_units_frequency.html \
+		test_units_length.html \
+		test_units_time.html \
+		test_value_cloning.html \
+		test_value_computation.html \
+		test_value_storage.html \
+		test_visited_image_loading.html \
+		test_visited_image_loading_empty.html \
+		test_visited_lying.html \
+		test_visited_pref.html \
+		test_visited_reftests.html \
+		animation_utils.js \
+		css_properties.js \
+		property_database.js \
+		descriptor_database.js \
+		unstyled.xml \
+		unstyled.css \
+		unstyled-frame.xml \
+		unstyled-frame.css \
+		redirect.sjs \
+		post-redirect-1.css \
+		post-redirect-2.css \
+		post-redirect-3.css \
+		xbl_bindings.xml \
+		empty.html \
+		media_queries_iframe.html \
+		media_queries_dynamic_xbl_binding.xml \
+		media_queries_dynamic_xbl_iframe.html \
+		media_queries_dynamic_xbl_style.css \
+		bug453896_iframe.html \
+		bug517224.sjs \
+		test_bug525952.html \
+		ccd-quirks.html \
+		ccd-standards.html \
+		ccd.sjs \
+		visited-pref-iframe.html \
+		visited-lying-inner.html \
+		visited_image_loading.sjs \
+		visited_image_loading_frame.html \
+		visited_image_loading_frame_empty.html \
+		$(NULL)
+
+_VISITED_REFTEST_FILES = \
+		$(shell find $(topsrcdir)/layout/reftests/css-visited/ -name '*.html' -o -name '*.xhtml') \
+		$(topsrcdir)/layout/reftests/svg/pseudo-classes-02.svg \
+		$(topsrcdir)/layout/reftests/svg/pseudo-classes-02-ref.svg \
+		$(NULL)
+
+ifneq (mobile,$(MOZ_BUILD_APP))
+_BROWSER_FILES = \
+		browser_bug453896.js \
+		bug453896_iframe.html \
+		media_queries_iframe.html \
+		$(NULL)
+endif
+
+libs:: $(_TEST_FILES)
+	$(INSTALL) $(foreach f,$^,"$f") $(DEPTH)/_tests/testing/mochitest/tests/$(relativesrcdir)
+
+libs:: $(_VISITED_REFTEST_FILES)
+	$(INSTALL) $(foreach f,$^,"$f") $(DEPTH)/_tests/testing/mochitest/tests/$(relativesrcdir)/css-visited/
+
+ifneq (mobile,$(MOZ_BUILD_APP))
+libs:: $(_BROWSER_FILES)
+	$(INSTALL) $(foreach f,$^,"$f") $(DEPTH)/_tests/testing/mochitest/browser/$(relativesrcdir)
+endif

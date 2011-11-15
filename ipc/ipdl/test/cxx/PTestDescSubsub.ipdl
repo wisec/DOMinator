@@ -1,0 +1,15 @@
+
+include protocol PTestDescSub;
+
+namespace mozilla {
+namespace _ipdltest {
+
+rpc protocol PTestDescSubsub {
+    manager PTestDescSub;
+
+child:
+    rpc __delete__();
+};
+
+}
+}

@@ -1,0 +1,131 @@
+# ***** BEGIN LICENSE BLOCK ***** 
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is the Mozilla Browser code.
+#
+# The Initial Developer of the Original Code is
+# Netscape Communications Corporation.
+# Portions created by the Initial Developer are Copyright (C) 2003
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#  Brian Ryner <bryner@brianryner.com>
+#  Benjamin Smedberg <benjamin@smedbergs.us>
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either the GNU General Public License Version 2 or later (the "GPL"), or
+# the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH     = ../..
+topsrcdir = @top_srcdir@
+srcdir    = @srcdir@
+VPATH     = @srcdir@
+
+include $(topsrcdir)/config/config.mk
+
+# These component dirs are built for all apps (including suite)
+
+ifdef MOZ_ENABLE_XREMOTE
+PARALLEL_DIRS += remote
+endif
+
+PARALLEL_DIRS += \
+  aboutmemory \
+  apppicker \
+  commandlines \
+  console \
+  contentprefs \
+  cookie \
+  exthelper \
+  filepicker \
+  find \
+  microformats \
+  parentalcontrols \
+  passwordmgr \
+  perf \
+  places \
+  prompts \
+  reflect \
+  startup \
+  statusfilter \
+  typeaheadfind \
+  urlformatter \
+  viewconfig \
+  viewsource \
+  telemetry \
+  $(NULL)
+
+ifdef BUILD_CTYPES
+PARALLEL_DIRS += \
+  ctypes \
+  $(NULL)
+endif
+
+ifneq (,$(filter cocoa, $(MOZ_WIDGET_TOOLKIT)))
+TOOL_DIRS += alerts
+else
+PARALLEL_DIRS += alerts
+endif
+
+ifdef MOZ_FEEDS
+PARALLEL_DIRS += feeds
+endif
+
+ifdef MOZ_HELP_VIEWER
+PARALLEL_DIRS += help
+endif
+
+ifdef NS_PRINTING
+PARALLEL_DIRS += printing
+endif
+
+ifdef MOZ_XUL
+PARALLEL_DIRS += \
+  autocomplete \
+  satchel \
+  $(NULL)
+endif
+
+ifdef MOZ_TOOLKIT_SEARCH
+PARALLEL_DIRS += search
+endif
+
+ifdef MOZ_RDF
+PARALLEL_DIRS += \
+  downloads \
+  intl \
+  $(NULL)
+endif
+
+ifdef MOZ_URL_CLASSIFIER
+PARALLEL_DIRS += url-classifier
+endif
+
+DIRS += \
+  build \
+  $(NULL)
+
+EXTRA_PP_COMPONENTS = nsDefaultCLH.js
+EXTRA_COMPONENTS = nsDefaultCLH.manifest
+
+include $(topsrcdir)/config/rules.mk

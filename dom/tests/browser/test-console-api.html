@@ -1,0 +1,38 @@
+<!DOCTYPE HTML>
+<html dir="ltr" xml:lang="en-US" lang="en-US"><head>
+    <title>Console API test page</title>
+    <script type="text/javascript">
+      window.foobar585956c = function(a) {
+        console.trace();
+        return a+"c";
+      };
+
+      function foobar585956b(a) {
+        return foobar585956c(a+"b");
+      }
+
+      function foobar585956a(omg) {
+        return foobar585956b(omg + "a");
+      }
+
+      function foobar646025(omg) {
+        console.log(omg, "o", "d");
+      }
+
+      function test() {
+        var str = "Test Message."
+        console.foobar(str); // if this throws, we don't execute following funcs
+        console.log(str);
+        console.info(str);
+        console.warn(str);
+        console.error(str);
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Console API Test Page</h1>
+    <button onclick="test();">Log stuff</button>
+    <button id="test-trace" onclick="foobar585956a('omg');">Test trace</button>
+    <button id="test-location" onclick="foobar646025('omg');">Test location</button>
+  </body>
+</html>

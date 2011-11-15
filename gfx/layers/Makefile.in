@@ -1,0 +1,173 @@
+#
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is Mozilla Corporation code.
+#
+# The Initial Developer of the Original Code is Mozilla Foundation.
+# Portions created by the Initial Developer are Copyright (C) 2009
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#   Robert O'Callahan <robert@ocallahan.org>
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either of the GNU General Public License Version 2 or later (the "GPL"),
+# or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
+
+DEPTH       = ../..
+topsrcdir   = @top_srcdir@
+srcdir      = @srcdir@
+VPATH       = \
+  $(srcdir) \
+  $(srcdir)/basic \
+  $(srcdir)/opengl \
+  $(srcdir)/d3d9 \
+  $(srcdir)/d3d10 \
+  $(srcdir)/ipc \
+  $(NULL)
+
+include $(DEPTH)/config/autoconf.mk
+
+MODULE         = thebes
+LIBRARY_NAME   = layers
+LIBXUL_LIBRARY = 1
+FORCE_STATIC_LIB = 1
+
+DEFINES += -DIMPL_THEBES
+ifdef MOZ_DEBUG
+DEFINES += -DD3D_DEBUG_INFO
+endif
+
+EXPORTS = \
+        BasicLayers.h \
+        ImageLayers.h \
+        Layers.h \
+        LayerManagerOGL.h \
+        LayerManagerOGLProgram.h \
+        ReadbackLayer.h \
+        $(NULL)
+
+CPPSRCS = \
+        BasicImages.cpp \
+        BasicLayers.cpp \
+        Layers.cpp \
+        ReadbackProcessor.cpp \
+        ThebesLayerBuffer.cpp \
+        CanvasLayerOGL.cpp \
+        ColorLayerOGL.cpp \
+        ContainerLayerOGL.cpp \
+        ImageLayerOGL.cpp \
+        LayerManagerOGL.cpp \
+        ThebesLayerOGL.cpp \
+        $(NULL)
+
+ifeq ($(MOZ_WIDGET_TOOLKIT),cocoa)
+CMMSRCS = \
+        MacIOSurfaceImageOGL.mm \
+        $(NULL)
+endif
+
+ifeq ($(MOZ_WIDGET_TOOLKIT),windows)
+ifdef MOZ_ENABLE_D3D9_LAYER
+EXPORTS += \
+        LayerManagerD3D9.h \
+        DeviceManagerD3D9.h \
+        $(NULL)
+
+CPPSRCS += \
+        LayerManagerD3D9.cpp \
+        ThebesLayerD3D9.cpp \
+        ContainerLayerD3D9.cpp \
+        ImageLayerD3D9.cpp \
+        ColorLayerD3D9.cpp \
+        CanvasLayerD3D9.cpp \
+        ShadowBufferD3D9.cpp \
+        DeviceManagerD3D9.cpp \
+        Nv3DVUtils.cpp \
+        $(NULL)
+endif
+ifdef MOZ_ENABLE_D3D10_LAYER
+EXPORTS += \
+        LayerManagerD3D10.h \
+        ReadbackManagerD3D10.h \
+        $(NULL)
+
+CPPSRCS += \
+        CanvasLayerD3D10.cpp \
+        ColorLayerD3D10.cpp \
+        ContainerLayerD3D10.cpp \
+        ImageLayerD3D10.cpp \
+        LayerManagerD3D10.cpp \
+        ReadbackManagerD3D10.cpp \
+	ShadowLayerUtilsD3D10.cpp \
+        ThebesLayerD3D10.cpp \
+        $(NULL)
+endif
+endif
+
+EXPORTS_NAMESPACES = IPC mozilla/layers
+EXPORTS_IPC = ShadowLayerUtils.h
+EXPORTS_mozilla/layers =\
+        ShadowLayers.h \
+        ShadowLayersChild.h \
+        ShadowLayersParent.h \
+        $(NULL)
+
+CPPSRCS += \
+        ShadowLayers.cpp \
+        ShadowLayerChild.cpp \
+        ShadowLayersChild.cpp \
+        ShadowLayerParent.cpp \
+        ShadowLayersParent.cpp \
+        $(NULL)
+
+ifdef MOZ_X11 #{
+EXPORTS_mozilla/layers += ShadowLayerUtilsX11.h
+CPPSRCS += ShadowLayerUtilsX11.cpp
+endif #}
+
+# Enable GLES2.0 under maemo
+ifdef MOZ_X11
+ifdef MOZ_PLATFORM_MAEMO
+DEFINES += -DUSE_GLES2
+endif
+endif
+
+ifdef MOZ_ENABLE_D3D10_LAYER
+EXPORTS_mozilla/layers += ShadowLayerUtilsD3D10.h
+DEFINES	+= -DMOZ_ENABLE_D3D10_LAYER
+endif
+
+include $(topsrcdir)/config/rules.mk
+
+include $(topsrcdir)/ipc/chromium/chromium-config.mk
+
+CXXFLAGS += $(MOZ_CAIRO_CFLAGS) $(TK_CFLAGS)
+
+LayerManagerOGLShaders.h: LayerManagerOGLShaders.txt genshaders.py $(GLOBAL_DEPS)
+	$(PYTHON) $(srcdir)/opengl/genshaders.py $< $@
+
+LayerManagerOGL.$(OBJ_SUFFIX): LayerManagerOGLShaders.h
+
+GARBAGE += LayerManagerOGLShaders.h

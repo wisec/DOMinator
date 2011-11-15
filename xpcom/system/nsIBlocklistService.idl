@@ -1,0 +1,164 @@
+/* -*- Mode: IDL; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is the Blocklist Service.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla Corporation
+ * Portions created by the Initial Developer are Copyright (C) 2007
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Michael Wu <flamingice@sourmilk.net>  (original author)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+
+#include "nsISupports.idl"
+
+interface nsIPluginTag;
+interface nsIVariant;
+
+[scriptable, uuid(31845f85-718a-4581-a672-a45c0327cb21)]
+interface nsIBlocklistService : nsISupports
+{
+  // Indicates that the item does not appear in the blocklist.
+  const unsigned long STATE_NOT_BLOCKED = 0;
+  // Indicates that the item is in the blocklist but the problem is not severe
+  // enough to warant forcibly blocking.
+  const unsigned long STATE_SOFTBLOCKED = 1;
+  // Indicates that the item should be blocked and never used.
+  const unsigned long STATE_BLOCKED     = 2;
+  // Indicates that the item is considered outdated, and there is a known
+  // update available.
+  const unsigned long STATE_OUTDATED    = 3;
+
+  /**
+   * Determine if an item is blocklisted
+   * @param   id
+   *          The ID of the item.
+   * @param   version
+   *          The item's version.
+   * @param   appVersion
+   *          The version of the application we are checking in the blocklist.
+   *          If this parameter is null, the version of the running application
+   *          is used.
+   * @param   toolkitVersion
+   *          The version of the toolkit we are checking in the blocklist.
+   *          If this parameter is null, the version of the running toolkit
+   *          is used.
+   * @returns true if the item is compatible with this version of the
+   *          application or this version of the toolkit, false, otherwise.
+   */
+  boolean isAddonBlocklisted(in AString id, in AString version,
+                             [optional] in AString appVersion,
+                             [optional] in AString toolkitVersion);
+
+  /**
+   * Determine the blocklist state of an add-on
+   * @param   id
+   *          The ID of the item.
+   * @param   version
+   *          The item's version.
+   * @param   appVersion
+   *          The version of the application we are checking in the blocklist.
+   *          If this parameter is null, the version of the running application
+   *          is used.
+   * @param   toolkitVersion
+   *          The version of the toolkit we are checking in the blocklist.
+   *          If this parameter is null, the version of the running toolkit
+   *          is used.
+   * @returns The STATE constant.
+   */
+  unsigned long getAddonBlocklistState(in AString id, in AString version,
+                                       [optional] in AString appVersion,
+                                       [optional] in AString toolkitVersion);
+
+  /**
+   * Determine the blocklist state of a plugin
+   * @param   plugin
+   *          The plugin to get the state for
+   * @param   appVersion
+   *          The version of the application we are checking in the blocklist.
+   *          If this parameter is null, the version of the running application
+   *          is used.
+   * @param   toolkitVersion
+   *          The version of the toolkit we are checking in the blocklist.
+   *          If this parameter is null, the version of the running toolkit
+   *          is used.
+   * @returns The STATE constant.
+   */
+  unsigned long getPluginBlocklistState(in nsIPluginTag plugin,
+                                        [optional] in AString appVersion,
+                                        [optional] in AString toolkitVersion);
+
+  /**
+   * Determine the blocklist web page of an add-on.
+   * @param   id
+   *          The ID of the blocked add-on.
+   * @returns The URL of the description page.
+   */
+  AString getAddonBlocklistURL(in AString id, in AString version,
+                              [optional] in AString appVersion,
+                              [optional] in AString toolkitVersion);
+
+  /**
+   * Determine the blocklist web page of a plugin.
+   * @param   plugin
+   *          The blocked plugin that we are determining the web page for.
+   * @returns The URL of the description page.
+   */
+  AString getPluginBlocklistURL(in nsIPluginTag plugin);
+};
+
+/**
+ * nsIBlocklistPrompt is used, if available, by the default implementation of 
+ * nsIBlocklistService to display a confirmation UI to the user before blocking
+ * extensions/plugins.
+ */
+[scriptable, uuid(36f97f40-b0c9-11df-94e2-0800200c9a66)]
+interface nsIBlocklistPrompt : nsISupports
+{
+  /**
+   * Prompt the user about newly blocked addons. The prompt is then resposible
+   * for soft-blocking any addons that need to be afterwards
+   *
+   * @param  aAddons
+   *         An array of addons and plugins that are blocked. These are javascript
+   *         objects with properties:
+   *          name    - the plugin or extension name,
+   *          version - the version of the extension or plugin,
+   *          icon    - the plugin or extension icon,
+   *          disable - can be used by the nsIBlocklistPrompt to allows users to decide
+   *                    whether a soft-blocked add-on should be disabled,
+   *          blocked - true if the item is hard-blocked, false otherwise,
+   *          item    - the nsIPluginTag or Addon object
+   * @param  aCount
+   *         The number of addons
+   */
+  void prompt([array, size_is(aCount)] in nsIVariant aAddons,
+              [optional] in PRUint32 aCount);
+};
