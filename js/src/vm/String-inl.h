@@ -56,10 +56,52 @@ JSRope::init(JSString *left, JSString *right, size_t length)
 JS_ALWAYS_INLINE JSRope *
 JSRope::new_(JSContext *cx, JSString *left, JSString *right, size_t length)
 {
+#ifdef TAINTED 
+   JSString *jsstr= js_NewGCString(cx);
+   JSRope *str = (JSRope *)jsstr ;   
+#else
     JSRope *str = (JSRope *)js_NewGCString(cx);
+#endif
     if (!str)
         return NULL;
     str->init(left, right, length);
+    
+ #ifdef TAINTED
+ size_t ln = left->length();
+ size_t rn = right->length();
+ if( JSSTRING_IS_TAINTED(left)  || JSSTRING_IS_TAINTED(right) ){
+       jsstr=taint_newTaintedString(cx, jsstr);
+       str = (JSRope *)jsstr ; 
+    #ifdef DEBUG
+      printf("Concat %d %d\n",left->isTainted(),right->isTainted());
+      js_DumpString(left);
+      js_DumpString(right);
+    #endif
+//      JSSTRING_SET_TAINTED(str);
+       if(JSSTRING_IS_TAINTED(left) && !JSSTRING_IS_TAINTED(right) ){
+
+       addTaintInfoConcat( cx,left,str,0,ln,CONCATLEFT);
+#ifdef DEBUG
+       printf("%.20s <- tainted *+* %.20s\n",  js_GetStringBytes(cx, left), js_GetStringBytes(cx, right));
+#endif
+      }else if(JSSTRING_IS_TAINTED(right) && !JSSTRING_IS_TAINTED(left) ){
+
+       addTaintInfoConcat( cx,right,str,ln,ln+rn,CONCATRIGHT);
+#ifdef DEBUG
+       printf("%.20s *+* %.20s <- tainted\n",  js_GetStringBytes(cx, left), js_GetStringBytes(cx, right));
+#endif
+
+      }else{
+       
+        addTaintInfoConcat( cx,left,str,0,ln,CONCAT);
+        addTaintInfoConcat( cx,right,str,ln,ln+rn,CONCAT);
+#ifdef DEBUG
+        printf("Both : %.20s *+* %.20s  \n",  js_GetStringBytes(cx, left), js_GetStringBytes(cx, right));
+#endif
+      
+      }  
+    }  
+#endif
     return str;
 }
 

@@ -2005,7 +2005,14 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
         JS_SetGCParameter(mJSRuntime, JSGC_MAX_BYTES, 0xffffffff);
         JS_SetContextCallback(mJSRuntime, ContextCallback);
         JS_SetCompartmentCallback(mJSRuntime, CompartmentCallback);
-        JS_SetGCCallbackRT(mJSRuntime, GCCallback);
+         #ifdef TAINTED
+         JSGCCallback cb=JS_SetGCCallbackRT(mJSRuntime, GCCallback);
+          if(cb){
+            AddGCCallback(cb);
+          }
+        #else
+         JS_SetGCCallbackRT(mJSRuntime, GCCallback);
+        #endif
         JS_SetExtraGCRoots(mJSRuntime, TraceJS, this);
         JS_SetWrapObjectCallbacks(mJSRuntime,
                                   xpc::WrapperFactory::Rewrap,

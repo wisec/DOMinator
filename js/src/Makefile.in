@@ -141,6 +141,7 @@ CPPSRCS		= \
 		jsdate.cpp \
 		jsdbgapi.cpp \
 		jsdhash.cpp \
+		taint.cpp \
 		jsdtoa.cpp \
 		jsemit.cpp \
 		jsexn.cpp \
@@ -247,6 +248,7 @@ INSTALLED_HEADERS = \
 		jsscript.h \
 		jsstaticcheck.h \
 		jsstdint.h \
+		taint.h \
 		jsstr.h \
 		jstracer.h \
 		jstypedarray.h \

@@ -42,7 +42,9 @@
 #define String_h_
 
 #include "jscell.h"
-
+#ifdef TAINTED 
+#include "taint.h"
+#endif
 class JSString;
 class JSDependentString;
 class JSExtensibleString;
@@ -203,7 +205,11 @@ class JSString : public js::gc::Cell
   public:
     /* Flags exposed only for jits */
 
+#ifdef TAINTED
+     static const size_t LENGTH_SHIFT     = 5;  
+#else
     static const size_t LENGTH_SHIFT      = 4;
+#endif 
     static const size_t FLAGS_MASK        = JS_BITMASK(LENGTH_SHIFT);
     static const size_t MAX_LENGTH        = JS_BIT(32 - LENGTH_SHIFT) - 1;
 
@@ -264,6 +270,9 @@ class JSString : public js::gc::Cell
     static const size_t EXTENSIBLE_FLAGS  = JS_BIT(2) | JS_BIT(3);
     static const size_t NON_STATIC_ATOM   = JS_BIT(3);
 
+#ifdef TAINTED
+    static const size_t TAINTED_FLAG  = JS_BIT(4);
+#endif
     size_t buildLengthAndFlags(size_t length, size_t flags) {
         return (length << LENGTH_SHIFT) | flags;
     }
@@ -309,6 +318,24 @@ class JSString : public js::gc::Cell
 
     /* Type query and debug-checked casts */
 
+#ifdef TAINTED
+    JS_ALWAYS_INLINE
+    bool isTainted() const { 
+        return  d.lengthAndFlags & TAINTED_FLAG;
+    }
+    
+    inline void setTainted()  {
+        d.lengthAndFlags |= TAINTED_FLAG;
+    }
+    
+    inline void setTainted(bool set)  {
+       if(set)
+         d.lengthAndFlags |= TAINTED_FLAG;
+       else
+         d.lengthAndFlags &= ~TAINTED_FLAG;
+    }    
+
+#endif
     JS_ALWAYS_INLINE
     bool isRope() const {
         bool rope = d.lengthAndFlags & ROPE_BIT;

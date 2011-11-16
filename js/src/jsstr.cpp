@@ -56,6 +56,9 @@
 #include "jshash.h"
 #include "jsprf.h"
 #include "jsapi.h"
+#ifdef TAINTED
+ #include "taint.h"
+#endif
 #include "jsarray.h"
 #include "jsatom.h"
 #include "jsbool.h"
@@ -165,6 +168,9 @@ str_escape(JSContext *cx, uintN argc, Value *vp)
     JSLinearString *str = ArgToRootedString(cx, argc, vp, 0);
     if (!str)
         return JS_FALSE;
+#ifdef TAINTED
+TAINT_CONDITION(str)
+#endif
 
     size_t length = str->length();
     const jschar *chars = str->chars();
@@ -246,6 +252,10 @@ str_escape(JSContext *cx, uintN argc, Value *vp)
         cx->free_(newchars);
         return JS_FALSE;
     }
+#ifdef TAINTED
+ TAINT_COND_SET(retstr,strArg,NULL,ESCAPE)
+#endif
+    
     vp->setString(retstr);
     return JS_TRUE;
 }
@@ -257,6 +267,9 @@ str_unescape(JSContext *cx, uintN argc, Value *vp)
     JSLinearString *str = ArgToRootedString(cx, argc, vp, 0);
     if (!str)
         return false;
+#ifdef TAINTED
+TAINT_CONDITION(str)
+#endif
 
     size_t length = str->length();
     const jschar *chars = str->chars();
@@ -295,6 +308,9 @@ str_unescape(JSContext *cx, uintN argc, Value *vp)
         cx->free_(newchars);
         return JS_FALSE;
     }
+#ifdef TAINTED
+ TAINT_COND_SET(retstr,strArg,NULL,UNESCAPE);
+#endif
     vp->setString(retstr);
     return JS_TRUE;
 }
@@ -340,6 +356,28 @@ static JSFunctionSpec string_functions[] = {
 jschar      js_empty_ucstr[]  = {0};
 JSSubString js_EmptySubString = {0, js_empty_ucstr};
 
+#ifdef TAINTED
+static JSBool
+str_getTaint (JSContext *cx, JSObject *obj, jsid id, Value *vp);
+char js_tainted_str[]          = "tainted";
+static JSPropertySpec string_props[] = {
+    {js_tainted_str,    -1,
+                        JSPROP_PERMANENT|JSPROP_SHARED, Jsvalify(str_getTaint),0},
+    {0,0,0,0,0}
+};
+
+static JSBool
+str_getTaint (JSContext *cx, JSObject *obj, jsid id, Value *vp)
+{   
+    JSString *str;
+    
+    js_DumpObject(obj);
+    str = obj->getPrimitiveThis().toString();
+    return taint_GetTainted(cx,str,Jsvalify(vp));
+}
+
+
+#endif
 #define STRING_ELEMENT_ATTRS (JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT)
 
 static JSBool
@@ -374,6 +412,10 @@ str_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
         JSString *str1 = JSAtom::getUnitStringForElement(cx, str, size_t(slot));
         if (!str1)
             return JS_FALSE;
+#ifdef TAINTED
+       TAINT_CONDITION(str)
+       TAINT_COND_SET_NEW(str1 ,str,NULL,NONEOP)
+#endif            
         if (!obj->defineProperty(cx, id, StringValue(str1), NULL, NULL,
                                  STRING_ELEMENT_ATTRS)) {
             return JS_FALSE;
@@ -444,11 +486,21 @@ static JSBool
 str_quote(JSContext *cx, uintN argc, Value *vp)
 {
     JSString *str = ThisToStringForStringProto(cx, vp);
+    
+    #ifdef TAINTED
+     TAINT_CONDITION(str)
+    #endif
+    
     if (!str)
         return false;
     str = js_QuoteString(cx, str, '"');
     if (!str)
         return false;
+    
+    #ifdef TAINTED
+     TAINT_COND_SET(str,strArg,NULL,QUOTE);
+    #endif
+    
     vp->setString(str);
     return true;
 }
@@ -539,6 +591,9 @@ str_substring(JSContext *cx, uintN argc, Value *vp)
     if (!str)
         return false;
 
+#ifdef TAINTED
+    TAINT_CONDITION(str);
+#endif
     int32 length, begin, end;
     if (argc > 0) {
         end = length = int32(str->length());
@@ -572,6 +627,9 @@ str_substring(JSContext *cx, uintN argc, Value *vp)
         if (!str)
             return false;
     }
+#ifdef TAINTED
+    TAINT_COND_SET_NEW(str,strArg,NULL,SUBSTRING);
+#endif
 
     vp->setString(str);
     return true;
@@ -605,9 +663,15 @@ str_toLowerCase(JSContext *cx, uintN argc, Value *vp)
     JSString *str = ThisToStringForStringProto(cx, vp);
     if (!str)
         return false;
+#ifdef TAINTED
+    TAINT_CONDITION(str);
+#endif
     str = js_toLowerCase(cx, str);
     if (!str)
         return false;
+#ifdef TAINTED
+   TAINT_COND_SET(str,strArg,NULL,LOWERCASE);
+#endif
     vp->setString(str);
     return true;
 }
@@ -656,9 +720,15 @@ str_toUpperCase(JSContext *cx, uintN argc, Value *vp)
     JSString *str = ThisToStringForStringProto(cx, vp);
     if (!str)
         return false;
+#ifdef TAINTED
+    TAINT_CONDITION(str);
+#endif
     str = js_toUpperCase(cx, str);
     if (!str)
         return false;
+#ifdef TAINTED
+   TAINT_COND_SET(str,strArg,NULL,UPPERCASE);
+#endif
     vp->setString(str);
     return true;
 }
@@ -705,20 +775,38 @@ str_localeCompare(JSContext *cx, uintN argc, Value *vp)
     return true;
 }
 
+// TODOxxx Tainting?
 JSBool
 js_str_charAt(JSContext *cx, uintN argc, Value *vp)
 {
     JSString *str;
     jsint i;
+#ifdef TAINTED
+    JSBool tainted=JS_FALSE;
+    JSString *strArg;
+#endif
     if (vp[1].isString() && argc != 0 && vp[2].isInt32()) {
         str = vp[1].toString();
         i = vp[2].toInt32();
+
+#ifdef TAINTED
+        if(str->isTainted()){
+          tainted=JS_TRUE;
+           strArg=str; 
+        }
+#endif
         if ((size_t)i >= str->length())
             goto out_of_range;
     } else {
         str = ThisToStringForStringProto(cx, vp);
         if (!str)
             return false;
+#ifdef TAINTED
+        if(str->isTainted()){
+          tainted=JS_TRUE;
+           strArg=str; 
+        }
+#endif
 
         double d = 0.0;
         if (argc > 0 && !ToInteger(cx, vp[2], &d))
@@ -728,15 +816,28 @@ js_str_charAt(JSContext *cx, uintN argc, Value *vp)
             goto out_of_range;
         i = (jsint) d;
     }
-
     str = JSAtom::getUnitStringForElement(cx, str, size_t(i));
     if (!str)
         return false;
+#ifdef TAINTED
+ TAINT_COND_SET_NEW(str ,strArg,NULL,NONEOP)
+#endif
     vp->setString(str);
     return true;
 
   out_of_range:
+  
+#ifdef TAINTED
+    if(tainted) {
+     str= taint_newTaintedString(cx,cx->runtime->emptyString ); 
+     addTaintInfoOneArg(cx, strArg  ,str,NULL,NONEOP ); 
+     vp->setString( str );
+    } else {
+     vp->setString(cx->runtime->emptyString);
+    }
+#else
     vp->setString(cx->runtime->emptyString);
+#endif
     return true;
 }
 
@@ -1187,6 +1288,9 @@ js_TrimString(JSContext *cx, Value *vp, JSBool trimLeft, JSBool trimRight)
     JSString *str = ThisToStringForStringProto(cx, vp);
     if (!str)
         return false;
+    #ifdef TAINTED
+     TAINT_CONDITION(str);
+    #endif
     size_t length = str->length();
     const jschar *chars = str->getChars(cx);
     if (!chars)
@@ -1208,6 +1312,9 @@ js_TrimString(JSContext *cx, Value *vp, JSBool trimLeft, JSBool trimRight)
     str = js_NewDependentString(cx, str, begin, end - begin);
     if (!str)
         return false;
+    #ifdef TAINTED
+     TAINT_COND_SET_NEW(str,strArg,NULL,TRIM);
+    #endif
 
     vp->setString(str);
     return true;
@@ -1543,6 +1650,9 @@ str_match(JSContext *cx, uintN argc, Value *vp)
     RegExpGuard g(cx);
     if (!g.init(argc, vp, true))
         return false;
+#ifdef TAINTED
+    if( !str->isTainted() ) 
+#endif
     if (const FlatMatch *fm = g.tryFlatMatch(cx, str, 1, argc))
         return BuildFlatMatchArray(cx, str, *fm, vp);
     if (cx->isExceptionPending())  /* from tryFlatMatch */
@@ -1603,7 +1713,11 @@ struct ReplaceData
 {
     ReplaceData(JSContext *cx)
      : g(cx), sb(cx)
-    {}
+    {
+    #ifdef TAINTED
+     tainted=JS_FALSE;
+    #endif
+    }
 
     JSString           *str;           /* 'this' parameter object as a string */
     RegExpGuard        g;              /* regexp parameter object and private data */
@@ -1618,6 +1732,13 @@ struct ReplaceData
     InvokeSessionGuard session;        /* arguments for repeated lambda Invoke call */
     InvokeArgsGuard    singleShot;     /* arguments for single lambda Invoke call */
     StringBuffer       sb;             /* buffer built during DoMatch */
+    #ifdef TAINTED
+    JSBool  tainted;             /* stores taint information. 
+                                   This is probably too simple since it lost information
+                                   about the operation performed on the string in cases like
+                                    Taint.replace(/a/,function(p,w){ var c=OperationsOn(p,w);  return c  })
+                                    */
+    #endif
 };
 
 static bool
@@ -1854,10 +1975,18 @@ ReplaceRegExpCallback(JSContext *cx, RegExpStatics *res, size_t count, void *p)
     const jschar *left = str.chars() + leftoff;
     size_t leftlen = res->matchStart() - leftoff;
     rdata.leftIndex = res->matchLimit();
+#ifdef TAINTED
+    if(rdata.repstr && rdata.repstr->isTainted())
+     rdata.tainted=JS_TRUE;
+#endif
 
     size_t replen = 0;  /* silence 'unused' warning */
     if (!FindReplaceLength(cx, res, rdata, &replen))
         return false;
+#ifdef TAINTED
+    if(rdata.repstr && rdata.repstr->isTainted())
+     rdata.tainted=JS_TRUE;
+#endif
 
     size_t growth = leftlen + replen;
     if (!rdata.sb.reserve(rdata.sb.length() + growth))
@@ -1874,6 +2003,11 @@ BuildFlatReplacement(JSContext *cx, JSString *textstr, JSString *repstr,
     RopeBuilder builder(cx);
     size_t match = fm.match();
     size_t matchEnd = match + fm.patternLength();
+    
+#ifdef TAINTED
+    TAINT_CONDITION(textstr)
+    
+#endif
 
     if (textstr->isRope()) {
         /*
@@ -1939,8 +2073,16 @@ BuildFlatReplacement(JSContext *cx, JSString *textstr, JSString *repstr,
             return false;
         }
     }
-
+#ifdef TAINTED
+   JSString *rstr=builder.result();
+   
+   TAINT_COND_SET_NEW( rstr,strArg,NULL,REPLACE)
+   
+   vp->setString(rstr);
+   
+#else
     vp->setString(builder.result());
+#endif
     return true;
 }
 
@@ -2045,7 +2187,17 @@ str_replace_regexp(JSContext *cx, uintN argc, Value *vp, ReplaceData &rdata)
 
     if (!rdata.calledBack) {
         /* Didn't match, so the string is unmodified. */
+#ifdef TAINTED
+       if(rdata.str->isTainted()){
+         JSString *retStr =taint_newTaintedString(cx,rdata.str); 
+         addTaintInfoOneArg(cx,rdata.str , retStr,NULL,REPLACE);
+         vp->setString(retStr );
+       }else{
+         vp->setString(rdata.str);
+       }
+#else
         vp->setString(rdata.str);
+#endif
         return true;
     }
 
@@ -2114,7 +2266,7 @@ str_replace_flat_lambda(JSContext *cx, uintN argc, Value *vp, ReplaceData &rdata
     vp->setString(builder.result());
     return true;
 }
-
+//XXTAINTED Remember: REGEXP could not be logged if doesn't match
 JSBool
 js::str_replace(JSContext *cx, uintN argc, Value *vp)
 {
@@ -2123,6 +2275,11 @@ js::str_replace(JSContext *cx, uintN argc, Value *vp)
     if (!rdata.str)
         return false;
     static const uint32 optarg = 2;
+   #ifdef TAINTED
+    TAINT_CONDITION(rdata.str);
+     // this=str vp[3] = repstr , 
+    // ToDo "dd".replace(Taint,ss); and also "ccc".replace(//,tainted)
+   #endif
 
     if (!rdata.g.init(argc, vp))
         return false;
@@ -2197,17 +2354,66 @@ js::str_replace(JSContext *cx, uintN argc, Value *vp)
         if (cx->isExceptionPending())  /* oom in RopeMatch in tryFlatMatch */
             return false;
         JS_ASSERT_IF(!rdata.g.hasRegExpPair(), argc > optarg);
+#ifdef TAINTED
+// ATM we implement only the version Tainted.replace()
+// ToDo "dd".replace(Taint,ss); and also "ccc".replace(//,tainted)
+        bool retFun;
+       if((retFun=str_replace_regexp(cx, argc, vp, rdata))){
+         JSString *retstr=vp->toString();
+//         if(rdata.lambda==NULL || rdata.tainted /*case for function+return str Tainted see ReplaceCallback*/){
+       /* TAINT_CONDITION_NODEC(rdata.repstr ), covers the case of TaintedOrNot.replace(/notTainted/,TaintedReplaceStr)
+          we still have to consider the multiple backtrace in infoTaint.
+       */ 
+         TAINT_CONDITION_NODEC(rdata.repstr ); 
+          if(retstr==cx->runtime->emptyString){
+           TAINT_COND_SET_NEW(retstr,strArg,NULL,REPLACE)
+          }else{ 
+           TAINT_COND_SET(retstr,strArg,NULL,REPLACE)
+          }
+//         } 
+         vp->setString(retstr);
+       }
+       return retFun;
+#else
         return str_replace_regexp(cx, argc, vp, rdata);
+#endif
     }
 
     if (fm->match() < 0) {
+#ifdef TAINTED
+  // we want the replace operation to be stored in the taintTable
+    if(rdata.str->isTainted()){
+      JSString *replacedStr=taint_newTaintedString(cx, rdata.str);
+           replacedStr->setTainted();
+          addTaintInfoOneArg(cx,rdata.str ,replacedStr , NULL,REPLACE);
+       
+      vp->setString(replacedStr );
+    }else{
+      vp->setString(rdata.str);
+    }
+#else    
         vp->setString(rdata.str);
+#endif
         return true;
     }
 
     if (rdata.lambda)
+#ifdef TAINTED
+    {
+       bool retFun;
+       if((retFun= str_replace_flat_lambda(cx, argc, vp, rdata, *fm))){
+         JSString *retstr=vp->toString();
+         if( tainted || rdata.tainted /*case for function+return str Tainted see ReplaceCallback*/){
+           TAINT_COND_SET_NEW(retstr,strArg,NULL,REPLACE)
+         }
+         vp->setString(retstr);
+       }
+       return retFun;
+    
+    }
+#else
         return str_replace_flat_lambda(cx, argc, vp, rdata, *fm);
-
+#endif
     /* 
      * Note: we could optimize the text.length == pattern.length case if we wanted,
      * even in the presence of dollar metachars.
@@ -2250,6 +2456,9 @@ SplitHelper(JSContext *cx, JSLinearString *str, uint32 limit, Matcher splitMatch
 {
     size_t strLength = str->length();
     SplitMatchResult result;
+#ifdef TAINTED
+   TAINT_CONDITION(str);
+#endif
 
     /* Step 11. */
     if (strLength == 0) {
@@ -2268,7 +2477,9 @@ SplitHelper(JSContext *cx, JSLinearString *str, uint32 limit, Matcher splitMatch
          */
         if (!result.isFailure())
             return NewDenseEmptyArray(cx);
-
+#ifdef TAINTED
+   //add Tainting? Remember about circular 
+#endif
         Value v = StringValue(str);
         return NewDenseCopiedArray(cx, 1, &v);
     }
@@ -2323,6 +2534,9 @@ SplitHelper(JSContext *cx, JSLinearString *str, uint32 limit, Matcher splitMatch
         /* Steps 13(c)(iii)(1-3). */
         size_t subLength = size_t(endIndex - sepLength - lastEndIndex);
         JSString *sub = js_NewDependentString(cx, str, lastEndIndex, subLength);
+      #ifdef TAINTED
+       TAINT_COND_SET_NEW(sub,strArg,NULL,SPLIT);
+      #endif
         if (!sub || !splits.append(StringValue(sub)))
             return NULL;
 
@@ -2342,6 +2556,9 @@ SplitHelper(JSContext *cx, JSLinearString *str, uint32 limit, Matcher splitMatch
                     JSSubString parsub;
                     res->getParen(i + 1, &parsub);
                     sub = js_NewStringCopyN(cx, parsub.chars, parsub.length);
+                 #ifdef TAINTED
+                 TAINT_COND_SET(sub,strArg,NULL,SPLIT);
+                #endif
                     if (!sub || !splits.append(StringValue(sub)))
                         return NULL;
                 } else {
@@ -2361,6 +2578,9 @@ SplitHelper(JSContext *cx, JSLinearString *str, uint32 limit, Matcher splitMatch
 
     /* Steps 14-15. */
     JSString *sub = js_NewDependentString(cx, str, lastEndIndex, strLength - lastEndIndex);
+      #ifdef TAINTED
+       TAINT_COND_SET_NEW(sub,strArg,NULL,SPLIT);
+      #endif
     if (!sub || !splits.append(StringValue(sub)))
         return NULL;
 
@@ -2437,6 +2657,9 @@ str_split(JSContext *cx, uintN argc, Value *vp)
     JSString *str = ThisToStringForStringProto(cx, vp);
     if (!str)
         return false;
+#ifdef TAINTED
+   TAINT_CONDITION(str);
+#endif
 
     /* Step 5: Use the second argument as the split limit, if given. */
     uint32 limit;
@@ -2489,7 +2712,9 @@ str_split(JSContext *cx, uintN argc, Value *vp)
     JSLinearString *strlin = str->ensureLinear(cx);
     if (!strlin)
         return false;
-
+#if TAINTED
+   printf("str->ensureLinear tainted -> %d\n",str->isTainted());
+#endif
     /* Steps 11-15. */
     JSObject *aobj;
     if (re) {
@@ -2513,6 +2738,9 @@ str_substr(JSContext *cx, uintN argc, Value *vp)
     JSString *str = ThisToStringForStringProto(cx, vp);
     if (!str)
         return false;
+#ifdef TAINTED
+    TAINT_CONDITION(str);
+#endif
 
     int32 length, len, begin;
     if (argc > 0) {
@@ -2551,6 +2779,9 @@ str_substr(JSContext *cx, uintN argc, Value *vp)
     }
 
 out:
+#ifdef TAINTED
+    TAINT_COND_SET_NEW(str,strArg,NULL,SUBSTRING);
+#endif
     vp->setString(str);
     return true;
 }
@@ -2588,6 +2819,9 @@ str_slice(JSContext *cx, uintN argc, Value *vp)
         size_t begin, end, length;
 
         JSString *str = vp[1].toString();
+#ifdef TAINTED
+    TAINT_CONDITION(str);
+#endif
         begin = vp[2].toInt32();
         end = str->length();
         if (begin <= end) {
@@ -2601,6 +2835,9 @@ str_slice(JSContext *cx, uintN argc, Value *vp)
                 if (!str)
                     return JS_FALSE;
             }
+#ifdef TAINTED
+            TAINT_COND_SET_NEW(str,strArg,NULL,SLICE);
+#endif
             vp->setString(str);
             return JS_TRUE;
         }
@@ -2610,6 +2847,9 @@ str_slice(JSContext *cx, uintN argc, Value *vp)
     if (!str)
         return false;
 
+#ifdef TAINTED
+    TAINT_CONDITION(str);
+#endif
     if (argc != 0) {
         double begin, end, length;
 
@@ -2646,6 +2886,9 @@ str_slice(JSContext *cx, uintN argc, Value *vp)
         if (!str)
             return JS_FALSE;
     }
+#ifdef TAINTED
+    TAINT_COND_SET_NEW(str,strArg,NULL,SLICE);
+#endif
     vp->setString(str);
     return JS_TRUE;
 }
@@ -2664,6 +2907,10 @@ tagify(JSContext *cx, const char *begin, JSLinearString *param, const char *end,
     JSLinearString *str = thisstr->ensureLinear(cx);
     if (!str)
         return false;
+#ifdef TAINTED
+    TAINT_CONDITION(str);
+    TAINT_CONDITION_NODEC(param);
+#endif
 
     if (!end)
         end = begin;
@@ -2715,6 +2962,18 @@ tagify(JSContext *cx, const char *begin, JSLinearString *param, const char *end,
         Foreground::free_((char *)tagbuf);
         return false;
     }
+#ifdef TAINTED
+     TAINT_COND_SET(retstr,strArg,NULL,TAGIFY);
+/*        JSString *rstr;
+        if(tainted){ 
+        if( str== cx->runtime->emptyString){printf("aborting because EmptyString!\n\n\n");abort();} 
+          if( str->length()<10) 
+             rstr=taint_newTaintedString(cx, str); 
+          rstr->setTainted(); 
+          addTaintInfoOneArg(cx, strArg, rstr,NULL,TAGIFY); 
+        }*/
+
+#endif
     vp->setString(retstr);
     return true;
 }
@@ -3148,8 +3407,16 @@ String_fromCharCode(JSContext* cx, int32 i)
 JS_DEFINE_TRCINFO_1(str_fromCharCode,
     (2, (static, STRING_RETRY, String_fromCharCode, CONTEXT, INT32, 1, nanojit::ACCSET_NONE)))
 
+#ifdef TAINTED
+ DEFINE_NEWTAINT()
+ DEFINE_GETTAINTINFO()
+#endif
+
 static JSFunctionSpec string_static_methods[] = {
     JS_TN("fromCharCode", str_fromCharCode, 1, 0, &str_fromCharCode_trcinfo),
+#ifdef TAINTED
+    SET_NEWTAINTED()
+#endif
     JS_FS_END
 };
 
@@ -3183,7 +3450,13 @@ js_InitStringClass(JSContext *cx, JSObject *obj)
     if (!LinkConstructorAndPrototype(cx, ctor, proto))
         return NULL;
 
-    if (!DefinePropertiesAndBrand(cx, proto, NULL, string_methods) ||
+    if (!DefinePropertiesAndBrand(cx, proto,
+#ifdef TAINTED
+     string_props
+#else
+     NULL
+#endif     
+     , string_methods) ||
         !DefinePropertiesAndBrand(cx, ctor, NULL, string_static_methods))
     {
         return NULL;
@@ -4101,6 +4374,14 @@ Encode(JSContext *cx, JSString *str, const jschar *unescapedSet,
         return JS_FALSE;
 
     if (length == 0) {
+#ifdef TAINTED
+        if(str->isTainted()){
+         JSString *rstr= taint_newTaintedString(cx,str); 
+         rval->setString(rstr);
+         addTaintInfoOneArg(cx, str,rstr,NULL,(unescapedSet2==NULL?ENCODEURICOMPONENT:ENCODEURI) ); 
+         return JS_TRUE;         
+        }
+#endif
         rval->setString(cx->runtime->emptyString);
         return JS_TRUE;
     }
@@ -4150,7 +4431,20 @@ Encode(JSContext *cx, JSString *str, const jschar *unescapedSet,
         }
     }
 
-    return TransferBufferToString(cx, sb, rval);
+ #ifdef TAINTED
+       if(!TransferBufferToString(cx, sb, rval)){
+        return JS_FALSE;
+       }
+       if(str->isTainted()) {
+        JSString *rstr= rval->toString();
+        rstr->setTainted();
+        addTaintInfoOneArg(cx, str,rstr,NULL,(unescapedSet2==NULL?ENCODEURICOMPONENT:ENCODEURI)); 
+       }
+       return JS_TRUE;    
+   #else
+       return TransferBufferToString(cx, sb, rval);
+   #endif
+ 
 }
 
 static JSBool
@@ -4162,6 +4456,14 @@ Decode(JSContext *cx, JSString *str, const jschar *reservedSet, Value *rval)
         return JS_FALSE;
 
     if (length == 0) {
+#ifdef TAINTED
+        if(str->isTainted()){
+         JSString *rstr= taint_newTaintedString(cx,str); 
+         rval->setString(rstr);
+         addTaintInfoOneArg(cx, str,rstr,NULL,( reservedSet== js_empty_ucstr?UNENCODEURICOMPONENT:UNENCODEURI)); 
+         return JS_TRUE;         
+        }
+#endif
         rval->setString(cx->runtime->emptyString);
         return JS_TRUE;
     }
@@ -4227,7 +4529,19 @@ Decode(JSContext *cx, JSString *str, const jschar *reservedSet, Value *rval)
         }
     }
 
+#ifdef TAINTED
+    if(!TransferBufferToString(cx, sb, rval)){
+     return JS_FALSE;
+    }
+    if(str->isTainted()) {
+     JSString *rstr= rval->toString();
+     rstr->setTainted();
+     addTaintInfoOneArg(cx, str,rstr,NULL,( reservedSet== js_empty_ucstr?UNENCODEURICOMPONENT:UNENCODEURI)); 
+    }
+    return JS_TRUE;    
+#else
     return TransferBufferToString(cx, sb, rval);
+#endif
 
   report_bad_uri:
     JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_URI);

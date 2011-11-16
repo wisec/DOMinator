@@ -6452,9 +6452,19 @@ void
 dumpString(JSString *str)
 {
     if (const jschar *chars = str->getChars(NULL))
+#ifdef TAINTED
+{
+    fprintf(stderr, "JSString*   [%s] [%s] [%s] [%s] (%p) = jschar * (%p) = " ,(str->isTainted()?"Tainted":"Untainted"),
+    (str->isDependent()?"Dependent":"Undependent"),(str->isAtom()?"Atomized":"UnAtomized"),(str->isRope()?"Rope":"NotRope"),
+    (void *) str, (void *) chars);
+
+        dumpChars(chars, str->length());
+}
+#else    
         dumpChars(chars, str->length());
     else
         fprintf(stderr, "(oom in dumpString)");
+#endif
 }
 
 JS_FRIEND_API(void)

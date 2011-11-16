@@ -257,15 +257,19 @@ js_ConcatStrings(JSContext *cx, JSString *left, JSString *right)
     JS_ASSERT_IF(!right->isAtom(), right->compartment() == cx->compartment);
 
     size_t leftLen = left->length();
+#ifndef TAINTED
     if (leftLen == 0)
         return right;
-
+#endif
     size_t rightLen = right->length();
+#ifndef TAINTED
     if (rightLen == 0)
         return left;
+#endif
 
     size_t wholeLength = leftLen + rightLen;
 
+#ifndef TAINTED
     if (JSShortString::lengthFits(wholeLength)) {
         JSShortString *str = js_NewGCShortString(cx);
         if (!str)
@@ -283,6 +287,7 @@ js_ConcatStrings(JSContext *cx, JSString *left, JSString *right)
         buf[wholeLength] = 0;
         return str;
     }
+#endif
 
     if (wholeLength > JSString::MAX_LENGTH) {
         if (JS_ON_TRACE(cx)) {

@@ -326,6 +326,34 @@ namespace js {
 typedef js::Vector<JSCompartment *, 0, js::SystemAllocPolicy> CompartmentVector;
 
 }
+#ifdef TAINTED
+
+#ifndef TAINTSTRUCTS
+
+#define TAINTSTRUCTS
+/*
+ remember to change stuff in taint.h too
+*/
+typedef enum taintop {NONEOP,GET,SET,SOURCE,SINK,SUBSTRING,LOWERCASE,UPPERCASE,JOIN,SPLIT,SLICE,REPLACE,REGEXP,CONCAT,CONCATLEFT,CONCATRIGHT,ESCAPE,UNESCAPE,ENCODEURI,UNENCODEURI,ENCODEURICOMPONENT,UNENCODEURICOMPONENT,TRIM,TAGIFY,QUOTE,DEPEND,ATOB,BTOA} TaintOp;
+
+typedef struct InfoTaintEntry{
+ JSString *str;
+ TaintOp  op;
+ JSString *source;
+ struct InfoTaintDep *dep;
+ struct InfoTaintEntry *next;
+} InfoTaintEntry;
+
+typedef struct InfoTaintDep{
+ InfoTaintEntry *entry;
+ int spos;
+ int epos;
+ char *desc;
+ struct InfoTaintDep *next;
+} InfoTaintDep;
+#endif /*IfNotDef TAINTSTRUCTS*/
+
+#endif
 
 struct JSRuntime {
     /* Default compartment. */
@@ -648,6 +676,9 @@ struct JSRuntime {
     /* Literal table maintained by jsatom.c functions. */
     JSAtomState         atomState;
 
+#ifdef TAINTED 
+    InfoTaintEntry      *rootITE;
+#endif
     JSWrapObjectCallback wrapObjectCallback;
     JSPreWrapCallback    preWrapObjectCallback;
 

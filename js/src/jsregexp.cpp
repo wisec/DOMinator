@@ -616,6 +616,24 @@ ExecuteRegExp(JSContext *cx, ExecType execType, uintN argc, Value *vp)
     if (!re)
         return true;
 
+#ifdef TAINTED
+// here check for  logtaint
+// in order to log the Getter/SOURCE str is tainted.
+/*  if(  argc>0 ){
+  JSString *tmpstr ;
+  tmpstr=js_ValueToString(cx, argv[0]);
+  if(tmpstr && tmpstr->isTainted() ){
+  jsval l;
+  char *name=NULL; 
+  name= JS_sprintf_append(name, "%s(%s)",(test?"test":"exec"),
+                                 js_GetStringBytes(cx, re->source));
+  l=STRING_TO_JSVAL(tmpstr);
+ // printf("REGEXP TESTING_                        __________________----------- %s\n",name);
+  logTaint( cx,"Getter", name,&l);
+  
+  } 
+ }*/
+#endif     
     /*
      * Code execution under this call could swap out the guts of |obj|, so we
      * have to take a defensive refcount here.

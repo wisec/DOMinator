@@ -3837,11 +3837,17 @@ BEGIN_CASE(JSOP_GETELEM)
     Value &rref = regs.sp[-1];
     if (lref.isString() && rref.isInt32()) {
         JSString *str = lref.toString();
+#ifdef TAINTED
+       TAINT_CONDITION(str)
+#endif
         int32_t i = rref.toInt32();
         if (size_t(i) < str->length()) {
             str = JSAtom::getUnitStringForElement(cx, str, size_t(i));
             if (!str)
                 goto error;
+#ifdef TAINTED
+       TAINT_COND_SET_NEW(str , strArg,NULL,NONEOP)
+#endif            
             regs.sp--;
             regs.sp[-1].setString(str);
             len = JSOP_GETELEM_LENGTH;

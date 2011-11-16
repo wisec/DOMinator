@@ -109,6 +109,10 @@
 #include "jsxml.h"
 #endif
 
+#ifdef TAINTED
+ #include "taint.h"
+#endif
+
 using namespace js;
 using namespace js::gc;
 
@@ -691,6 +695,10 @@ JSRuntime::init(uint32 maxbytes)
     if (!InitRuntimeNumberState(this))
         return false;
 
+#ifdef TAINTED
+    if (!js_InitITE(this))
+        return false;
+#endif
     return true;
 }
 
@@ -720,6 +728,10 @@ JSRuntime::~JSRuntime()
     FinishRuntimeNumberState(this);
     js_FinishThreads(this);
     js_FinishAtomState(this);
+
+#ifdef TAINTED
+    js_FinishITE(this);
+#endif
 
     js_FinishGC(this);
 #ifdef JS_THREADSAFE

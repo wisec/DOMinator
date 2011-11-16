@@ -117,6 +117,10 @@
 #include "vm/ArgumentsObject-inl.h"
 #include "vm/Stack-inl.h"
 
+#ifdef TAINTED
+ #include "taint.h"
+#endif
+
 using namespace js;
 using namespace js::gc;
 
@@ -1277,9 +1281,23 @@ array_toString_sub(JSContext *cx, JSObject *obj, JSBool locale,
     static const jschar comma = ',';
     const jschar *sep;
     size_t seplen;
+#ifdef TAINTED
+    int tainted=0;
+    InfoTaintDep *tmpITD;
+    InfoTaintEntry *tmpITE;
+    tmpITD=NULL;
+    tmpITE=NULL;
+#endif
     if (sepstr) {
         seplen = sepstr->length();
         sep = sepstr->getChars(cx);
+#ifdef TAINTED
+        if(sepstr->isTainted()){
+         tainted=1;
+         tmpITE=findTaintEntry(cx, sepstr);
+         tmpITD=addToInfoTaintDep( cx, tmpITE, tmpITD);
+         }
+#endif
         if (!sep)
             return false;
     } else {
@@ -1314,6 +1332,18 @@ array_toString_sub(JSContext *cx, JSObject *obj, JSBool locale,
                 if (!ValueToStringBuffer(cx, *vp, sb))
                     return false;
             }
+           #ifdef TAINTED
+            //XXXStefano: TODO: To Be tested
+            // this is the case that considers [taint1,...,taint2,..]
+            // and we need to store the dependencies in the taintTable
+            // so need to test when the TaintTable will be implemented.
+            if((vp)->isString() && ((vp)->toString())->isTainted()){
+             tainted=1;
+             tmpITE=findTaintEntry(cx, (vp)->toString() );
+             tmpITD=addToInfoTaintDep( cx, tmpITE, tmpITD);
+          
+            }
+           #endif
         }
     } else {
         for (jsuint index = 0; index < length; index++) {
@@ -1335,6 +1365,18 @@ array_toString_sub(JSContext *cx, JSObject *obj, JSBool locale,
                 }
                 if (!ValueToStringBuffer(cx, *rval, sb))
                     return false;
+           #ifdef TAINTED
+            //XXXStefano: TODO: To Be tested
+            // this is the case that considers [taint1,...,taint2,..]
+            // and we need to store the dependencies in the taintTable
+            // so need to test when the TaintTable will be implemented.
+                if((rval)->isString() && ((rval)->toString())->isTainted()){
+                tainted=1;
+                tmpITE=findTaintEntry(cx, (rval->toString()) );
+                tmpITD=addToInfoTaintDep( cx, tmpITE, tmpITD);
+
+                }
+           #endif
             }
 
             if (index + 1 != length) {
@@ -1345,8 +1387,22 @@ array_toString_sub(JSContext *cx, JSObject *obj, JSBool locale,
     }
 
     JSString *str = sb.finishString();
+    
     if (!str)
         return false;
+    #ifdef TAINTED
+     if(tainted){
+         //XXXStefano: TODO: To Be tested
+         // this is the case that considers [taint1,...,taint2,..]
+         // and we need to store the dependencies in the taintTable
+         // so need to test when the TaintTable will be implemented.
+        str=taint_newTaintedString(cx,str );
+       //Uncomment when TaintTable is fixed.
+        tmpITE=addToTaintTable(cx,str ,NULL,JOIN);
+       tmpITE->dep=tmpITD; 
+     }
+    #endif
+
     rval->setString(str);
     return true;
 }
