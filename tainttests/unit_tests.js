@@ -335,4 +335,13 @@ for each(var i in  newAr){
  assert("Array map new Array "+String.unTaint(i)+".tainted ",i.tainted,vv[j++]);
 }
 
+// Array join
+var ts=String.newTainted("ddddd\nddd","dd")   
+c='ddd'+ts
+cv=[c,ts,'dddd']
+v=cv.join(' ')
+assert("Array join ","v.tainted",true);
+
+String.getTaintInfo(v) 
+
 printResults();
