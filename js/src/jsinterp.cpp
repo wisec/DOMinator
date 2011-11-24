@@ -1029,9 +1029,13 @@ HasInstance(JSContext *cx, JSObject *obj, const Value *v, JSBool *bp)
                         JSDVG_SEARCH_STACK, ObjectValue(*obj), NULL);
     return JS_FALSE;
 }
-
+#ifdef TAINTED
+bool
+LooselyEqual(JSContext *cx, const Value &lval, const Value &rval, JSBool *result,JSBool isEqOp)
+#else
 bool
 LooselyEqual(JSContext *cx, const Value &lval, const Value &rval, JSBool *result)
+#endif
 {
 #if JS_HAS_XML_SUPPORT
     if (JS_UNLIKELY(lval.isObject() && lval.toObject().isXML()) ||
@@ -1044,6 +1048,19 @@ LooselyEqual(JSContext *cx, const Value &lval, const Value &rval, JSBool *result
         if (lval.isString()) {
             JSString *l = lval.toString();
             JSString *r = rval.toString();
+            #ifdef TAINTED
+                if(l->isTainted()|| r->isTainted()){   
+                 char *name =NULL ;
+                       if((!r->isTainted() && r->length()>0 )|| (!l->isTainted() && l->length()>0) ||(r->isTainted() && l->isTainted()) ){ 
+                       name= JS_sprintf_append(NULL, "compare(%s %s %s)(%s)",l->isTainted()?"tainted":"notTainted", 
+                                 (JS_TRUE == isEqOp ?"==":"!="),r->isTainted()?"tainted":"notTainted", 
+                                 js_GetStringBytes(cx, l->isTainted()?r:l)); 
+                    logTaint(cx,  "Getter",  name , l->isTainted()?(jsval *)(&Jsvalify(lval)):(jsval *)(&Jsvalify(rval))); 
+                    if(name)  
+                      free(name); 
+                      } 
+                } 
+            #endif
             return EqualStrings(cx, l, r, result);
         }
 
@@ -1091,23 +1108,72 @@ LooselyEqual(JSContext *cx, const Value &lval, const Value &rval, JSBool *result
     if (lvalue.isString() && rvalue.isString()) {
         JSString *l = lvalue.toString();
         JSString *r = rvalue.toString();
+        #ifdef TAINTED
+                if(l->isTainted()|| r->isTainted()){  
+                 char *name=NULL ; 
+                       name= JS_sprintf_append( NULL, "compare(%s %s %s)(%s)",((l->isTainted())?"tainted":"notTainted"), 
+                                 (JS_TRUE == isEqOp ?"==":"!="),((r->isTainted())?"tainted":"notTainted"), 
+                                 js_GetStringBytes(cx, (l->isTainted())?r:l)); 
+                    logTaint(cx, "Getter" ,name , ( l->isTainted() )?(jsval *)(&Jsvalify(lval)):(jsval *)(&Jsvalify(rval))); 
+                    if(name) 
+                      free(name); 
+                } 
+        #endif
         return EqualStrings(cx, l, r, result);
     }
 
     double l, r;
     if (!ToNumber(cx, lvalue, &l) || !ToNumber(cx, rvalue, &r))
         return false;
+    #ifdef TAINTED
+    if((lval.isString() && lval.toString()->isTainted()) || (rval.isString() && rval.toString()->isTainted())){ 
+     char *name=NULL ; 
+     name= JS_sprintf_append( NULL, "compare(%s %s %s)(%f)",(lval.isString())?"tainted":"number", 
+                 (JS_TRUE == isEqOp?"==":"!="),(rval.isString())?"tainted":"number", 
+                 ((lval.isString())?r:l )); 
+    logTaint(cx, "Getter" ,name , ( lval.isString() )?(jsval *)(&Jsvalify(lval)):(jsval *)(&Jsvalify(rval))); 
+    if(name) 
+      free(name); 
+    } 
+    #endif
     *result = JSDOUBLE_COMPARE(l, ==, r, false);
     return true;
 }
-
+#ifdef TAINTED
 bool
-StrictlyEqual(JSContext *cx, const Value &lref, const Value &rref, JSBool *equal)
+StrictlyEqual(JSContext *cx, const Value &lref, const Value &rref, JSBool *equal,JSBool isEqOp)
+#else
+bool
+StrictlyEqual(JSContext *cx, const Value &lref, const Value &rref, JSBool *equal) 
+#endif
+
 {
     Value lval = lref, rval = rref;
     if (SameType(lval, rval)) {
         if (lval.isString())
+        #ifdef TAINTED
+            {
+                JSString *lstr=lval.toString(), *rstr=rval.toString();
+                //STRICT_EQUALS_TAINT(lstr,rstr)
+                if( lstr->isTainted()|| rstr->isTainted()){      
+                 char *name=NULL ;                                             
+                    if((!rstr->isTainted() && rstr->length()>0 )|| (!lstr->isTainted() && lstr->length()>0) ||(rstr->isTainted() && lstr->isTainted()) ){ 
+                       name= JS_sprintf_append( NULL, "strict(%s %s %s)(%s)",(lstr->isTainted())?"tainted":"notTainted",
+                                  (JS_TRUE == isEqOp ? "===": "!=="),
+                                  (rstr->isTainted())?"tainted":"notTainted",
+                                 js_GetStringBytes(cx, (lstr->isTainted())?rstr:lstr)); 
+                    logTaint(cx, "Getter" ,name , ( lstr->isTainted() )?&Jsvalify(lval):&Jsvalify(rval));
+                    }
+                    if(name)      
+                      free(name);
+                }
+ 
+             
+              return EqualStrings(cx, lval.toString(), rval.toString(), equal); 
+            }
+        #else
             return EqualStrings(cx, lval.toString(), rval.toString(), equal);
+        #endif
         if (lval.isDouble()) {
             *equal = JSDOUBLE_COMPARE(lval.toDouble(), ==, rval.toDouble(), JS_FALSE);
             return true;
@@ -2810,7 +2876,20 @@ BEGIN_CASE(JSOP_BITAND)
 END_CASE(JSOP_BITAND)
 
 #undef BITWISE_OP
-
+#ifdef TAINTED
+#define EQUALITY_OP(OP)                                                       \
+    JS_BEGIN_MACRO                                                            \
+        Value rval = regs.sp[-1];                                             \
+        Value lval = regs.sp[-2];                                             \
+        JSBool cond;                                                          \
+        if (!LooselyEqual(cx, lval, rval, &cond,JS_TRUE OP JS_TRUE))                             \
+            goto error;                                                       \
+        cond = cond OP JS_TRUE;                                               \
+        TRY_BRANCH_AFTER_COND(cond, 2);                                       \
+        regs.sp--;                                                            \
+        regs.sp[-1].setBoolean(cond);                                         \
+    JS_END_MACRO
+#else
 #define EQUALITY_OP(OP)                                                       \
     JS_BEGIN_MACRO                                                            \
         Value rval = regs.sp[-1];                                             \
@@ -2823,7 +2902,7 @@ END_CASE(JSOP_BITAND)
         regs.sp--;                                                            \
         regs.sp[-1].setBoolean(cond);                                         \
     JS_END_MACRO
-
+#endif
 BEGIN_CASE(JSOP_EQ)
     EQUALITY_OP(==);
 END_CASE(JSOP_EQ)
@@ -2833,7 +2912,18 @@ BEGIN_CASE(JSOP_NE)
 END_CASE(JSOP_NE)
 
 #undef EQUALITY_OP
-
+#ifdef TAINTED
+#define STRICT_EQUALITY_OP(OP, COND)                                          \
+    JS_BEGIN_MACRO                                                            \
+        const Value &rref = regs.sp[-1];                                      \
+        const Value &lref = regs.sp[-2];                                      \
+        JSBool equal;                                                         \
+        if (!StrictlyEqual(cx, lref, rref, &equal,JS_TRUE OP JS_TRUE))                           \
+            goto error;                                                       \
+        COND = equal OP JS_TRUE;                                              \
+        regs.sp--;                                                            \
+    JS_END_MACRO
+#else
 #define STRICT_EQUALITY_OP(OP, COND)                                          \
     JS_BEGIN_MACRO                                                            \
         const Value &rref = regs.sp[-1];                                      \
@@ -2844,7 +2934,7 @@ END_CASE(JSOP_NE)
         COND = equal OP JS_TRUE;                                              \
         regs.sp--;                                                            \
     JS_END_MACRO
-
+#endif
 BEGIN_CASE(JSOP_STRICTEQ)
 {
     bool cond;
@@ -2887,6 +2977,50 @@ END_CASE(JSOP_CASEX)
 
 #undef STRICT_EQUALITY_OP
 
+#ifdef TAINTED
+ 
+#define RELATIONAL_OP(OP)                                                     \
+    JS_BEGIN_MACRO                                                            \
+        Value &rval = regs.sp[-1];                                            \
+        Value &lval = regs.sp[-2];                                            \
+        bool cond;                                                            \
+        /* Optimize for two int-tagged operands (typical loop control). */    \
+        if (lval.isInt32() && rval.isInt32()) {                               \
+            cond = lval.toInt32() OP rval.toInt32();                          \
+        } else {                                                              \
+            if (!ToPrimitive(cx, JSTYPE_NUMBER, &lval))                       \
+                goto error;                                                   \
+            if (!ToPrimitive(cx, JSTYPE_NUMBER, &rval))                       \
+                goto error;                                                   \
+            if (lval.isString() && rval.isString()) {                         \
+                JSString *l = lval.toString(), *r = rval.toString();          \
+                int32 result;                                                 \
+                if(l->isTainted()|| r->isTainted()){      \
+                 char *name =NULL ;\
+                       if((!r->isTainted() && r->length()>0 )|| (!l->isTainted() && l->length()>0) ||(r->isTainted() && l->isTainted()) ){ \
+                       name= JS_sprintf_append(NULL, "compare(%s %s %s)(%s)",l->isTainted()?"tainted":"notTainted",\
+                                 (1 OP 1 && 1 OP 2?"<=":(1 OP 1 && 2 OP 1?">=":(1 OP 2?"<":">"))),r->isTainted()?"tainted":"notTainted",\
+                                 js_GetStringBytes(cx, l->isTainted()?r:l));               \
+                    logTaint(cx,  "Getter",  name , l->isTainted()?&Jsvalify(lval):&Jsvalify(rval));            \
+                    if(name)                                                 \
+                      free(name);                                               \
+                      }\
+                }                                                             \
+                if (!CompareStrings(cx, l, r, &result))                       \
+                    goto error;                                               \
+                cond = result OP 0;                                           \
+            } else {                                                          \
+                double l, r;                                                  \
+                if (!ToNumber(cx, lval, &l) || !ToNumber(cx, rval, &r))       \
+                    goto error;                                               \
+                cond = JSDOUBLE_COMPARE(l, OP, r, false);                     \
+            }                                                                 \
+        }                                                                     \
+        TRY_BRANCH_AFTER_COND(cond, 2);                                       \
+        regs.sp[-2].setBoolean(cond);                                         \
+        regs.sp--;                                                            \
+    JS_END_MACRO
+#else
 #define RELATIONAL_OP(OP)                                                     \
     JS_BEGIN_MACRO                                                            \
         Value &rval = regs.sp[-1];                                            \
@@ -2917,7 +3051,7 @@ END_CASE(JSOP_CASEX)
         regs.sp[-2].setBoolean(cond);                                         \
         regs.sp--;                                                            \
     JS_END_MACRO
-
+#endif
 BEGIN_CASE(JSOP_LT)
     RELATIONAL_OP(<);
 END_CASE(JSOP_LT)

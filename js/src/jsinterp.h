@@ -263,13 +263,20 @@ RunScript(JSContext *cx, JSScript *script, StackFrame *fp);
 
 extern bool
 CheckRedeclaration(JSContext *cx, JSObject *obj, jsid id, uintN attrs);
+#ifdef TAINTED
+extern bool
+StrictlyEqual(JSContext *cx, const Value &lval, const Value &rval, JSBool *equal,JSBool isEqOp=JS_TRUE);
 
+extern bool
+LooselyEqual(JSContext *cx, const Value &lval, const Value &rval, JSBool *equal,JSBool isEqOp=JS_TRUE);
+
+#else
 extern bool
 StrictlyEqual(JSContext *cx, const Value &lval, const Value &rval, JSBool *equal);
 
 extern bool
 LooselyEqual(JSContext *cx, const Value &lval, const Value &rval, JSBool *equal);
-
+#endif
 /* === except that NaN is the same as NaN and -0 is not the same as +0. */
 extern bool
 SameValue(JSContext *cx, const Value &v1, const Value &v2, JSBool *same);
