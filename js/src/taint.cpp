@@ -4,9 +4,9 @@
 #include "jscntxt.h"
 #include "jsgcmark.h"
 #include "taint.h"
-#include "jsscope.h"
+#include "jsscope.h" 
 #include "vm/Stack.h" 
-
+#include "jsarray.h"
 //#include "sqlite3.h"
 
 #define DOMINATOROBJ "__domIntruderObj"
@@ -248,6 +248,7 @@ static JSBool markLiveObjects(JSContext *cx, JSGCStatus theStatus){
  printf("GCCalled\n");
   tmpITE= cx->runtime->rootITE;
   prevITE= cx->runtime->rootITE;
+  if(trc)
   while(tmpITE) {
      
         if (tmpITE->source && JS_IsAboutToBeFinalized(cx, tmpITE->source )) {
@@ -264,6 +265,7 @@ static JSBool markLiveObjects(JSContext *cx, JSGCStatus theStatus){
         isFirst=0;
         tmpITE=tmpITE->next;
     }
+ printf("GCCalled end\n");
     
  return GCMI._oldCallback?GCMI._oldCallback(cx,theStatus):JS_TRUE;
         
@@ -272,7 +274,7 @@ static JSBool markLiveObjects(JSContext *cx, JSGCStatus theStatus){
 JSBool
 js_InitITE(JSRuntime *rt){
   InfoTaintEntry *newITE;
-  GCMI._oldCallback=  JS_SetGCCallbackRT(rt, &markLiveObjects);
+ // GCMI._oldCallback=  JS_SetGCCallbackRT(rt, &markLiveObjects);
    newITE=(InfoTaintEntry  *) malloc(  (size_t) sizeof(InfoTaintEntry));
    if(!newITE){
     return JS_FALSE;
@@ -512,11 +514,10 @@ taint_newTaintedString(JSContext *cx, JSString *oriStr)
   
     return  astr;
 }
-
-/*
+ 
 void logTaint(JSContext *cx ,const  char *what,const  char *who,jsval *argv){
        JSObject *jobj,*gobj ,*funargs;
-       jsval _rval,*_arg, domiObj ,domiUtil, domiUi,_rvalArgs;
+       jsval _rval,_arg[4], domiObj ,domiUtil, domiUi,_rvalArgs;
        void *mark;
        JSBool ok;
        gobj= JS_GetGlobalObject(cx);
@@ -530,31 +531,35 @@ void logTaint(JSContext *cx ,const  char *what,const  char *who,jsval *argv){
        // get ___domIntruderObj
        if (!JS_GetProperty(cx,  gobj, DOMINATOROBJ ,  &domiObj)){
    #ifdef DEBUG
-        printf("Errore JS_GetProperty !!\n");
+        printf("Error JS_GetProperty !!\n");
    #endif
        }
        if(!JSVAL_IS_VOID(domiObj )){
        if (!JS_GetProperty(cx, JSVAL_TO_OBJECT( domiObj), DOMINATORLOG ,  &domiUtil)){
          #ifdef DEBUG
-         printf("Errore JS_GetProperty !!\n");
+         printf("Error JS_GetProperty !!\n");
          #endif
         
        }
-       if(cx->fp()->fun() && 
+       if( cx->fp()->isFunctionFrame() && cx->fp()->fun() && 
          (!((cx->fp()->fun()->flags) & JSFUN_HEAVYWEIGHT) || 
-           cx->fp()->varObj()!= NULL))
+           (JSObject *)&(cx->fp()->varObj())!= NULL))
             funargs=js_GetArgsObject(cx, cx->fp());
        else{
             funargs=NULL;
        }
-         _arg = JS_PushArguments(cx, &mark, "ssSo",what,who ,js_ValueToString( cx,  argv[0]) , funargs );
-
+       //  _arg = JS_PushArguments(cx, &mark, "ssSo",what,who ,js_ValueToString( cx,  argv[0]) , funargs );
+         _arg[0]= STRING_TO_JSVAL(JS_NewStringCopyZ(cx,what ));
+         _arg[1]=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, who ) );
+         _arg[2]=  argv[0] ;
+         _arg[3]= OBJECT_TO_JSVAL( funargs ) ;
+         
         if(!JS_CallFunctionValue(cx,  JSVAL_TO_OBJECT( domiObj)  , domiUtil , 4, _arg, &_rvalArgs)){
           #ifdef DEBUG
                  printf("Error domiUtil\n");
           #endif
         }
-        JS_PopArguments(cx, mark);
+       // JS_PopArguments(cx, mark);
       //  printf("FINE domiUtil!!\n");
         }else{
          //printf("ERROR :what %s %s %s\n",what,who,js_GetStringBytes(cx,js_ValueToString( cx,  argv[0]))); 
@@ -562,65 +567,15 @@ void logTaint(JSContext *cx ,const  char *what,const  char *who,jsval *argv){
 }
 
 void EvalLog(JSContext *cx,jsval *argv) {
-
    if( JSSTRING_IS_TAINTED(JSVAL_TO_STRING(argv[0]))){
-       JSObject *jobj,*gobj ,*funargs;
-       jsval _rval,*_arg, domiObj ,domiUtil, domiUi,_rvalArgs;
-       void *mark;
-       JSBool ok;
-       gobj=  cx->globalObject;
-       // get ___domIntruderObj
-       if (!JS_GetProperty(cx,  gobj, DOMINATOROBJ ,  &domiObj)){
-        printf("Error JS_GetProperty !!\n");
-        
-       }
-       if(!JSVAL_IS_VOID(domiObj )){
-      // printVal(cx,OBJECT_TO_JSVAL(gobj));
-      // printVal(cx, domiObj);
-       if (!JS_GetProperty(cx, JSVAL_TO_OBJECT( domiObj), DOMINATORLOG ,  &domiUtil)){
-        printf("Error JS_GetProperty !!\n");
-        
-       }
-       funargs=js_GetArgsObject(cx, cx->fp);
-       _arg = JS_PushArguments(cx, &mark, "ssSo","Sink","eval" ,JSVAL_TO_STRING(argv[0]), funargs );
-
-        if(!JS_CallFunctionValue(cx,  JSVAL_TO_OBJECT( domiObj)  , domiUtil , 4, _arg, &_rvalArgs)){
-                 printf("Error domiUtil!!\n");
-        }
-        JS_PopArguments(cx, mark); 
-        }  
-// TODO 
-// Add fall back in case there's no logging function. or we want to redirect the log mechanism to other
-// interfaces
+       logTaint(cx, "Sink" , "eval", argv);
    }
-
 }
-
-// -- taintConcat--
-
-JSBool taint_setTaintConcatN(JSContext *cx,jsval *sp,int argc,JSString **resStr){
- jsval *vr,*vl;
- vr=  sp - argc;
- vl=vr++;
- JSString *leftStr,*rightStr ;
- if(!(leftStr=js_ValueToString(cx,*vl)) || !(rightStr=js_ValueToString(cx,*vr))){
-   return JS_FALSE;
- }
- *resStr=js_ConcatStrings(cx,leftStr,rightStr);
- for(vr++;vr < sp;vr++){
-   if(!(rightStr=js_ValueToString(cx,*vr))){
-    return JS_FALSE;
-   }
-   *resStr=js_ConcatStrings(cx,*resStr,rightStr);
- }
- return JS_TRUE;
-}
-
 
 //---
-
+ 
 JSBool js_ObjectHasKeyTainted(JSContext *cx,JSObject *obj){
-   JSScope *scope;
+  // JSScope *scope;
    JSIdArray *ida;
    jsuint i,length;
    jschar *chars, *ochars, *vsharp;
@@ -634,18 +589,19 @@ JSBool js_ObjectHasKeyTainted(JSContext *cx,JSObject *obj){
    ida=JS_Enumerate(cx, obj);
    for (i = 0, length = ida->length; i < length; i++) {// check Key Taitned on Normal Object
       id2 = ida->vector[i];
-      if(JSID_IS_ATOM(id2) && JSVAL_IS_STRING(ATOM_KEY(JSID_TO_ATOM(id2)))){
-        idstr = JSVAL_TO_STRING(ATOM_KEY(JSID_TO_ATOM(id2)));
-        if(JSSTRING_IS_TAINTED(idstr)){
+      if(JSID_IS_ATOM(id2) && js::IdToValue(id2).isString() ){
+        idstr = js::IdToValue(id2).toString();
+        if(idstr->isTainted()){
           return JS_TRUE;
         }
       }
     }
-    if (OBJ_IS_DENSE_ARRAY(cx, obj)) { // check Key Taitned on DENSE ARRAY
-        slots = JS_MIN((jsuint) obj->fslots[JSSLOT_ARRAY_LENGTH],
-                       js_DenseArrayCapacity(obj));
+    if (obj->isDenseArray()) { // check Key Taitned on DENSE ARRAY
+        slots = JS_MIN(obj->getArrayLength(), obj->getDenseArrayCapacity());
+                       
         for (i = 0; i < slots; i++) {
-            val2 = obj->dslots[i];
+         //   val2 = obj->dslots[i];
+             val2= Jsvalify(obj->getDenseArrayElement(i));
             if ( JSVAL_IS_STRING(val2) && JSSTRING_IS_TAINTED(JSVAL_TO_STRING(val2))){
                 return JS_TRUE;
              }
@@ -678,6 +634,27 @@ JSBool js_ObjectHasKeyTainted(JSContext *cx,JSObject *obj){
 #endif
     return JS_FALSE;
  
+}
+ 
+/*
+// -- taintConcat--
+
+JSBool taint_setTaintConcatN(JSContext *cx,jsval *sp,int argc,JSString **resStr){
+ jsval *vr,*vl;
+ vr=  sp - argc;
+ vl=vr++;
+ JSString *leftStr,*rightStr ;
+ if(!(leftStr=js_ValueToString(cx,*vl)) || !(rightStr=js_ValueToString(cx,*vr))){
+   return JS_FALSE;
+ }
+ *resStr=js_ConcatStrings(cx,leftStr,rightStr);
+ for(vr++;vr < sp;vr++){
+   if(!(rightStr=js_ValueToString(cx,*vr))){
+    return JS_FALSE;
+   }
+   *resStr=js_ConcatStrings(cx,*resStr,rightStr);
+ }
+ return JS_TRUE;
 }
 */
 #endif

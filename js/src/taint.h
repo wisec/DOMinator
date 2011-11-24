@@ -20,12 +20,12 @@ typedef struct Tainted{
 #define  TAINT_CONDITION(str) \
     JSBool tainted=JS_FALSE;\
     JSString *strArg;\
-    if(str->isTainted()){\
+    if(str && str->isTainted()){\
       tainted=JS_TRUE;\
        strArg=str; \
     }
 #define  TAINT_CONDITION_NODEC(str) \
-    if(str->isTainted()){\
+    if(str && str->isTainted()){\
       tainted=JS_TRUE;\
        strArg=str; \
     }
