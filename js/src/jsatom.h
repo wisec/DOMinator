@@ -178,9 +178,16 @@ struct AtomHasher
         const jschar    *chars;
         size_t          length;
         const JSAtom    *atom; /* Optional. */
-
+#ifdef TAINTED
+        const JSString  *str; /* Optional. */
+        Lookup(const JSString  *str,const jschar *chars) : chars(chars), length(str->length()), atom(NULL),str(const_cast<JSString *>(str)) { }
+        Lookup(const jschar *chars, size_t length) : chars(chars), length(length), atom(NULL),str(NULL) {}
+        Lookup(const JSAtom *atom) : chars(atom->chars()), length(atom->length()), atom(atom),str(NULL) {}
+        
+#else
         Lookup(const jschar *chars, size_t length) : chars(chars), length(length), atom(NULL) {}
         Lookup(const JSAtom *atom) : chars(atom->chars()), length(atom->length()), atom(atom) {}
+#endif
     };
 
     static HashNumber hash(const Lookup &l) {
@@ -189,11 +196,44 @@ struct AtomHasher
 
     static bool match(const AtomStateEntry &entry, const Lookup &lookup) {
         JSAtom *key = entry.asPtr();
-
         if (lookup.atom)
             return lookup.atom == key;
         if (key->length() != lookup.length)
             return false;
+            
+#ifdef TAINTED
+        if(lookup.str && lookup.str->isTainted()){
+            const JSString *str1=lookup.str;
+            JSString *str2=(JSString *)key;
+            size_t n=str1->length();
+            if (str1 == str2)
+                return true;
+
+            n = str1->length();
+            if (n != str2->length())
+                return false;
+
+            if (n == 0){
+              if( ((str1->isTainted()) &&  str2->isTainted())  || ((str1->isTainted())==(str2->isTainted())))
+                return true;
+              else 
+                return false;
+            }
+            const jschar *s1 = key->chars(), *s2 = lookup.chars;
+            do {
+                if (*s1 != *s2)
+                    return false;
+                ++s1, ++s2;
+            } while (--n != 0);
+
+              if( ((str1->isTainted()) &&  str2->isTainted())  || ((str1->isTainted())==(str2->isTainted()))){
+           // printf("trovato js_EqualStrings_2 ");
+                 return true;
+              }
+            return false;          
+        
+        }
+#endif
         return PodEqual(key->chars(), lookup.chars, lookup.length);
     }
 };

@@ -515,6 +515,73 @@ Atomize(JSContext *cx, const jschar **pchars, size_t length,
     return AtomizeInline(cx, pchars, length, ib, ocb);
 }
 
+#ifdef TAINTED
+static JSAtom *
+Atomize(JSContext *cx,const jschar **pchars, size_t length, JSString *str,
+        InternBehavior ib, OwnCharsBehavior ocb = CopyChars)
+{
+     const jschar *chars = *pchars; 
+     
+     
+ //XXXStefano TODO we still don't know if we have to add !str.tainted condition
+ //  if(!str->isTainted())
+    if (JSAtom *s = JSAtom::lookupStatic(chars, length))
+        return s;
+
+    AutoLockAtomsCompartment lock(cx);
+
+    AtomSet &atoms = cx->runtime->atomState.atoms;
+    AtomSet::AddPtr p;
+    if(str->isTainted()){
+      p = atoms.lookupForAdd(AtomHasher::Lookup(str,chars));
+    } else {
+      p = atoms.lookupForAdd(AtomHasher::Lookup(chars, length));
+    }
+    if (p) {
+        JSAtom *atom = p->asPtr();
+        p->setTagged(bool(ib));
+        return atom;
+    }
+
+    SwitchToCompartment sc(cx, cx->runtime->atomsCompartment);
+
+    JSFixedString *key;
+
+    if (ocb == TakeCharOwnership) {
+        key = js_NewString(cx, const_cast<jschar *>(chars), length);
+        if (!key)
+            return NULL;
+        *pchars = NULL; /* Called should not free *pchars. */
+    } else {
+        JS_ASSERT(ocb == CopyChars);
+        key = js_NewStringCopyN(cx, chars, length);
+        if (!key)
+            return NULL;
+    }
+    if(str->isTainted())
+      key->setTainted();
+    /*
+     * We have to relookup the key as the last ditch GC invoked from the
+     * string allocation or OOM handling may unlock the atomsCompartment.
+     *
+     * N.B. this avoids recomputing the hash but still has a potential
+     * (# collisions * # chars) comparison cost in the case of a hash
+     * collision!
+     */
+     
+      AtomHasher::Lookup lookup( chars, length );
+      if(str->isTainted()){
+       lookup.str=const_cast<JSString *>(str);
+      }
+    if (!atoms.relookupOrAdd(p, lookup, AtomStateEntry((JSAtom *) key, bool(ib)))) {
+        JS_ReportOutOfMemory(cx); /* SystemAllocPolicy does not report */
+        return NULL;
+    }
+
+    return key->morphAtomizedStringIntoAtom();  
+}
+#endif
+
 JSAtom *
 js_AtomizeString(JSContext *cx, JSString *str, InternBehavior ib)
 {
@@ -538,14 +605,17 @@ js_AtomizeString(JSContext *cx, JSString *str, InternBehavior ib)
 
     if (str->isAtom())
         return &str->asAtom();
-
     size_t length = str->length();
     const jschar *chars = str->getChars(cx);
     if (!chars)
         return NULL;
 
     JS_ASSERT(length <= JSString::MAX_LENGTH);
+#ifdef TAINTED
+    return Atomize(cx, &chars, length,str, ib);  
+#else
     return Atomize(cx, &chars, length, ib);
+#endif
 }
 
 JSAtom *
@@ -624,6 +694,9 @@ js_DumpAtoms(JSContext *cx, FILE *fp)
         fprintf(fp, "%3u ", number++);
         JSAtom *key = entry.asPtr();
         FileEscapedString(fp, key, '"');
+#ifdef TAINTED
+        fprintf(fp," [%s]" , ((JSString *)key)->isTainted()?"Tainted":"UnTainted");
+#endif        
         if (entry.isTagged())
             fputs(" interned", fp);
         putc('\n', fp);
