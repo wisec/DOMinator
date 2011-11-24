@@ -108,6 +108,10 @@
 
 #include "jsautooplen.h"
 
+#ifdef TAINTED
+#include "taint.h"
+#endif
+
 using namespace js;
 using namespace js::gc;
 
@@ -1167,6 +1171,11 @@ EvalKernel(JSContext *cx, const CallArgs &call, EvalType evalType, StackFrame *c
         return true;
     }
     JSString *str = call[0].toString();
+    #ifdef TAINTED
+     // Add here Eval Taint
+     jsval argv=STRING_TO_JSVAL(str) ;
+     EvalLog(cx,&argv);
+    #endif
 
     /* ES5 15.1.2.1 steps 2-8. */
 
@@ -1475,7 +1484,40 @@ obj_hasOwnProperty(JSContext *cx, uintN argc, Value *vp)
     JSObject *obj = ToObject(cx, &vp[1]);
     if (!obj)
         return false;
+#ifdef TAINTED_NOCOMPILE
+//XXXStefano FIXME Note: This code or the one in lookupProperty lead to double log. 
+   jsid id;
+   JSBool retVal=JS_FALSE;
+    if (! ValueToId(cx, argc != 0 ? vp[2] : UndefinedValue() , &id))
+        return JS_FALSE;
+        
+   if(obj)
+     retVal=js_HasOwnPropertyHelper(cx, obj->getOps()->lookupProperty, argc, vp);
+   if (vp->toBoolean() == false  ) {// Enters here if no prop is found
+       
+
+    if( ( obj->getClass() == &js_ObjectClass || obj->getClass() == &js_SlowArrayClass || obj->getClass() == &js_ArrayClass )  ){
+     int keyOrVal;
+     if((keyOrVal=js_ObjectHasKeyTainted( cx, obj))){
+       jsval l;
+       l=Jsvalify(IdToValue(id)) ;
+       if(keyOrVal==1){
+        logTaint( cx,"Check","Exists(Key)",&l);
+       }else{
+        logTaint( cx,"Check","Exists(Value)",&l); 
+       }
+       #ifdef DEBUG
+       if( IdToValue(id).isString())
+        printf("Checking for %s on Tainted Object hasOwnProperty\n",js_GetStringBytes(cx, IdToValue(id).toString()));
+       #endif
+     }
+    }
+   }
+  
+   return  retVal;   
+#else
     return js_HasOwnPropertyHelper(cx, obj->getOps()->lookupProperty, argc, vp);
+#endif
 }
 
 JSBool
@@ -4947,8 +4989,75 @@ js_LookupProperty(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
 {
     /* Convert string indices to integers if appropriate. */
     id = js_CheckForStringIndex(id);
+#ifdef TAINTED
+    JSBool found=JS_FALSE;
+    found= LookupPropertyWithFlagsInline(cx, obj, id, cx->resolveFlags, objp, propp);
+    if(*propp){
+     
+     return found;
+    } else {
+    // Inizio check taint/!Taint
+    if(( obj->getClass() == &js_ObjectClass || obj->getClass() == &js_SlowArrayClass  ||  obj->getClass() == &js_ArrayClass )&&  !*propp &&  IdToValue(id).isString()){
+       // JSBool ok, outermost;
+        JSIdArray *ida;
+        jsid id2;
+        jsint i,length;
+       // jschar *chars, *ochars, *vsharp;
+        JSString *idstr;//, *valstr, *str;
+    //jsval *val;
+    //jsval localroot[4] = {JSVAL_NULL, JSVAL_NULL, JSVAL_NULL, JSVAL_NULL};
+ 
+   // JSString *gsopold[2];
+   // JSString *gsop[2];
+     
 
+       JS_CHECK_RECURSION(cx, return JS_FALSE);
+
+        ida=JS_Enumerate(cx, obj);
+        //js_EnterSharpObject(cx, obj, &ida, &chars);
+        for (i = 0, length = ida->length; i < length; i++) {
+           id2 = ida->vector[i];
+           if(JSID_IS_ATOM(id2) && IdToValue(id2).isString() ){
+            JSBool result=JS_FALSE;
+            idstr = IdToValue(id2).toString() ;
+           
+            
+            if( idstr  && EqualStrings(cx,idstr,IdToValue(id).toString(),&result ) && result){
+              found= LookupPropertyWithFlagsInline(cx, obj, id2, cx->resolveFlags, objp, propp)  ;
+              #ifdef DEBUG
+              js_DumpString(idstr);
+              js_DumpString(IdToValue(id).toString() );
+              printf("Found: %d\n",found);
+              #endif
+              break;
+            }
+          }
+        }
+        if(!*propp ){
+              int keyOrVal;
+               
+             
+              if((keyOrVal=js_ObjectHasKeyTainted( cx, obj))){
+                jsval l;
+                l= Jsvalify(IdToValue(id));
+                if(keyOrVal==1){
+                 logTaint( cx,"Check","Exists(Key)",&l);
+                }
+                #ifdef DEBUG
+                if(IdToValue(id).isString() )
+                 printf("Checking for %s on Tainted Object hasOwnProperty Lookup\n",js_GetStringBytes(cx,IdToValue(id).toString() ));
+                #endif
+              }
+               
+        }
+       }
+    // end check taint/!Taint   
+    }
+
+    return found;
+#else
     return LookupPropertyWithFlagsInline(cx, obj, id, cx->resolveFlags, objp, propp);
+#endif
 }
 
 namespace js {
@@ -4988,7 +5097,68 @@ js_FindPropertyHelper(JSContext *cx, jsid id, JSBool cacheResult,
          ++scopeIndex) {
         if (!LookupPropertyWithFlags(cx, obj, id, cx->resolveFlags, &pobj, &prop))
             return NULL;
+#ifdef TAINTED
+   // begin check taint/!Taint
+    if(!prop &&  IdToValue(id).isString()){
+      jsid id2;
+      JSAtom *a=NULL;
+      JSString *strOri;
+      JSString *str, *str2;
+      JSAtomState *state;
+     // JSDHashEntryHdr *hdr;
+      const jschar *chars;
+      size_t length;   
+     // JSScope *scope;
+      JSIdArray *ida;
+      JSBool found=JS_FALSE;
+      strOri= IdToValue(id).toString();
+      chars = JS_GetStringCharsAndLength(cx,strOri , &length);
+      str= js_NewStringCopyN(cx,(jschar *)chars, length); 
+      
+      if(!strOri->isTainted())
+        str->setTainted();
+     // else
+     //    JSSTRING_CLEAR_TAINTED(&str);
 
+      state = &cx->runtime->atomState;
+   
+    AutoLockAtomsCompartment lock(cx);
+    AtomSet::Ptr p = state->atoms.lookup(AtomHasher::Lookup(str,chars));
+/*  //    JS_LOCK(&state->lock, cx);
+      hdr = JS_DHashTableOperate(&state->stringAtoms, &str, JS_DHASH_LOOKUP);
+  */       
+      str2 =(JSString *)( p ? p->asPtr() : NULL);
+   
+      a=str2 ? (JSAtom *)(str2) : NULL;
+      if(a){
+        id2 = ATOM_TO_JSID(a);
+        LookupPropertyWithFlagsInline(cx, obj  , id2,  cx->resolveFlags/*XXXStefano: should be cx->resoleFlags??*/, &pobj, &prop);
+      }
+   //   JS_UNLOCK(&state->lock, cx);
+     // we try the enumerate fallback
+      if(!prop && ( obj->getClass() == &js_ObjectClass ||  obj->getClass() == &js_SlowArrayClass||  obj->getClass() == &js_ArrayClass )&& IdToValue(id).isString()  ){
+        jsint i,length;
+        JSString *idstr ; 
+
+        JS_CHECK_RECURSION(cx, return JS_FALSE);
+
+        ida=JS_Enumerate(cx, obj);
+        for (i = 0, length = ida->length; i < length; i++) {
+           id2 = ida->vector[i];
+           if(JSID_IS_ATOM(id2) && IdToValue(id2).isString()){
+             idstr = IdToValue(id2).toString() ;
+
+             if( idstr  && EqualStrings(cx,idstr, IdToValue(id).toString(),&found) && found){
+                LookupPropertyWithFlagsInline(cx, obj , id2, cx->resolveFlags, &pobj, &prop)  ;
+                break;
+             }
+           }
+         }
+       }
+ 
+    }
+    // end check taint/!Taint
+#endif
         if (prop) {
 #ifdef DEBUG
             if (parent) {
@@ -5267,6 +5437,68 @@ js_GetPropertyHelperInline(JSContext *cx, JSObject *obj, JSObject *receiver, jsi
     /* This call site is hot -- use the always-inlined variant of LookupPropertyWithFlags(). */
     if (!LookupPropertyWithFlagsInline(cx, aobj, id, cx->resolveFlags, &obj2, &prop))
         return false;
+ #ifdef TAINTED
+    // begin check taint/!Taint
+    if(!prop &&  IdToValue(id).isString()){
+      jsid id2;
+      JSAtom *a=NULL;
+      JSString *strOri;
+      JSString *str, *str2;
+      JSAtomState *state;
+     // JSDHashEntryHdr *hdr;
+      const jschar *chars;
+      size_t length;   
+     // JSScope *scope;
+      JSIdArray *ida;
+      JSBool found=JS_FALSE;
+      strOri= IdToValue(id).toString();
+      chars = JS_GetStringCharsAndLength(cx,strOri , &length);
+      str= js_NewStringCopyN(cx,(jschar *)chars, length); 
+      
+      if(!strOri->isTainted())
+        str->setTainted();
+     // else
+     //    JSSTRING_CLEAR_TAINTED(&str);
+
+      state = &cx->runtime->atomState;
+   
+    AutoLockAtomsCompartment lock(cx);
+    AtomSet::Ptr p = state->atoms.lookup(AtomHasher::Lookup(str,chars));
+/*  //    JS_LOCK(&state->lock, cx);
+      hdr = JS_DHashTableOperate(&state->stringAtoms, &str, JS_DHASH_LOOKUP);
+  */       
+      str2 =(JSString *)( p ? p->asPtr() : NULL);
+   
+      a=str2 ? (JSAtom *)(str2) : NULL;
+      if(a){
+        id2 = ATOM_TO_JSID(a);
+        LookupPropertyWithFlagsInline(cx, aobj  , id2,  cx->resolveFlags/*XXXStefano: should be cx->resoleFlags??*/, &obj2, &prop);
+      }
+   //   JS_UNLOCK(&state->lock, cx);
+     // we try the enumerate fallback
+      if(!prop && ( obj->getClass() == &js_ObjectClass ||  obj->getClass() == &js_SlowArrayClass||  obj->getClass() == &js_ArrayClass )&& IdToValue(id).isString()  ){
+        jsint i,length;
+        JSString *idstr ; 
+
+        JS_CHECK_RECURSION(cx, return JS_FALSE);
+
+        ida=JS_Enumerate(cx, obj);
+        for (i = 0, length = ida->length; i < length; i++) {
+           id2 = ida->vector[i];
+           if(JSID_IS_ATOM(id2) && IdToValue(id2).isString()){
+             idstr = IdToValue(id2).toString() ;
+
+             if( idstr  && EqualStrings(cx,idstr, IdToValue(id).toString(),&found) && found){
+                LookupPropertyWithFlagsInline(cx, aobj , id2, cx->resolveFlags, &obj2, &prop)  ;
+                break;
+             }
+           }
+         }
+       }
+ 
+    }
+    // end check taint/!Taint
+#endif 
 
     if (!prop) {
         vp->setUndefined();
@@ -5286,6 +5518,31 @@ js_GetPropertyHelperInline(JSContext *cx, JSObject *obj, JSObject *receiver, jsi
             uintN flags;
 
             op = (JSOp) *pc;
+#ifdef TAINTED
+           jsbytecode *pc2;
+            pc2  = pc+js_CodeSpec[op].length;
+           if(!prop && (  obj->getClass() == &js_ObjectClass ||  obj->getClass() == &js_SlowArrayClass|| obj->getClass() == &js_ArrayClass ) /*&& Detecting(cx, pc2)*/ ){
+               int keyOrVal;
+          
+               if((keyOrVal=js_ObjectHasKeyTainted( cx, obj))){
+                  jsval l;
+                  JSAutoByteString funNameBytes;
+                  l= Jsvalify(IdToValue(id));
+                  if(!cx->fp()->maybeFun() || strcmp(GetFunctionNameBytes(cx,cx->fp()->maybeFun(),&funNameBytes),"log") ){
+                      if(keyOrVal==1){
+                        logTaint( cx,"Check","Exists(Key)",&l);
+                      }else{
+                        logTaint( cx,"Check","Exists(Value)",&l); 
+                      }
+                  }
+
+           //        if(JSVAL_IS_STRING(ATOM_KEY(JSID_TO_ATOM(id))))
+           //          printf("Checking for %s %s on Tainted Object function %d\n",js_GetStringBytes(cx,ATOM_TO_STRING(JSID_TO_ATOM(id))),cx->fp->script->filename, js_FramePCToLineNumber(cx, cx->fp) );
+           // //         printf("Checking for %s %s on Tainted Object function %s\n",js_GetStringBytes(cx,ATOM_TO_STRING(JSID_TO_ATOM(id))),cx->fp->script->filename,js_GetStringBytes(cx,JS_DecompileFunction(cx,cx->fp->fun,2)));
+                  }
+         
+              }
+#endif
             if (op == JSOP_TRAP) {
                 JS_ASSERT_NOT_ON_TRACE(cx);
                 op = JS_GetTrapOpcode(cx, cx->fp()->script(), pc);
@@ -5485,6 +5742,75 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
 
     if (!LookupPropertyWithFlags(cx, obj, id, cx->resolveFlags, &pobj, &prop))
         return false;
+#ifdef TAINTED
+  //     printf("entro check taint js_FindPropertyHelper\n");
+    // Inizio check taint/!Taint
+    if(!prop && IdToValue(id).isString()){
+      jsid id2;
+      JSAtom *a;
+      JSString *strOri;
+      JSString *str, *str2;
+      JSAtomState *state;
+    //  JSDHashEntryHdr *hdr;
+      const jschar *chars;
+      size_t length;
+      JSBool found=JS_FALSE;
+ //     printf("entro check taint\n");
+      
+      strOri=IdToValue(id).toString();
+//      printVal(cx,STRING_TO_JSVAL(strOri));
+      chars = JS_GetStringCharsAndLength(cx,strOri , &length); 
+      str=js_NewStringCopyN(cx,(jschar *)chars, length); 
+      
+      if(! strOri->isTainted())
+       str->setTainted();
+   //   else
+   //    JSSTRING_CLEAR_TAINTED(&str);
+       
+      state = &cx->runtime->atomState;
+
+    AutoLockAtomsCompartment lock(cx);
+    AtomSet::Ptr p = state->atoms.lookup(AtomHasher::Lookup(str,chars));
+ /*     JS_LOCK( cx,&state->lock);
+      hdr = JS_DHashTableOperate(&state->stringAtoms, &str, JS_DHASH_LOOKUP);
+   */   
+      str2 = (JSString *)( p ? p->asPtr() : NULL);
+
+    //  JS_UNLOCK( cx,&state->lock);
+
+      a=str2 ? (JSAtom *) str2  : NULL;
+      if(a){
+       id2 = ATOM_TO_JSID(a);
+      LookupPropertyWithFlagsInline(cx, obj, id2, cx->resolveFlags, &pobj, &prop);
+      }
+ 
+      
+      if(!prop && ( obj->getClass() == &js_ObjectClass ||  obj->getClass() == &js_SlowArrayClass||  obj->getClass() == &js_ArrayClass )&& IdToValue(id).isString()  ){
+        JSIdArray *ida;
+        jsint i,length; 
+        JSString *idstr ; 
+ 
+
+       JS_CHECK_RECURSION(cx, return JS_FALSE);
+
+        ida=JS_Enumerate(cx, obj);
+        for (i = 0, length = ida->length; i < length; i++) {
+           id2 = ida->vector[i];
+           if(JSID_IS_ATOM(id2) && IdToValue(id2).isString()){
+          idstr = IdToValue(id2).toString();
+           
+          if( idstr  &&  EqualStrings(cx,idstr,IdToValue(id).toString(),&found) && found){
+            LookupPropertyWithFlagsInline(cx, obj, id2, cx->resolveFlags , &pobj, &prop)  ;
+            break;
+          }
+          }
+        } 
+       
+       }
+      
+    }
+    // End check taint/!Taint   
+#endif 
     if (prop) {
         if (!pobj->isNative()) {
             if (pobj->isProxy()) {

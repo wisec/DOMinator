@@ -690,6 +690,9 @@ JS_ALWAYS_INLINE js::Shape **
 Shape::search(JSRuntime *rt, js::Shape **startp, jsid id, bool adding)
 {
     js::Shape *start = *startp;
+#ifdef TAINTED
+    int isstr=0;
+#endif
     if (start->hasTable())
         return start->getTable()->search(id, adding);
 
@@ -713,7 +716,15 @@ Shape::search(JSRuntime *rt, js::Shape **startp, jsid id, bool adding)
      */
     js::Shape **spp;
     for (spp = startp; js::Shape *shape = *spp; spp = &shape->parent) {
+#ifdef TAINTED
+          if(shape && JSID_IS_STRING(id) && JSID_IS_STRING(shape->propid) )
+            isstr=1;
+          else
+           isstr=0;
+    if ((shape->propid == id || (isstr && EqualStringForTainting( IdToValue(shape->propid).toString() , IdToValue(id).toString() ))))
+#else   
         if (shape->propid == id)
+#endif
             return spp;
     }
     return spp;

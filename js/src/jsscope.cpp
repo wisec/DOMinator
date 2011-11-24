@@ -200,6 +200,9 @@ PropertyTable::search(jsid id, bool adding)
     int sizeLog2;
     Shape *stored, *shape, **spp, **firstRemoved;
     uint32 sizeMask;
+#ifdef TAINTED
+    int isstr=0;
+#endif
 
     JS_ASSERT(entries);
     JS_ASSERT(!JSID_IS_VOID(id));
@@ -216,7 +219,16 @@ PropertyTable::search(jsid id, bool adding)
 
     /* Hit: return entry. */
     shape = SHAPE_CLEAR_COLLISION(stored);
-    if (shape && shape->propid == id)
+#ifdef TAINTED
+          if(shape && JSID_IS_STRING(id) && JSID_IS_STRING(shape->propid) )
+            isstr=1;
+          else
+           isstr=0;
+
+    if (shape && (shape->propid == id || (isstr && EqualStringForTainting( IdToValue(shape->propid).toString() , IdToValue(id).toString() ))))
+#else 
+   if (shape && shape->propid == id)
+#endif     
         return spp;
 
     /* Collision: double hash. */
@@ -250,7 +262,17 @@ PropertyTable::search(jsid id, bool adding)
             return (adding && firstRemoved) ? firstRemoved : spp;
 
         shape = SHAPE_CLEAR_COLLISION(stored);
-        if (shape && shape->propid == id) {
+#ifdef TAINTED
+          if(shape && JSID_IS_STRING(id) && JSID_IS_STRING(shape->propid))
+            isstr=1;
+          else
+           isstr=0;
+ 
+        if (shape && (shape->propid == id || (isstr && EqualStringForTainting( IdToValue(shape->propid).toString() , IdToValue(id).toString() ))))
+#else
+        if (shape && shape->propid == id)
+#endif     
+         {
             JS_ASSERT(collision_flag);
             return spp;
         }
