@@ -2712,9 +2712,7 @@ str_split(JSContext *cx, uintN argc, Value *vp)
     JSLinearString *strlin = str->ensureLinear(cx);
     if (!strlin)
         return false;
-#if TAINTED
-   printf("str->ensureLinear tainted -> %d\n",str->isTainted());
-#endif
+
     /* Steps 11-15. */
     JSObject *aobj;
     if (re) {
@@ -3817,6 +3815,51 @@ EqualStrings(JSLinearString *str1, JSLinearString *str2)
 
     return PodEqual(str1->chars(), str2->chars(), length1);
 }
+
+#ifdef TAINTED
+bool
+EqualStringForTainting(JSString *str1, JSString *str2){
+    size_t n;
+    const jschar *s1, *s2;
+
+    JS_ASSERT(str1);
+    JS_ASSERT(str2);
+
+    /* Fast case: pointer equality could be a quick win. */
+    if (str1 == str2)
+        return true;
+
+    n = str1->length();
+    if (n != str2->length())
+        return false;
+
+    if (n == 0){
+      if( ((str1->isTainted()) &&  str2->isTainted())  || ((str1->isTainted())==(str2->isTainted())))
+        return true;
+      else 
+        return false;
+    }
+    JSLinearString *linear1 = str1->ensureLinear(NULL);
+    if (!linear1)
+        return false;
+    JSLinearString *linear2 = str2->ensureLinear(NULL);
+    if (!linear2)
+        return false;
+    s1 =  linear1->chars(), s2 = linear2->chars();
+    do {
+        if (*s1 != *s2)
+            return false;
+        ++s1, ++s2;
+    } while (--n != 0);
+
+      if( ((str1->isTainted()) &&  str2->isTainted())  || ((str1->isTainted())==(str2->isTainted()))){
+   // printf("trovato js_EqualStrings_2 ");
+         return true;
+      }
+    return JS_FALSE;  
+}
+
+#endif
 
 }  /* namespace js */
 

@@ -213,6 +213,12 @@ EqualStrings(JSContext *cx, JSString *str1, JSString *str2, JSBool *result);
 extern bool
 EqualStrings(JSLinearString *str1, JSLinearString *str2);
 
+#ifdef TAINTED
+/*  */
+extern bool
+ EqualStringForTainting(JSString *str1, JSString *str2);
+#endif
+
 /*
  * Return less than, equal to, or greater than zero depending on whether
  * str1 is less than, equal to, or greater than str2.
