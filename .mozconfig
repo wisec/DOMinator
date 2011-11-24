@@ -7,14 +7,56 @@ ac_add_options --disable-optimize
 ac_add_options --enable-application=browser
 ac_add_options --disable-necko-wifi
 mk_add_options MOZ_CO_PROJECT=browser
-mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/ff-taint
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/ff-taintD
 ac_add_options --disable-tests
 mk_add_options MOZ_MAKE_FLAGS=-j4
 ac_add_options --with-user-appdir=.DOMinator1
 ac_add_options --enable-debug
 
 export MOZ_DEBUG_SYMBOLS=1
-export CFLAGS="-ggdb -gstabs+ -DTAINTED=1"
-export CXXFLAGS="-ggdb -gstabs+ -DTAINTED=1"
-export CPPFLAGS="-ggdb -DTAINTED=1"
+export CFLAGS="-gdwarf-2 -DTAINTED=1"
+export CXXFLAGS="-gdwarf-2 -DTAINTED=1"
+export CPPFLAGS="-DTAINTED=1"
 export DEFS="-DTAINTED=1"
+
+ac_add_options --enable-debug-symbols="-gdwarf-2"
+ac_add_options --enable-trace-malloc
+
+
+
+#. $topsrcdir/browser/config/mozconfig
+#export MOZ_PHOENIX=1
+#export MOZ_APP_PROFILE=DOMinator1
+#mk_add_options MOZ_PHOENIX=1
+#mk_add_options MOZ_APP_PROFILE=DOMinator1
+##ac_add_options --disable-optimize
+#ac_add_options --enable-application=browser
+#ac_add_options --disable-accessibility
+#ac_add_options --disable-necko-wifi
+#mk_add_options MOZ_CO_PROJECT=browser
+#mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/ff-taintD
+#ac_add_options --disable-tests
+#mk_add_options MOZ_MAKE_FLAGS=-j4
+#ac_add_options --with-user-appdir=.DOMinator1
+#ac_add_options --enable-debug
+#ac_add_options --enable-libxul
+##ac_add_options --enable-debug-symbols=DBG
+#ac_add_options --disable-crashreporter 
+#ac_add_options --disable-calendar
+#ac_add_options --disable-chatzilla
+#ac_add_options --disable-composer
+#ac_add_options --disable-installer
+#ac_add_options --disable-ipc
+#ac_add_options --disable-ldap
+#ac_add_options --disable-mailnews
+#ac_add_options --disable-mochitest 
+#ac_add_options --disable-negotiateauth
+#ac_add_options --disable-updater
+#ac_add_options --disable-xinerama
+#ac_add_options --disable-xprint
+#
+#export MOZ_DEBUG_SYMBOLS=1
+#export CFLAGS="-gstabs+ -DTAINTED=1"
+#export CXXFLAGS="-gstabs+ -DTAINTED=1"
+#export CPPFLAGS="-DTAINTED=1"
+#export DEFS="-DTAINTED=1"
