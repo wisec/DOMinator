@@ -169,7 +169,13 @@ JSFixedString::new_(JSContext *cx, const jschar *chars, size_t length)
 JS_ALWAYS_INLINE JSAtom *
 JSFixedString::morphAtomizedStringIntoAtom()
 {
-    JS_ASSERT((d.lengthAndFlags & FLAGS_MASK) == JS_BIT(2));
+
+#ifdef TAINTED
+    JS_ASSERT(((d.lengthAndFlags & FLAGS_MASK) == (JS_BIT(2))) || ((d.lengthAndFlags & FLAGS_MASK) ==  (JS_BIT(2)|JS_BIT(4))) );
+#else
+    JS_ASSERT((d.lengthAndFlags & FLAGS_MASK) == JS_BIT(2) );
+#endif    
+
     JS_STATIC_ASSERT(NON_STATIC_ATOM == JS_BIT(3));
     d.lengthAndFlags ^= (JS_BIT(2) | JS_BIT(3));
     return &asAtom();
