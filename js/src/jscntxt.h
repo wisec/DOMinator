@@ -334,10 +334,16 @@ typedef js::Vector<JSCompartment *, 0, js::SystemAllocPolicy> CompartmentVector;
 /*
  remember to change stuff in taint.h too
 */
-typedef enum taintop {NONEOP,GET,SET,SOURCE,SINK,SUBSTRING,LOWERCASE,UPPERCASE,JOIN,SPLIT,SLICE,REPLACE,REGEXP,CONCAT,CONCATLEFT,CONCATRIGHT,ESCAPE,UNESCAPE,ENCODEURI,UNENCODEURI,ENCODEURICOMPONENT,UNENCODEURICOMPONENT,TRIM,TAGIFY,QUOTE,DEPEND,ATOB,BTOA} TaintOp;
-
+typedef enum taintop {NONEOP,GET,SET,SOURCE,SINK,CHARAT,SUBSTRING,LOWERCASE,UPPERCASE,JOIN,SPLIT,SLICE,REPLACE,REGEXP,CONCAT,CONCATLEFT,CONCATRIGHT,ESCAPE,UNESCAPE,ENCODEURI,UNENCODEURI,ENCODEURICOMPONENT,UNENCODEURICOMPONENT,TRIM,TAGIFY,QUOTE,DEPEND,ATOB,BTOA} TaintOp;
+/*
+typedef struct GlobalObjectWithTainting{
+ JSObject *gObj;
+ GlobalObjectWithTainting  *next;
+} GlobalObjectWithTainting;
+*/
 typedef struct InfoTaintEntry{
  JSString *str;
+ int refCount;
  TaintOp  op;
  JSString *source;
  struct InfoTaintDep *dep;

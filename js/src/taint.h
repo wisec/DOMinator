@@ -65,15 +65,22 @@ typedef struct Tainted{
 //remember this is duplicated in jscntxt.h 
 // any change here must be replicated there
 // also OpNames must be added in taint.cpp
-typedef enum taintop {NONEOP,GET,SET,SOURCE,SINK,SUBSTRING,LOWERCASE,UPPERCASE,JOIN,SPLIT,SLICE,REPLACE,REGEXP,CONCAT,CONCATLEFT,CONCATRIGHT,ESCAPE,UNESCAPE,ENCODEURI,UNENCODEURI,ENCODEURICOMPONENT,UNENCODEURICOMPONENT,TRIM,TAGIFY,QUOTE,DEPEND,ATOB,BTOA} TaintOp;
-
+typedef enum taintop {NONEOP,GET,SET,SOURCE,SINK,CHARAT,SUBSTRING,LOWERCASE,UPPERCASE,JOIN,SPLIT,SLICE,REPLACE,REGEXP,CONCAT,CONCATLEFT,CONCATRIGHT,ESCAPE,UNESCAPE,ENCODEURI,UNENCODEURI,ENCODEURICOMPONENT,UNENCODEURICOMPONENT,TRIM,TAGIFY,QUOTE,DEPEND,ATOB,BTOA} TaintOp;
+/*
+typedef struct GlobalObjectWithTainting{
+ JSObject *gObj;
+ GlobalObjectWithTainting  *next;
+} GlobalObjectWithTainting;
+*/
 typedef struct InfoTaintEntry{
  JSString *str;
+ int refCount;
  TaintOp  op;
  JSString *source;
  struct InfoTaintDep *dep;
  struct InfoTaintEntry *next;
 } InfoTaintEntry;
+
 
 typedef struct InfoTaintDep{
  InfoTaintEntry *entry;
@@ -110,10 +117,15 @@ addTaintInfoOneArg(JSContext *cx,JSString *argStr,JSString *retStr,char *desc,Ta
 
 extern JSBool 
 addTaintInfoConcat(JSContext *cx,JSString *argStr,JSString *retStr,int start,int end,TaintOp op);
-
 extern InfoTaintEntry *findTaintEntry(JSContext *cx,JSString  *str);
 extern InfoTaintDep *addToInfoTaintDep(JSContext *cx,InfoTaintEntry *entryDep,InfoTaintDep *next);
 extern InfoTaintEntry *addToTaintTable(JSContext *cx,JSString *str,JSString *source,TaintOp taintop);
+#if 0
+extern JSObject *findTaintEntry(JSContext *cx,JSString  *str);
+extern InfoTaintDep *addToInfoTaintDep(JSContext *cx,InfoTaintEntry *entryDep,InfoTaintDep *next);
+extern InfoTaintEntry *addToTaintTable(JSContext *cx,JSString *str,JSString *source,TaintOp taintop);
+#endif
+
 
 extern JSString *taint_newTaintedString(JSContext *cx, JSString *str);
 extern JSBool taint_newTainted(JSContext *cx, uintN argc, jsval *vp);

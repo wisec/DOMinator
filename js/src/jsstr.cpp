@@ -820,7 +820,7 @@ js_str_charAt(JSContext *cx, uintN argc, Value *vp)
     if (!str)
         return false;
 #ifdef TAINTED
- TAINT_COND_SET_NEW(str ,strArg,NULL,NONEOP)
+ TAINT_COND_SET_NEW(str ,strArg,NULL,CHARAT)
 #endif
     vp->setString(str);
     return true;
@@ -830,7 +830,7 @@ js_str_charAt(JSContext *cx, uintN argc, Value *vp)
 #ifdef TAINTED
     if(tainted) {
      str= taint_newTaintedString(cx,cx->runtime->emptyString ); 
-     addTaintInfoOneArg(cx, strArg  ,str,NULL,NONEOP ); 
+     addTaintInfoOneArg(cx, strArg  ,str,NULL ,CHARAT ); 
      vp->setString( str );
     } else {
      vp->setString(cx->runtime->emptyString);
