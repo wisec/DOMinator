@@ -255,7 +255,7 @@ InfoTaintEntry *addToTaintTable(JSContext *cx,JSString/*o jsval* */ *str,JSStrin
      newITE->source=source;
      newITE->op=taintop;
      newITE->dep=NULL;
-   
+     
    }else{
      newITE=(InfoTaintEntry  *) JS_malloc(cx, (size_t) sizeof(InfoTaintEntry));
 
@@ -271,7 +271,7 @@ InfoTaintEntry *addToTaintTable(JSContext *cx,JSString/*o jsval* */ *str,JSStrin
      tmpITE=cx->runtime->rootITE;
      newITE->next=tmpITE;
      cx->runtime->rootITE=newITE;
-   }
+   } 
  /*  if(cx && cx->globalObject){
      GlobalObjectWithTainting *gObj=findGlobalObjectEntry(cx,cx->globalObject->getParent());
      if(!gObj){
@@ -285,6 +285,7 @@ InfoTaintEntry *addToTaintTable(JSContext *cx,JSString/*o jsval* */ *str,JSStrin
     newITE->parentGObj= cx->globalObject->getParent();
    else
     newITE->gObj= NULL;*/
+   newITE->refCount=0;
    return newITE;
 }
 
@@ -326,7 +327,7 @@ JSBool removeInfoTaintEntryDeps( InfoTaintEntry *ITE){
        free(tmpITD);
        tmpITD=nextITD;
     }
-     
+    ITE->dep=NULL;
     return JS_TRUE;
     
   }else{
@@ -408,7 +409,7 @@ static struct GCManagerInfo{
 
 static JSBool markLiveObjects(JSContext *cx, JSGCStatus theStatus){
  InfoTaintEntry *tmpITE ,*prevITE;
- int isFirst=1;
+ jsuint isFirst=1;
  JSBool last;
 // JSClass *clasp;
  if (JSGC_MARK_END!=theStatus){
@@ -429,23 +430,18 @@ static JSBool markLiveObjects(JSContext *cx, JSGCStatus theStatus){
    #endif
       //  GlobalObjectWithTainting *tmpGTO=tmpITE->pGTOEntry;
       int refCount=-1;
-      /*  if ( tmpGTO && tmpGTO->gObj && JS_IsAboutToBeFinalized(cx, tmpGTO->gObj  )) {
-              #ifdef DEBUG
-                printf("OBJEEEEEEECTTTT!!!!!!!!!!!!!!!!!\n");js_DumpObject( tmpGTO->gObj);
-              #endif
-              tmpGTO->gObj=NULL;
-//              js::gc::MarkGCThing(&trc, (tmpITE->source) , "Taint Info" );
-       } */
+
         if (tmpITE->source && JS_IsAboutToBeFinalized(cx, tmpITE->source )) {
               #ifdef DEBUG
               printf("Source: \n");js_DumpString(tmpITE->source);
               #endif
               JS_ASSERT(tmpITE->refCount>=0);
               if(!tmpITE->refCount){
-                 refCount=0; 
+                 refCount=0;
+                 printf("String: DONT keep: \n");
               } else {
          #ifdef DEBUG
-          printf("SourcE: Ok, refCount: %d\n", tmpITE->refCount);
+          printf("SourcE: KEEP, refCount: %d\n", tmpITE->refCount);
          #endif
                js::gc::MarkGCThing(&trc, (tmpITE->source) , "Taint Info" );
               }
@@ -455,15 +451,15 @@ static JSBool markLiveObjects(JSContext *cx, JSGCStatus theStatus){
               #ifdef DEBUG
               printf("str: \n");js_DumpString(tmpITE->str);
              #endif
-//           if(cx->globalObject) {
- //            clasp = OBJ_GET_CLASS(cx,  cx->globalObject);
-//           }
+ 
               if(!tmpITE->refCount){
                  refCount=0; 
-              } else {
+                 printf("String: DONT keep: \n");
+                 
+             } else {
               
          #ifdef DEBUG
-          printf("String: Ok, refCount: %d\n",tmpITE->refCount);
+          printf("String: KEEP, refCount: %d\n",tmpITE->refCount);
          #endif
                 js::gc::MarkGCThing(&trc,  tmpITE->str, "Taint Info" );
               }
@@ -475,19 +471,29 @@ static JSBool markLiveObjects(JSContext *cx, JSGCStatus theStatus){
          #endif
          removeInfoTaintEntryDeps(tmpITE);
          if(isFirst){
+           if(!tmpITE->next){ //it's the last one. We don't want to free it but only null its attrs
+            cx->runtime->rootITE->str=NULL;
+            cx->runtime->rootITE->source=NULL;
+            cx->runtime->rootITE->refCount=0;
+            cx->runtime->rootITE->dep=NULL;
+            cx->runtime->rootITE->next=NULL;
+            tmpITE=prevITE=cx->runtime->rootITE;
+            continue;            
+           }
            cx->runtime->rootITE=tmpITE->next;
            tmpITE=prevITE=cx->runtime->rootITE;
          }else{
-           
+           isFirst=0;
            prevITE->next=tmpITE->next;
            tmpITE=tmpITE->next;
          }
+          
          free(_tmpITE);
         }else{
+         isFirst=0;
          prevITE=tmpITE;
          tmpITE=tmpITE->next;
         }
-        isFirst=0;
     }
    #ifdef DEBUG
      printf("GCCalled end\n");
@@ -1047,7 +1053,7 @@ JSBool taint_newTainted(JSContext *cx, uintN argc, jsval *vp)
     
     //XXXStefano Note: is this the correct one?
     // Trying to prevent some race condition on GC
-    js::AutoLockGC lock(cx->runtime);
+     //js::AutoLockGC lock(cx->runtime);
 
     argv = vp + 2;
     JS_ASSERT(argc  <=  js::StackSpace::ARGS_LENGTH_MAX);
