@@ -74,7 +74,7 @@ typedef struct GlobalObjectWithTainting{
 */
 typedef struct InfoTaintEntry{
  JSString *str;
- int refCount;
+ jsuint refCount;
  TaintOp  op;
  JSString *source;
  struct InfoTaintDep *dep;
