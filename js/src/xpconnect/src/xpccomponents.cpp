@@ -4359,7 +4359,7 @@ NS_IMETHODIMP nsXPCComponents::LookupMethod()
     nsresult rv;
     nsCOMPtr<nsIXPCComponents_Utils> utils;
 
-    NS_WARNING("Components.lookupMethod deprecated, use Components.utils.lookupMethod");
+ //   NS_WARNING("Components.lookupMethod deprecated, use Components.utils.lookupMethod");
     rv = GetUtils(getter_AddRefs(utils));
     if (NS_FAILED(rv))
         return rv;

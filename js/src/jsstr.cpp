@@ -371,7 +371,7 @@ str_getTaint (JSContext *cx, JSObject *obj, jsid id, Value *vp)
 {   
     JSString *str;
     
-    js_DumpObject(obj);
+   // js_DumpObject(obj);
     str = obj->getPrimitiveThis().toString();
     return taint_GetTainted(cx,str,Jsvalify(vp));
 }

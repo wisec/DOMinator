@@ -56,7 +56,9 @@ void traverseInfoTaintEntry(JSContext *cx ,InfoTaintEntry *ITE,JSObject *obj){
   InfoTaintEntry *tmpITE;
   jsval v;
   JSObject *depArray;
-  
+  if(!ITE->str){
+   return;
+  }
   v=STRING_TO_JSVAL(ITE->str);
   JS_SetProperty(cx,obj,"val",&v);
   if(ITE->source){
@@ -237,10 +239,10 @@ InfoTaintEntry *addToTaintTable(JSContext *cx,JSString/*o jsval* */ *str,JSStrin
 
    atom_str=str;
    #ifdef DEBUG
-   if(cx->globalObject){
+  /* if(cx->globalObject){
     printf("globalObject\n ");
     js_DumpObject(cx->globalObject->getParent());
-   }
+   } */
    #endif
    if( (tmpITE=findTaintEntry(cx, atom_str)) && tmpITE->op==taintop  ){
           return tmpITE;
@@ -321,8 +323,10 @@ JSBool removeInfoTaintEntryDeps( InfoTaintEntry *ITE){
     tmpITD=nextITD=ITE->dep;
     
     while(tmpITD){
+       if(tmpITD->entry){
        JS_ASSERT(tmpITD->entry->refCount>0);
        tmpITD->entry->refCount--;
+       }
        nextITD=tmpITD->next;
        free(tmpITD);
        tmpITD=nextITD;
@@ -992,16 +996,19 @@ JSBool
 taint_getAllTaintInfo(JSContext *cx, uintN argc, jsval *vp)
 {
     JSObject *obj;
-
+    jsval v;
     InfoTaintEntry *tmpITE; 
     tmpITE=cx->runtime->rootITE;
+    JSObject *depArray=JS_NewArrayObject(cx,0,NULL);
     while(tmpITE){
      obj=getInfoFromTaintTable(cx,tmpITE->str );
-     
+     v=OBJECT_TO_JSVAL(obj);
+
+     JS_SetElement(cx,depArray,depArray->getArrayLength(),&v);
      tmpITE=tmpITE->next;
      
     }
-    *vp = OBJECT_TO_JSVAL(obj); 
+    *vp = OBJECT_TO_JSVAL( depArray ); 
     return JS_TRUE;
 }
 
@@ -1096,16 +1103,14 @@ JSBool taint_newTainted(JSContext *cx, uintN argc, jsval *vp)
 }
 
 // TODO: implement for taint propagation and operation flow.
-// String.newTaintDependence(newTaintedString,OriginalString,[args?]|[OPERATIONNAME])
-JSBool taint_newTaintedDependence(JSContext *cx, uintN argc, jsval *vp)
+// String.newTaintDependency(newTaintedString,OriginalString,[args?]|[OPERATIONNAME])
+JSBool taint_newTaintedDependency(JSContext *cx, uintN argc, jsval *vp)
 {
     jsval *argv;
     const jschar *chars;
     size_t len;
     JSString *str1,*astr;
-    //XXXStefano Note: is this the correct one?
-    // Trying to prevent some race condition on GC
-    js::AutoLockGC lock(cx->runtime);
+    
  /*   argv = vp + 2;
     JS_ASSERT(argc  <= JS_ARGS_LENGTH_MAX);
     // Set "" if JSVAL IS NULL or argc ==0
@@ -1144,6 +1149,7 @@ JSBool taint_newTaintedDependence(JSContext *cx, uintN argc, jsval *vp)
     }*/
     return JS_FALSE; 
 }
+
 JSString *
 taint_newTaintedString(JSContext *cx, JSString *oriStr)
 {
@@ -1154,7 +1160,7 @@ taint_newTaintedString(JSContext *cx, JSString *oriStr)
      
     //XXXStefano Note: is this the correct one?
     // Trying to prevent some race condition on GC
-    js::AutoLockGC lock(cx->runtime);
+    // js::AutoLockGC lock(cx->runtime);
 
     str1= oriStr;
        //  str1->getCharsAndLength(const_cast<const jschar *&> (chars),len);
