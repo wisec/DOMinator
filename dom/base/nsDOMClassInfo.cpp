@@ -6653,7 +6653,12 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 
     JSBool ok = JS_WrapValue(cx, &v) &&
                 JS_DefinePropertyById(cx, obj, id, v, nsnull, nsnull,
-                                      JSPROP_PERMANENT | JSPROP_ENUMERATE);
+                               #ifdef TAINTED
+                                      JSPROP_ENUMERATE);
+                               #else
+                                      JSPROP_PERMANENT | 
+                                      JSPROP_ENUMERATE);
+                               #endif
 
     if (!ok) {
       return NS_ERROR_FAILURE;
@@ -8537,7 +8542,12 @@ nsDocumentSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     JSAutoRequest ar(cx);
 
     JSBool ok = ::JS_DefinePropertyById(cx, obj, id, v, nsnull, nsnull,
-                                        JSPROP_PERMANENT | JSPROP_ENUMERATE);
+    #ifdef TAINTED
+     JSPROP_ENUMERATE); 
+    #else
+                                        JSPROP_PERMANENT | 
+    JSPROP_ENUMERATE);
+    #endif
 
     if (!ok) {
       return NS_ERROR_FAILURE;
