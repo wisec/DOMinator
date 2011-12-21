@@ -2365,10 +2365,12 @@ js::str_replace(JSContext *cx, uintN argc, Value *vp)
           we still have to consider the multiple backtrace in infoTaint.
        */ 
          TAINT_CONDITION_NODEC(rdata.repstr ); 
+         if(rdata.calledBack){
           if(retstr==cx->runtime->emptyString){
            TAINT_COND_SET_NEW(retstr,strArg,NULL,REPLACE)
           }else{ 
            TAINT_COND_SET(retstr,strArg,NULL,REPLACE)
+          }
           }
 //         } 
          vp->setString(retstr);

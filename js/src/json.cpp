@@ -212,13 +212,16 @@ class StringifyContext
 {
   public:
     StringifyContext(JSContext *cx, StringBuffer &sb, const StringBuffer &gap,
-                     JSObject *replacer, const AutoIdVector &propertyList)
+                     JSObject *replacer, const AutoIdVector &propertyList,bool overrideToJSON)
       : sb(sb),
         gap(gap),
         replacer(replacer),
         propertyList(propertyList),
         depth(0),
         objectStack(cx)
+#ifdef TAINTED
+        ,overrideToJSON(overrideToJSON)
+#endif
     {}
 
     bool init() {
@@ -234,6 +237,9 @@ class StringifyContext
     JSObject * const replacer;
     const AutoIdVector &propertyList;
     uint32 depth;
+#ifdef TAINTED
+    JSBool overrideToJSON;
+#endif
     HashSet<JSObject *> objectStack;
 };
 
@@ -289,6 +295,9 @@ PreprocessValue(JSContext *cx, JSObject *holder, jsid key, Value *vp, StringifyC
     JSString *keyStr = NULL;
 
     /* Step 2. */
+#ifdef TAINTED
+if(!scx->overrideToJSON)
+#endif
     if (vp->isObject()) {
         Value toJSON;
         jsid id = ATOM_TO_JSID(cx->runtime->atomState.toJSONAtom);
@@ -596,6 +605,9 @@ js_Stringify(JSContext *cx, Value *vp, JSObject *replacer, Value space, StringBu
 {
     /* Step 4. */
     AutoIdVector propertyList(cx);
+#ifdef TAINTED
+    bool override=false;
+#endif    
     if (replacer) {
         if (replacer->isCallable()) {
             /* Step 4a(i): use replacer to transform values.  */
@@ -679,6 +691,12 @@ js_Stringify(JSContext *cx, Value *vp, JSObject *replacer, Value space, StringBu
                 }
             }
         } else {
+        #ifdef TAINTED
+          //XXXStefano The replacer is used as a flag to override toJSON. 
+          // we don't want it to be NULLified if it's a boolean.
+            if(replacer->isBoolean())
+            override=true;
+        #endif
             replacer = NULL;
         }
     }
@@ -736,7 +754,7 @@ js_Stringify(JSContext *cx, Value *vp, JSObject *replacer, Value space, StringBu
     }
 
     /* Step 11. */
-    StringifyContext scx(cx, sb, gap, replacer, propertyList);
+    StringifyContext scx(cx, sb, gap, replacer, propertyList,override);
     if (!scx.init())
         return false;
 

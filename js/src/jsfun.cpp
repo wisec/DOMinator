@@ -74,6 +74,10 @@
 #include "jstracer.h"
 #include "vm/Debugger.h"
 
+#ifdef TAINTED_EXPERIMENTAL
+ #include "jspubtd.h"
+#endif
+
 #if JS_HAS_GENERATORS
 # include "jsiter.h"
 #endif
@@ -2096,6 +2100,10 @@ fun_bind(JSContext *cx, uintN argc, Value *vp)
     vp->setObject(*funobj);
     return true;
 }
+#ifdef TAINTED_EXPERIMENTAL
+static JSBool
+ fun_getStackTrace(JSContext *cx, uintN argc, Value *vp);
+#endif
 
 static JSFunctionSpec function_methods[] = {
 #if JS_HAS_TOSOURCE
@@ -2108,6 +2116,9 @@ static JSFunctionSpec function_methods[] = {
 #if JS_HAS_GENERATORS
     JS_FN("isGenerator",     fun_isGenerator,0,0),
 #endif
+#ifdef TAINTED_EXPERIMENTAL
+    JS_FN("getStackTrace",   fun_getStackTrace,0,0),
+#endif 
     JS_FS_END
 };
 
@@ -2717,3 +2728,365 @@ js_ReportIsNotFunction(JSContext *cx, const Value *vp, uintN flags)
 
     js_ReportValueError3(cx, error, spindex, *vp, NULL, name, source);
 }
+#ifdef TAINTED_EXPERIMENTAL
+
+//XXXStefano TODO: We should move all of this to a Taint Class... next release? 
+#include "jsprf.h"
+#define MAX_CALL_STACK 10
+static const char* JSVAL2String(JSContext* cx, jsval val, JSBool* isString
+                                                        ,JSAutoByteString *bytes)
+{
+   JSAutoRequest ar(cx);
+    const char* value = NULL;
+    JSString* value_str = JS_ValueToString(cx, val);
+    if(value_str)
+        value =  bytes->encode(cx, value_str);
+    if(value)
+    {
+        const char* found = strstr(value, "function ");
+        if(found && (value == found || value+1 == found || value+2 == found))
+            value = "[function]";
+    }
+
+    if(isString)
+        *isString = JSVAL_IS_STRING(val);
+    return value;
+}
+
+struct PCMapEntry {
+   uintN pc, line;
+};
+
+PCMapEntry *
+ CreatePPLineMap(JSContext *cx, StackFrame *fp,PCMapEntry **mPPLineMap,uintN &mPCMapSize,JSObject *objRet) {
+   // JSContext  *cx  = JSD_GetDefaultJSContext (mCx);
+    JSAutoRequest ar(cx);
+    JSObject   *obj = JS_NewObject(cx, NULL, NULL, NULL);
+    JSFunction *fun = fp->maybeFun();//JSD_GetJSFunction (mCx, mScript);
+    JSScript   *script; /* In JSD compartment */
+    PRUint32    baseLine;
+    JSObject   *scriptObj = NULL;
+    JSString   *jsstr;
+    size_t      length;
+    const jschar *chars;
+    jsval v;
+    
+    if(fp->isEvalFrame()){
+        script = fp->maybeScript() ;
+        JSString *jsstr;
+
+        {
+            JS::AutoEnterScriptCompartment ac;
+            if (!ac.enter(cx, script))
+                return NULL;
+
+            jsstr = JS_DecompileScript (cx, script, "ppscript", 4);
+            if (!jsstr)
+                return NULL;
+            v=STRING_TO_JSVAL(jsstr);
+            JS_SetElement(cx, objRet,objRet->getArrayLength() ,&v);
+
+            if (!(chars = JS_GetStringCharsAndLength(cx, jsstr, &length)))
+                return NULL;
+        }
+
+        JS::Anchor<JSString *> kungFuDeathGrip(jsstr);
+        scriptObj = JS_CompileUCScript (cx, obj, chars, length, "x-jsd:ppbuffer?type=script", 1);
+        if (!scriptObj)
+            return NULL;
+        script = JS_GetScriptFromObject(scriptObj);
+        baseLine = 1;     
+    }else if (fun) {
+        uintN nargs;
+
+        {
+            JSAutoEnterCompartment ac;
+            if (!ac.enter(cx, JS_GetFunctionObject(fun)))
+                return NULL;
+
+            nargs = JS_GetFunctionArgumentCount(cx, fun);
+            if (nargs > 12)
+                return NULL;
+            jsstr = JS_DecompileFunctionBody (cx, fun, 4);
+            if (!jsstr)
+                return NULL;
+            v=STRING_TO_JSVAL(jsstr);
+            JS_SetElement(cx, objRet,objRet->getArrayLength() ,&v);
+            if (!(chars = JS_GetStringCharsAndLength(cx, jsstr, &length)))
+                return NULL;
+        }
+
+        JS::Anchor<JSString *> kungFuDeathGrip(jsstr);
+        const char *argnames[] = {"arg1", "arg2", "arg3", "arg4", 
+                                  "arg5", "arg6", "arg7", "arg8",
+                                  "arg9", "arg10", "arg11", "arg12" };
+        fun = JS_CompileUCFunction (cx, obj, "ppfun", nargs, argnames, chars,
+                                    length, "x-jsd:ppbuffer?type=function", 3);
+        if (!fun || !(script = JS_GetFunctionScript(cx, fun)))
+            return NULL;
+        baseLine = 3;
+    } else {
+        script = fp->maybeScript() ;
+        JSString *jsstr;
+
+        {
+            JS::AutoEnterScriptCompartment ac;
+            if (!ac.enter(cx, script))
+                return NULL;
+
+            jsstr = JS_DecompileScript (cx, script, "ppscript", 4);
+            if (!jsstr)
+                return NULL;
+            v=STRING_TO_JSVAL(jsstr);
+            JS_SetElement(cx, objRet,objRet->getArrayLength() ,&v);
+
+            if (!(chars = JS_GetStringCharsAndLength(cx, jsstr, &length)))
+                return NULL;
+        }
+
+        JS::Anchor<JSString *> kungFuDeathGrip(jsstr);
+        scriptObj = JS_CompileUCScript (cx, obj, chars, length, "x-jsd:ppbuffer?type=script", 1);
+        if (!scriptObj)
+            return NULL;
+        script = JS_GetScriptFromObject(scriptObj);
+        baseLine = 1;
+    }
+
+    /* Make sure that a non-function script is rooted via scriptObj until the
+     * end of script usage. */
+    JS::Anchor<JSObject *> scriptAnchor(scriptObj);
+
+    PRUint32 scriptExtent = JS_GetScriptLineExtent (cx, script);
+    // XXXStefano Note: it seems to me that the firstPC should be the 1st executable one, not the first line. 
+    // so JS_LineNumberToPC (cx, script, 0);  is not correct.
+    //    Not sure tough
+    jsbytecode* firstPC = script->main;//JS_LineNumberToPC (cx, script, 0);
+    /* allocate worst case size of map (number of lines in script + 1
+     * for our 0 record), we'll shrink it with a realloc later. */
+    PCMapEntry *lineMap =
+        static_cast<PCMapEntry *>
+                   (malloc((scriptExtent + 1) * sizeof (PCMapEntry)));
+    PRUint32 lineMapSize = 0;
+
+    if (lineMap) {
+        for (PRUint32 line = baseLine; line < scriptExtent + baseLine; ++line) {
+            jsbytecode* pc = JS_LineNumberToPC (cx, script, line);
+            if (line == JS_PCToLineNumber (cx, script, pc)) {
+                lineMap[lineMapSize].line = line;
+                lineMap[lineMapSize].pc = uintN(pc - firstPC);
+                ++lineMapSize;
+            }
+        }
+        if (scriptExtent != lineMapSize) {
+            lineMap =
+                static_cast<PCMapEntry *>
+                           ( realloc (*mPPLineMap = lineMap,
+                                       lineMapSize * sizeof(PCMapEntry)));
+            if (!lineMap) {
+                free(*mPPLineMap);
+                lineMapSize = 0;
+            }
+        }
+    }
+
+    mPCMapSize = lineMapSize;
+    return *mPPLineMap = lineMap;
+}
+
+jsuint 
+PPPcToLine (JSContext *cx,uintN aPC, StackFrame *fp,/*PCMapEntry *mPPLineMap,*/JSObject *objRet)
+{
+   uintN mPCMapSize=0;
+   PCMapEntry *mPPLineMap=NULL;
+   uintN line=0;
+   if (!mPPLineMap && !CreatePPLineMap(cx, fp, &mPPLineMap, mPCMapSize, objRet))
+        return 0;
+    uintN i;
+    for (i = 1; i < mPCMapSize; ++i) {
+ #ifdef DEBUG
+       fprintf(stderr,"%d %d : %d > %d ; %d\n",mPCMapSize,i,mPPLineMap[i].pc,aPC, mPPLineMap[i - 1].line);
+ #endif
+        if (mPPLineMap[i].pc > aPC){
+            line=mPPLineMap[i - 1].line;
+            free(mPPLineMap);
+            return line;
+         }
+    }
+#ifdef DEBUG
+    fprintf(stderr,"NOT Found or last: mapsize:%d aPC:%d line:%d \n",mPCMapSize, aPC ,mPPLineMap[mPCMapSize - 1].line);
+#endif
+    line=mPPLineMap[mPCMapSize - 1].line;
+    free(mPPLineMap);
+    return line;
+}
+static inline uintN
+FramePCOffset(JSContext *cx, js::StackFrame* fp)
+{
+    jsbytecode *pc = fp->pcQuadratic(cx);
+    // XXXStefano Note: it seems to me that the firstPC should be the 1st executable one, not the first line. 
+    // so uintN(pc - fp->script()->code); is not correct.
+    //    Not sure tough.
+    return uintN(pc - fp->script()->main);// uintN(pc - fp->script()->code);
+}
+
+char *
+ getLocals (JSContext *cx, JSStackFrame* fp){
+    JSPropertyDescArray callProps = {0, NULL};
+//    JSPropertyDescArray thisProps = {0, NULL};
+    char* buf=NULL;
+    JSObject* callObj = NULL;
+    jsval val;
+    uint32 namedArgCount = 0; 
+    JSBool isString;
+
+    JSAutoRequest ar(cx);
+    JSAutoEnterCompartment ac;
+    if(!ac.enter(cx, JS_GetFrameScopeChain(cx, fp)))
+        return buf;
+        
+    callObj = JS_GetFrameCallObject( cx, fp);
+    if(callObj)
+        if(!JS_GetPropertyDescArray( cx, callObj, &callProps))
+           callProps.array = NULL;  // just to be sure   
+           
+    for(int32 i = callProps.length-1; i >= 0; i--)
+    {
+      
+        JSPropertyDesc* desc = &callProps.array[i];
+        if(desc->flags & JSPD_ARGUMENT)
+        {   
+        
+            JSAutoByteString nameBytes;
+            const char *name = JSVAL2String( cx, desc->id, &isString, &nameBytes);
+            if(!isString)
+                name = NULL;
+            JSAutoByteString valueBytes;
+            const char *value = JSVAL2String( cx, desc->value, &isString, &valueBytes);
+
+            buf = JS_sprintf_append(buf, "%s%s%s%s%s%s%s",
+                                    namedArgCount ? ", " : "",
+                                    name ? name :"",
+                                    name ? " = " : "",
+                                    isString ? "\"" : "",
+                                    value ? value : "?unknown?",
+                                    isString ? "\"" : "",
+                                    isString && (JSVAL_TO_STRING(desc->value ))->isTainted()?" [Tainted]":"");
+            if(!buf) goto out;
+            namedArgCount++;
+        }
+    }
+
+    // print any unnamed trailing args (found in 'arguments' object)
+
+    if(JS_GetProperty( cx, callObj, "arguments", &val) &&
+       JSVAL_IS_OBJECT(val))
+    {
+        uint32 argCount;
+        JSObject* argsObj = JSVAL_TO_OBJECT(val);
+        if(JS_GetProperty( cx, argsObj, "length", &val) &&
+           JS_ValueToECMAUint32( cx, val, &argCount) &&
+           argCount > namedArgCount)
+        {
+            for(uint32 k = namedArgCount; k < argCount; k++)
+            {
+                char number[8];
+                JS_snprintf(number, 8, "%d", (int) k);
+
+                if(JS_GetProperty( cx, argsObj, number, &val))
+                {
+                    JSAutoByteString valueBytes;
+                    const char *value = JSVAL2String( cx, val, &isString, &valueBytes);
+                    buf = JS_sprintf_append(buf, "%s%s%s%s",
+                                    k ? ", " : "",
+                                    isString ? "\"" : "",
+                                    value ? value : "?unknown?",
+                                    isString ? "\"" : "",isString && JSVAL_TO_STRING(val)->isTainted()?" [Tainted]":"");
+                    if(!buf) goto out;
+                }
+            }
+        }
+    } 
+out:
+    return buf;
+}
+
+char *
+getFunctionHeader ( JSContext *cx, js::StackFrame* fp){
+  JSString* funname = NULL;
+  char* buf=NULL;
+  JSAutoByteString funbytes;
+  JSFunction *fun;
+  if(fp->isEvalFrame()){
+    return buf;
+  }
+  if((fun = fp->maybeFun())){
+       funname = JS_GetFunctionId(fun);
+    if(funname)
+        buf = JS_sprintf_append(buf, "function %s(", funbytes.encode(cx, funname));
+    else if(fun)
+        buf = JS_sprintf_append(buf, "function anonymous(");
+    else{
+        buf = JS_sprintf_append(buf, "<top-level>");
+        return buf;
+    }
+    buf = JS_sprintf_append(buf, "%s )",getLocals(cx,Jsvalify(fp)));
+  }
+  return buf;
+}
+
+static JSBool
+fun_getStackTrace(JSContext *cx, uintN argc, Value *vp) {
+  
+    JS_ASSERT(IsFunctionObject(vp[0]));
+
+  
+    JSObject *obj = ToObject(cx, &vp[1]);
+    if (!obj)
+        return false;
+    JSObject *objRet=JS_NewArrayObject(cx,0,NULL);
+    if(!objRet)
+      return false;
+    JSStackFrame* fp;
+    JSStackFrame* iter = NULL;
+    int num = 0;
+    jsuint line=0;
+    uintN pc=0;
+    int i=-1;
+    jsval v;
+    while(NULL != (fp = JS_FrameIterator(cx, &iter)))  {
+      StackFrame *afp= Valueify(fp);
+      if(afp->maybeScript()){
+
+           const char *fn=afp->script()->filename;
+
+           if(cx->maybeRegs() && /*!JS_IsNativeFrame(cx, fp) &&*/ strncmp(fn,"resource",8) && strncmp(fn,"file",4) && strncmp(fn,"chrome",6)){
+
+              JSAutoRequest ar(cx);
+              pc =  FramePCOffset( cx, afp );
+              line = PPPcToLine(cx, pc, afp /* ,mPPLineMap */ ,objRet);
+              i++;
+              if(!line){
+               fprintf(stderr,"[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[ jscode \n");
+               
+              }
+              v=STRING_TO_JSVAL(JS_NewStringCopyZ(cx, afp->script()->filename)); 
+              JS_SetElement(cx, objRet,++i,&v);
+
+              v=INT_TO_JSVAL(line);
+              JS_SetElement(cx, objRet,++i,&v);
+
+               v= STRING_TO_JSVAL(JS_NewStringCopyZ(cx,getFunctionHeader(cx,afp ))) ; 
+               JS_SetElement(cx, objRet,++i,&v);
+
+
+          if(num>MAX_CALL_STACK)
+             break;
+           num++;
+           } else
+              line=0;
+      }
+    } 
+    vp->setObject(*objRet);
+    return true;
+ }
+#endif

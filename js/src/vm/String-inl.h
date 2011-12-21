@@ -74,8 +74,10 @@ JSRope::new_(JSContext *cx, JSString *left, JSString *right, size_t length)
        str = (JSRope *)jsstr ; 
     #ifdef DEBUG
       printf("Concat %d %d\n",left->isTainted(),right->isTainted());
-      js_DumpString(left);
-      js_DumpString(right);
+      #ifdef DEBUGVERBOSE
+       js_DumpString(left);
+       js_DumpString(right);
+      #endif
     #endif
 //      JSSTRING_SET_TAINTED(str);
        if(JSSTRING_IS_TAINTED(left) && !JSSTRING_IS_TAINTED(right) ){

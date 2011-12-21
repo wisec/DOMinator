@@ -6,6 +6,8 @@
 #include "taint.h"
 #include "jsscope.h" 
 #include "vm/Stack.h" 
+#include "jsobj.h" 
+#include "jsobjinlines.h"
 #include "jsarray.h"
 #include "jsvalue.h"
 #include "jsgc.h"
@@ -357,7 +359,7 @@ addTaintInfoOneArg(JSContext *cx,JSString *argStr,JSString *retStr,char *desc,Ta
  if(!TE){ //if it's not found, maybe we have to create it?
   return JS_FALSE;
  }
- 
+  
  TTE=addToTaintTable( cx, retStr,NULL,op);
  if(!TTE){
   return JS_FALSE;
@@ -436,7 +438,7 @@ static JSBool markLiveObjects(JSContext *cx, JSGCStatus theStatus){
       int refCount=-1;
 
         if (tmpITE->source && JS_IsAboutToBeFinalized(cx, tmpITE->source )) {
-              #ifdef DEBUG
+              #ifdef DEBUGVERBOSE
               printf("Source: \n");js_DumpString(tmpITE->source);
               #endif
               JS_ASSERT(tmpITE->refCount>=0);
@@ -444,7 +446,7 @@ static JSBool markLiveObjects(JSContext *cx, JSGCStatus theStatus){
                  refCount=0;
                  printf("String: DONT keep: \n");
               } else {
-         #ifdef DEBUG
+         #ifdef DEBUGVERBOSE
           printf("SourcE: KEEP, refCount: %d\n", tmpITE->refCount);
          #endif
                js::gc::MarkGCThing(&trc, (tmpITE->source) , "Taint Info" );
@@ -452,7 +454,7 @@ static JSBool markLiveObjects(JSContext *cx, JSGCStatus theStatus){
        }
         
         if ( tmpITE->str && JS_IsAboutToBeFinalized(cx, tmpITE->str)  /*(tmpGTO->gObj || hasUnGCedDependencies(cx,tmpITE))&& !tmpITE->gObj && hasUnGCedDependencies()*/ ) {
-              #ifdef DEBUG
+              #ifdef DEBUGVERBOSE
               printf("str: \n");js_DumpString(tmpITE->str);
              #endif
  
@@ -462,7 +464,7 @@ static JSBool markLiveObjects(JSContext *cx, JSGCStatus theStatus){
                  
              } else {
               
-         #ifdef DEBUG
+         #ifdef DEBUGVERBOSE
           printf("String: KEEP, refCount: %d\n",tmpITE->refCount);
          #endif
                 js::gc::MarkGCThing(&trc,  tmpITE->str, "Taint Info" );
@@ -470,7 +472,7 @@ static JSBool markLiveObjects(JSContext *cx, JSGCStatus theStatus){
         }
         if(!refCount){
          InfoTaintEntry *_tmpITE=tmpITE;
-         #ifdef DEBUG
+         #ifdef DEBUGVERBOSE
           printf("Ok, refCount: %d\n",refCount);
          #endif
          removeInfoTaintEntryDeps(tmpITE);
@@ -1180,13 +1182,33 @@ void logTaint(JSContext *cx ,const  char *what,const  char *who,jsval *argv){
        JSObject *jobj,*gobj ,*funargs;
        jsval _rval,_arg[4], domiObj ,domiUtil, domiUi,_rvalArgs;
        void *mark;
-       JSBool ok;
+       JSBool ok;  
+       JSExceptionState *state = JS_SaveExceptionState(cx);
+       if(!state)
+        fprintf(stderr,"Call to a debug function modifying state!\n");
+   JS_ClearPendingException(cx);
+
        gobj= JS_GetGlobalObject(cx);
-       if(cx && cx->fp() && cx->fp()->script() ){
+       if(gobj->compartment()!=cx->compartment)
+        { 
+         const char *c=cx->fp()->script()->filename;
+         if(cx->fp()->prev() && cx->fp()->prev()->maybeScript())
+         printf("FileName1: %s \nFileName2: %s\n",c, cx->fp()->prev()->script()->filename);
+        else
+         printf("FileName: %s\n", c );
+          printf("Different Compartment\n");
+          goto  exit;
+        }
+       if(cx && cx->maybefp() && cx->fp()->maybeScript() ){
         
         const char *c=cx->fp()->script()->filename;
-        if(c[0]=='c' && c[1]=='h' && c[2]=='r' && c[3]=='o' && c[4]=='m' ){
-            return;
+        if(cx->fp()->prev() && cx->fp()->prev()->maybeScript())
+         printf("FileName1: %s \nFileName2: %s\n",c, cx->fp()->prev()->script()->filename);
+        else
+         printf("FileName: %s\n", c );
+         
+        if(!strncmp(c,"chrome",6) || !strncmp(c,"resource",8) || (strncmp(c,"http",4))  ){
+            goto exit;
           }
        }
        // get ___domIntruderObj
@@ -1225,6 +1247,10 @@ void logTaint(JSContext *cx ,const  char *what,const  char *who,jsval *argv){
         }else{
          //printf("ERROR :what %s %s %s\n",what,who,js_GetStringBytes(cx,js_ValueToString( cx,  argv[0]))); 
         }
+exit:
+    JS_RestoreExceptionState(cx, state);
+   
+   
 }
 
 void EvalLog(JSContext *cx,jsval *argv) {

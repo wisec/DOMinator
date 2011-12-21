@@ -56,7 +56,10 @@
 #include "jsscan.h"
 #include "jsstr.h"
 #include "jsvector.h"
-
+#ifdef TAINTED
+ #include "taint.h"
+ #include "jsprf.h"
+#endif
 #include "vm/GlobalObject.h"
 
 #include "jsobjinlines.h"
@@ -618,21 +621,21 @@ ExecuteRegExp(JSContext *cx, ExecType execType, uintN argc, Value *vp)
 
 #ifdef TAINTED
 // here check for  logtaint
-// in order to log the Getter/SOURCE str is tainted.
-/*  if(  argc>0 ){
+// in order to log it if the Getter/SOURCE str is tainted.
+  if(  argc>0 ){
   JSString *tmpstr ;
-  tmpstr=js_ValueToString(cx, argv[0]);
+  tmpstr=js_ValueToString(cx, vp[2]);
   if(tmpstr && tmpstr->isTainted() ){
   jsval l;
   char *name=NULL; 
-  name= JS_sprintf_append(name, "%s(%s)",(test?"test":"exec"),
-                                 js_GetStringBytes(cx, re->source));
+  name= JS_sprintf_append(name, "%s(%s)",( execType == RegExpTest?"test":"exec"),
+                                 js_GetStringBytes(cx, re->getSource()));
   l=STRING_TO_JSVAL(tmpstr);
  // printf("REGEXP TESTING_                        __________________----------- %s\n",name);
   logTaint( cx,"Getter", name,&l);
   
   } 
- }*/
+ }
 #endif     
     /*
      * Code execution under this call could swap out the guts of |obj|, so we

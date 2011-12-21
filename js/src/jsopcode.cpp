@@ -336,6 +336,17 @@ js_Disassemble(JSContext *cx, JSScript *script, JSBool lines, Sprinter *sp)
 {
     return js_DisassembleAtPC(cx, script, lines, NULL, sp);
 }
+JS_FRIEND_API(JSBool)
+js_DumpPC_1(JSContext *cx,JSScript *script,jsbytecode *pc)
+{
+    void *mark = JS_ARENA_MARK(&cx->tempPool);
+    Sprinter sprinter;
+    INIT_SPRINTER(cx, &sprinter, &cx->tempPool, 0);
+    JSBool ok = js_DisassembleAtPC(cx,  script , true, pc, &sprinter);
+    fprintf(stdout, "%s", sprinter.base);
+    JS_ARENA_RELEASE(&cx->tempPool, mark);
+    return ok;
+}
 
 JS_FRIEND_API(JSBool)
 js_DumpPC(JSContext *cx)
