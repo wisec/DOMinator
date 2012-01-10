@@ -612,6 +612,9 @@ nsHTMLInputElement::nsHTMLInputElement(already_AddRefed<nsINodeInfo> aNodeInfo,
   : nsGenericHTMLFormElement(aNodeInfo),
     mType(kInputDefaultType->value),
     mBitField(0)
+#ifdef TAINTED
+ , mTainted(0)
+#endif
 {
   SET_BOOLBIT(mBitField, BF_PARSER_CREATING, aFromParser);
   SET_BOOLBIT(mBitField, BF_INHIBIT_RESTORATION,
@@ -993,6 +996,10 @@ nsHTMLInputElement::GetValueInternal(nsAString& aValue) const
   switch (GetValueMode()) {
     case VALUE_MODE_VALUE:
       mInputData.mState->GetValue(aValue, PR_TRUE);
+    #ifdef TAINTED
+    if(mTainted==1)
+     aValue.setTainted(1, mJSStr);
+     #endif
       return NS_OK;
 
     case VALUE_MODE_FILENAME:

@@ -732,7 +732,19 @@ xpc_qsDOMString::xpc_qsDOMString(JSContext *cx, jsval v, jsval *pval,
         return;
     }
 
+#ifdef TAINTED
+   // JSString *nStr= JS_CopyZString(s);
+   if(s->isTainted()){
+      
+      #ifdef DEBUG
+      js_DumpString(s);
+      #endif
+    }
+    new(mBuf) implementation_type(s->isTainted(),(void *)s,chars, len);
+  //  JS_addTaintInfoOneArg(cx,s,nStr,NULL,SET);
+#else
     new(mBuf) implementation_type(chars, len);
+#endif
     mValid = JS_TRUE;
 }
 
@@ -1086,6 +1098,21 @@ xpc_qsStringToJsval(JSContext *cx, nsString &str, jsval *rval)
     jsval jsstr = XPCStringConvert::ReadableToJSVal(cx, str, &sharedBuffer);
     if (JSVAL_IS_NULL(jsstr))
         return JS_FALSE;
+#ifdef TAINTED
+   if(str.isTainted()){
+    JSVAL_TO_STRING(jsstr)->setTainted();
+     JSObject *ob=JSVAL_TO_OBJECT( *rval);
+     if(VALUE_IS_FUNCTION(cx, *rval)){
+     JSFunction *fun = GET_FUNCTION_PRIVATE(cx, ob);
+     #ifdef DEBUG
+     printf("Nome Funzione\n");
+     js_DumpString(fun->atom);
+     #endif
+     }
+     JS_addTaintInfoOneArg(cx,(JSString *)str.getJSReference(),JSVAL_TO_STRING(jsstr),NULL,GET);
+    }
+#endif    
+        
     *rval = jsstr;
     if (sharedBuffer)
     {

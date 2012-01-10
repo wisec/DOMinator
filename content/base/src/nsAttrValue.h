@@ -146,6 +146,11 @@ public:
 
   // Methods to get value. These methods do not convert so only use them
   // to retrieve the datatype that this nsAttrValue has.
+#ifdef TAINTED
+  inline int isTainted() const;
+  inline void *getJSReference() const;
+#endif
+  
   inline PRBool IsEmptyString() const;
   const nsCheapString GetStringValue() const;
   inline nsIAtom* GetAtomValue() const;
@@ -386,12 +391,32 @@ private:
 
   static nsTArray<const EnumTable*, nsTArrayDefaultAllocator>* sEnumTableArray;
 
+#ifdef TAINTED
+  int mTainted;
+  void *mJSStr;
+#endif
   PtrBits mBits;
 };
 
 /**
  * Implementation of inline methods
  */
+#ifdef TAINTED
+inline int
+nsAttrValue::isTainted() const
+{
+#ifdef DEBUG
+ if(mTainted)
+  printf("PRENDEREI %d\n",mTainted);
+#endif
+  return mTainted;
+}
+inline void *
+nsAttrValue::getJSReference() const
+{
+  return mJSStr;
+}
+#endif
 
 inline nsIAtom*
 nsAttrValue::GetAtomValue() const

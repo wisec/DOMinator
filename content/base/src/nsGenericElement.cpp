@@ -4619,6 +4619,15 @@ nsGenericElement::GetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
   }
 
   val->ToString(aResult);
+  #ifdef TAINTED
+   if(val->isTainted()==1){
+      #ifdef DEBUG
+     printf("Risultato: %s %x\n",(static_cast<nsString >(aResult)).get(),val);
+     #endif
+     aResult.setTainted(1,val->getJSReference());
+   
+   }
+  #endif
 
   return PR_TRUE;
 }

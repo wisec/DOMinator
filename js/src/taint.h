@@ -97,10 +97,14 @@ typedef struct InfoTaintDep{
  } \
  static JSBool  str_getAllTaintInfo(JSContext *cx, uintN argc, jsval *vp){\
    return taint_getAllTaintInfo(cx,argc,vp);\
- }  
+ }  \
+ static JSBool  str_newTaintedDependency(JSContext *cx, uintN argc, jsval *vp){\
+   return  taint_newTaintedDependency(cx,argc,vp);\
+ }
 
 #define SET_NEWTAINTED() JS_FN("newTainted",    str_newTainted,       2,0),\
     JS_FN("unTaint",    str_unTaint,       1,0),\
+    JS_FN("addTaintOp",    str_newTaintedDependency ,       3,0),\
     JS_FN("getTaintInfo",    str_getTaintInfo,       1,0),\
     JS_FN("getAllTaintInfo",    str_getAllTaintInfo,       0,0),
 
@@ -133,6 +137,7 @@ extern JSBool taint_deTaint(JSContext *cx, uintN argc, jsval *vp);
 extern JSBool taint_GetTainted(JSContext *cx, JSString *str, jsval *vp);
 extern JSBool taint_getTaintInfo(JSContext *cx, uintN argc, jsval *vp);
 extern JSBool taint_getAllTaintInfo(JSContext *cx, uintN argc, jsval *vp);
+extern JSBool taint_newTaintedDependency(JSContext *cx, uintN argc, jsval *vp);
 
 extern JSBool taint_setTaintConcatN(JSContext *cx,jsval *sp,int argc,JSString **resStr);
 extern JSBool js_ObjectHasKeyTainted(JSContext *cx,JSObject *obj);

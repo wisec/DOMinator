@@ -216,6 +216,11 @@ public:
   NS_IMETHOD_(void) OnValueChanged(PRBool aNotify);
   NS_IMETHOD_(PRBool) HasCachedSelection();
 
+  #ifdef TAINTED
+  int isTainted(){return mTainted;}
+  void * getJSReference(){return mJSStr;}
+  #endif
+
   void GetDisplayFileName(nsAString& aFileName) const;
   const nsCOMArray<nsIDOMFile>& GetFiles() const;
   void SetFiles(const nsCOMArray<nsIDOMFile>& aFiles, bool aSetValueChanged);
@@ -607,6 +612,10 @@ protected:
      */
     nsTextEditorState*       mState;
   } mInputData;
+  #ifdef TAINTED
+  int mTainted;
+  void *mJSStr;
+  #endif
   /**
    * The value of the input if it is a file input. This is the list of filenames
    * used when uploading a file. It is vital that this is kept separate from

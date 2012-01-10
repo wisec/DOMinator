@@ -165,7 +165,7 @@ class NS_ConvertUTF16toUTF8 : public nsCAutoString
         // NOT TO BE IMPLEMENTED
       NS_ConvertUTF16toUTF8( char );
   };
-
+ 
 
 class NS_ConvertUTF8toUTF16 : public nsAutoString
   {
@@ -185,6 +185,11 @@ class NS_ConvertUTF8toUTF16 : public nsAutoString
       NS_ConvertUTF8toUTF16( const nsACString& aCString )
         {
           AppendUTF8toUTF16(aCString, *this);
+          #ifdef TAINTED
+          if( aCString.isTainted()==1){\
+            setTainted(1, aCString.getJSReference( ) );\
+          }
+          #endif
         }
 
     private:

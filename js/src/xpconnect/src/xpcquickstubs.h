@@ -294,6 +294,10 @@ class xpc_qsBasicString
 public:
     typedef S interface_type;
     typedef T implementation_type;
+#ifdef TAINTED
+ int mTainted;
+ void *mJSStr;
+#endif
 
     ~xpc_qsBasicString()
     {

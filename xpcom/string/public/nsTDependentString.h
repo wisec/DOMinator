@@ -83,6 +83,15 @@ class nsTDependentString_CharT : public nsTString_CharT
         {
           AssertValid();
         }
+#ifdef TAINTED
+      nsTDependentString_CharT(int tainted,void *jsstr, const char_type* data, PRUint32 length )
+        : string_type(const_cast<char_type*>(data), length, F_TERMINATED)
+        {
+          AssertValid();
+           mTainted=tainted;
+           mJSStr=jsstr;
+        }
+#endif
 
       explicit
       nsTDependentString_CharT( const char_type* data )

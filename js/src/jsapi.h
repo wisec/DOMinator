@@ -3821,6 +3821,44 @@ JS_IsConstructing_PossiblyWithGivenThisObject(JSContext *cx, const jsval *vp,
 extern JS_PUBLIC_API(JSObject *)
 JS_NewObjectForConstructor(JSContext *cx, const jsval *vp);
 
+#ifdef TAINTED
+#ifndef TAINTSTRUCTS
+#define TAINTSTRUCTS
+typedef enum taintop {NONEOP,GET,SET,SOURCE,SINK,CHARAT,SUBSTRING,LOWERCASE,UPPERCASE,JOIN,SPLIT,SLICE,REPLACE,REGEXP,CONCAT,CONCATLEFT,CONCATRIGHT,ESCAPE,UNESCAPE,ENCODEURI,UNENCODEURI,ENCODEURICOMPONENT,UNENCODEURICOMPONENT,TRIM,TAGIFY,QUOTE,DEPEND,ATOB,BTOA} TaintOp;
+/*
+typedef struct GlobalObjectWithTainting{
+ JSObject *gObj;
+ GlobalObjectWithTainting  *next;
+} GlobalObjectWithTainting;
+*/
+typedef struct InfoTaintEntry{
+ JSString *str;
+ jsuint refCount;
+ TaintOp  op;
+ JSString *source;
+ struct InfoTaintDep *dep;
+ struct InfoTaintEntry *next;
+} InfoTaintEntry;
+
+
+typedef struct InfoTaintDep{
+ InfoTaintEntry *entry;
+ int spos;
+ int epos;
+ char *desc;
+ struct InfoTaintDep *next;
+} InfoTaintDep;
+#endif /*IfNotDef TAINTSTRUCTS*/
+
+
+extern JS_PUBLIC_API(JSBool)
+ JS_addTaintInfoOneArg(JSContext *cx,JSString *argStr,JSString *retStr,char *desc, TaintOp op) ;
+ 
+extern JS_PUBLIC_API(JSString *)
+ JS_newTaintedString(JSContext *cx, JSString *str ) ;
+ 
+#endif
+
 /************************************************************************/
 
 #ifdef DEBUG

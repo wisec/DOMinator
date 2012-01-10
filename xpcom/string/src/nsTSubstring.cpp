@@ -43,6 +43,9 @@ nsTSubstring_CharT::nsTSubstring_CharT( char_type *data, size_type length,
   : mData(data),
     mLength(length),
     mFlags(flags)
+#ifdef TAINTED
+, mTainted(0)
+#endif
   {
     if (flags & F_OWNED) {
       STRING_STAT_INCREMENT(Adopt);
@@ -328,7 +331,11 @@ nsTSubstring_CharT::Assign( const char_type* data, size_type length )
     if (IsDependentOn(data, data + length))
       {
         // take advantage of sharing here...
-        Assign(string_type(data, length));
+        #ifdef TAINTED
+        Assign(string_type((mTainted?mJSStr:NULL),data, length));
+        #else
+        Assign(string_type(data, length));        
+        #endif
         return;
       }
 
@@ -369,6 +376,9 @@ nsTSubstring_CharT::Assign( const self_type& str )
     if (&str == this)
       return;
 
+ #ifdef TAINTED
+    setTainted(str.isTainted(),str.getJSReference());
+ #endif
     if (!str.mLength)
       {
         Truncate();
@@ -852,3 +862,12 @@ nsTSubstring_CharT::DoAppendFloat( double aFloat, int digits )
   AppendASCII(buf);
 }
 
+#ifdef TAINTED
+void  nsTSubstring_CharT::setTainted(int tainted){
+  mTainted = tainted;
+}
+void nsTSubstring_CharT::setTainted(int tainted,void *str){
+  mTainted = tainted;
+  mJSStr=str;
+}
+#endif

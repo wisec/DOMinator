@@ -157,6 +157,10 @@ private:
   void *d1;
   PRUint32 d2;
   PRUint32 d3;
+#ifdef TAINTED
+  int d4;
+  void *d5;
+#endif
 };
 
 /**

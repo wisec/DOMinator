@@ -6208,6 +6208,23 @@ JS_ScheduleGC(JSContext *cx, uint32 count, JSBool compartment)
 }
 #endif
 
+#ifdef TAINTED
+
+JS_PUBLIC_API(JSBool)
+ JS_addTaintInfoOneArg(JSContext *cx,JSString *argStr,JSString *retStr,char *desc, TaintOp op) {
+
+  return addTaintInfoOneArg(cx,argStr,retStr,desc,op);
+}
+
+JS_PUBLIC_API(JSString * )
+ JS_newTaintedString(JSContext *cx, JSString *str ) {
+
+  return taint_newTaintedString ( cx, str);
+}
+
+
+#endif
+
 /************************************************************************/
 
 #if !defined(STATIC_EXPORTABLE_JS_API) && !defined(STATIC_JS_API) && defined(XP_WIN)

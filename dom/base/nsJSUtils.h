@@ -49,6 +49,10 @@
 #include "jsapi.h"
 #include "nsString.h"
 
+#ifdef TAINTED
+#include "vm/String.h"
+#endif
+
 class nsIDOMEventListener;
 class nsIScriptContext;
 class nsIScriptGlobalObject;
@@ -115,6 +119,12 @@ public:
       NS_ASSERTION(IsEmpty(), "init() on initialized string");
       nsDependentString* base = this;
       new(base) nsDependentString(chars, length);
+      #ifdef TAINTED
+      if(str->isTainted()){
+       mTainted=1;
+       mJSStr=str;
+      }
+      #endif
       return JS_TRUE;
   }
 

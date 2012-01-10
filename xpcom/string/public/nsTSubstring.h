@@ -197,6 +197,17 @@ class nsTSubstring_CharT
           return iter = EnsureMutable() ? (mData + mLength) : char_iterator(0);
         }
 
+#ifdef TAINTED
+      NS_COM int isTainted() const{
+       return mTainted;
+      }
+      NS_COM void * getJSReference( )  const{
+       return mJSStr;
+      }
+      NS_COM void setTainted(int tainted);
+      NS_COM void setTainted(int tainted,void *str);
+
+#endif
 
         /**
          * accessors
@@ -571,6 +582,9 @@ class nsTSubstring_CharT
         : mData(nsnull),
           mLength(0),
           mFlags(F_NONE)
+#ifdef TAINTED
+  ,mTainted(0)
+#endif
         {
           Assign(tuple);
         }
@@ -590,7 +604,11 @@ class nsTSubstring_CharT
        nsTSubstring_CharT( char_type *data, size_type length, PRUint32 flags )
          : mData(data),
            mLength(length),
-           mFlags(flags) {}
+           mFlags(flags)
+#ifdef TAINTED
+, mTainted(0)
+#endif           
+            {}
 #endif /* DEBUG || FORCE_BUILD_REFCNT_LOGGING */
 
     protected:
@@ -604,24 +622,41 @@ class nsTSubstring_CharT
       char_type*  mData;
       size_type   mLength;
       PRUint32    mFlags;
+#ifdef TAINTED 
+      int mTainted;
+      void *mJSStr;
+#endif
 
         // default initialization 
       nsTSubstring_CharT()
         : mData(char_traits::sEmptyBuffer),
           mLength(0),
-          mFlags(F_TERMINATED) {}
+          mFlags(F_TERMINATED)
+#ifdef TAINTED
+, mTainted(0)
+#endif 
+{}
 
         // version of constructor that leaves mData and mLength uninitialized
       explicit
       nsTSubstring_CharT( PRUint32 flags )
-        : mFlags(flags) {}
+        : mFlags(flags)
+#ifdef TAINTED
+, mTainted(0)
+#endif
+ {}
 
         // copy-constructor, constructs as dependent on given object
         // (NOTE: this is for internal use only)
       nsTSubstring_CharT( const self_type& str )
         : mData(str.mData),
           mLength(str.mLength),
-          mFlags(str.mFlags & (F_TERMINATED | F_VOIDED)) {}
+          mFlags(str.mFlags & (F_TERMINATED | F_VOIDED))
+#ifdef TAINTED
+, mTainted(str.mTainted)
+, mJSStr(str.mJSStr)
+#endif
+ {}
 
         /**
          * this function releases mData and does not change the value of

@@ -62,35 +62,53 @@ nsTArray<const nsAttrValue::EnumTable*>* nsAttrValue::sEnumTableArray = nsnull;
 
 nsAttrValue::nsAttrValue()
     : mBits(0)
+ #ifdef TAINTED
+  , mTainted(0) 
+ #endif
 {
 }
 
 nsAttrValue::nsAttrValue(const nsAttrValue& aOther)
     : mBits(0)
+ #ifdef TAINTED
+  , mTainted(0) 
+ #endif
 {
   SetTo(aOther);
 }
 
 nsAttrValue::nsAttrValue(const nsAString& aValue)
     : mBits(0)
+ #ifdef TAINTED
+  , mTainted(0) 
+ #endif
 {
   SetTo(aValue);
 }
 
 nsAttrValue::nsAttrValue(css::StyleRule* aValue, const nsAString* aSerialized)
     : mBits(0)
+ #ifdef TAINTED
+  , mTainted(0) 
+ #endif
 {
   SetTo(aValue, aSerialized);
 }
 
 nsAttrValue::nsAttrValue(nsISVGValue* aValue)
     : mBits(0)
+ #ifdef TAINTED
+  , mTainted(0) 
+ #endif
 {
   SetTo(aValue);
 }
 
 nsAttrValue::nsAttrValue(const nsIntMargin& aValue)
     : mBits(0)
+ #ifdef TAINTED
+  , mTainted(0) 
+ #endif
 {
   SetTo(aValue);
 }
@@ -187,6 +205,13 @@ nsAttrValue::SetTo(const nsAttrValue& aOther)
         str->AddRef();
         SetPtrValueAndType(str, eStringBase);
       }
+      #ifdef TAINTED
+      if(aOther.isTainted()==1){
+
+       mTainted=1;
+       mJSStr=aOther.mJSStr;
+      }
+      #endif
       return;
     }
     case eOtherBase:
@@ -296,6 +321,15 @@ nsAttrValue::SetTo(const nsAString& aValue)
   if (buf) {
     SetPtrValueAndType(buf, eStringBase);
   }
+    #ifdef TAINTED
+       if(aValue.isTainted()==1){
+       #ifdef DEBUG
+        printf("This Attribute is tainted! %x \n",this);
+       #endif
+        mTainted=1;
+        mJSStr=aValue.getJSReference();
+       }
+     #endif
 }
 
 void
@@ -342,6 +376,12 @@ nsAttrValue::SwapValueWith(nsAttrValue& aOther)
   PtrBits tmp = aOther.mBits;
   aOther.mBits = mBits;
   mBits = tmp;
+#ifdef TAINTED
+  if(aOther.isTainted()==1){
+   mTainted=1;
+   mJSStr=aOther.mJSStr;
+  }
+#endif
 }
 
 void
@@ -841,6 +881,12 @@ nsAttrValue::ParseAtom(const nsAString& aValue)
   if (atom) {
     SetPtrValueAndType(atom, eAtomBase);
   }
+  #ifdef TAINTED
+  if(aValue.isTainted()==1){
+   mTainted=1;
+   mJSStr=aValue.getJSReference();
+  }
+  #endif
 }
 
 void

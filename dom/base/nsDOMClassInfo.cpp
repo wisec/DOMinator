@@ -8472,6 +8472,12 @@ nsDOMStringMapSH::GetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   if (valBuf) {
     propVal.ForgetSharedBuffer();
   }
+#ifdef TAINTED
+   if(propVal.isTainted()){
+    JSVAL_TO_STRING(*vp)->setTainted();
+      JS_addTaintInfoOneArg(cx,(JSString *) propVal.getJSReference(),JSVAL_TO_STRING(*vp ),NULL,GET);
+    }
+#endif    
 
   return NS_SUCCESS_I_DID_SOMETHING;
 }

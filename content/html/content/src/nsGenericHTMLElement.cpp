@@ -2296,6 +2296,12 @@ nsGenericHTMLElement::GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr, nsAString& 
   nsCAutoString spec;
   uri->GetSpec(spec);
   CopyUTF8toUTF16(spec, aResult);
+   #ifdef TAINTED
+   const nsAttrValue* attr = mAttrsAndChildren.GetAttr(aAttr); 
+   if(attr->isTainted()==1){
+    aResult.setTainted(1,attr->getJSReference());
+   }
+   #endif
   return NS_OK;
 }
 

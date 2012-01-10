@@ -99,6 +99,21 @@ class nsTString_CharT : public nsTSubstring_CharT
           Assign(readable);
         }
 
+        #ifdef TAINTED
+      explicit
+      nsTString_CharT(void *tainted, const char_type* data, size_type length = size_type(-1) )
+        : substring_type()
+        {
+          Assign(data, length);
+          if(tainted){
+           mTainted=1;
+           mJSStr=tainted;
+          }else{
+           mTainted=0;
+           mJSStr=0;
+          }
+        }
+        #endif
 
         // |operator=| does not inherit, so we must define our own
       self_type& operator=( char_type c )                                                       { Assign(c);        return *this; }

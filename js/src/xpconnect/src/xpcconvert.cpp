@@ -53,6 +53,11 @@
 #include "AccessCheck.h"
 #include "nsJSUtils.h"
 
+#ifdef TAINTED
+#include "nsIDOMElement.h"
+#include "nsIDOMWindow.h"
+#endif 
+
 //#define STRICT_CHECK_OF_UNICODE
 #ifdef STRICT_CHECK_OF_UNICODE
 #define ILLEGAL_RANGE(c) (0!=((c) & 0xFF80))
@@ -356,6 +361,27 @@ XPCConvert::NativeData2JS(XPCLazyCallContext& lccx, jsval* d, const void* s,
                         return JS_FALSE;
                     if(buf)
                         buf->AddRef();
+                #ifdef TAINTED
+                   XPCCallContext& ccx= lccx.GetXPCCallContext();
+                   if(p->isTainted()==1 && ccx.GetXPCContext()->CallerTypeIsJavaScript()){
+                      JSString *jstr = JS_ValueToString(cx,str);
+                      if(jstr->length()==0)
+                       jstr=JS_newTaintedString(cx,jstr);
+                      jstr->setTainted();
+                      const char *mname;
+                      mname=JS_EncodeString(cx,JSID_TO_STRING(ccx.GetMember()->GetName()));
+                      
+                      TaintOp op=SET;
+                      if(!strcmp("atob", mname ))
+                       op=ATOB;
+                      else if(!strcmp("btoa", mname ))
+                        op=BTOA;
+                      JS_addTaintInfoOneArg(cx,(JSString *)p->getJSReference(),jstr,NULL,op);
+                    /*  printf( "Setto str currentObject %s su globalObject Class: %s val: %s\n", STOBJ_GET_CLASS(ccx.GetCurrentJSObject())->name ,((cx->globalObject)->getClass())->name,
+                                JS_GetStringBytes((JSString *)p->getJSReference() )
+                             ); */
+                   }
+                #endif 
 
                     *d = str;
                 }
@@ -737,6 +763,9 @@ XPCConvert::JSData2Native(XPCCallContext& ccx, void* d, jsval s,
         {
             static const PRUnichar EMPTY_STRING[] = { '\0' };
             static const PRUnichar VOID_STRING[] = { 'u', 'n', 'd', 'e', 'f', 'i', 'n', 'e', 'd', '\0' };
+#ifdef TAINTED
+            JSBool  setTaint= JS_FALSE;
+#endif
 
             const PRUnichar* chars;
             JSString* str = nsnull;
@@ -761,6 +790,63 @@ XPCConvert::JSData2Native(XPCCallContext& ccx, void* d, jsval s,
                 str = JS_ValueToString(cx, s);
                 if(!str)
                     return JS_FALSE;
+ #ifdef TAINTED
+               if( ccx.GetXPCContext()->CallerTypeIsJavaScript()){
+                 JSScript* script = nsnull;
+                 JSContext *cx=  ccx.GetJSContext();
+                 js::StackFrame* fp = cx->maybefp();
+                 while(fp) {
+                     script = fp->maybeScript();
+                     if(script)
+                     {
+                       //  callee = fp->callee;
+                         break;
+                     }
+                    fp = fp->prev();;
+                 }
+                 uint32 flags = 0;
+                 //XXX Stefano Don't we need it anymore?
+                 //flags = script ? JS_GetScriptFilenameFlags(script) : 0;
+                 if(/*!(flags & JSFILENAME_PROTECTED || flags & JSFILENAME_SYSTEM) &&*/ str->isTainted()){
+                  // Errore di fondo:
+                  // anche i log diventano parte del tainting..giustamente. dobbiamo trovare un modo per fermare questo...:/
+                        nsIDOMElement* wn;
+                       if(NS_SUCCEEDED(ccx.GetTearOff()->GetNative()->QueryInterface(NS_GET_IID(nsIDOMElement),(void**)&wn))){
+                        
+                               setTaint=JS_TRUE;
+                               NS_RELEASE(wn);
+                        #ifdef DEBUG
+                           printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>String:  is tainted!!!! Interface: %s<<<<<<<<<<<<<<<<<<<<<useAllocator: %d \n",ccx.GetTearOff()->GetInterface()->GetNameString(),useAllocator);
+                           js_DumpString(str);
+                        #endif
+                       }else if(NS_SUCCEEDED(ccx.GetTearOff()->GetNative()->QueryInterface(NS_GET_IID(nsIDOMWindowInternal),(void**)&wn))){
+                                const char* mname;
+                                        static const char* skipClasses[] = {
+                                            "postMessage",
+                                            "atob",
+                                            "btoa",
+                                            nsnull
+                                        };
+//                                mname=JS_GetStringBytes(JSID_TO_STRING( ccx.GetMember()->GetName()));
+                                mname = JS_EncodeString(cx,JSID_TO_STRING(ccx.GetMember()->GetName())) ;
+                                for(const char** name = skipClasses; *name; name++)
+                                {
+                                    if(!strcmp(*name, mname ))
+                                    {
+                                        setTaint=JS_TRUE;
+                                        break;
+                                    }
+                                }
+                       
+                                NS_RELEASE(wn);
+                       #ifdef DEBUG
+                        printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Stringa:  Tainted tainted!!!! Interface: %s<<<<<<<<<<<<<<<<<<<<<useAllocator: %d \n",ccx.GetTearOff()->GetInterface()->GetNameString(),useAllocator); 
+                          js_DumpString(str);
+                       #endif
+                      }
+                 }
+               }
+ #endif
 
                 length = (PRUint32) JS_GetStringLength(str);
                 if(length)
@@ -794,6 +880,11 @@ XPCConvert::JSData2Native(XPCCallContext& ccx, void* d, jsval s,
                         return JS_FALSE;
 
                     *((const nsAString**)d) = wrapper;
+               #ifdef TAINTED
+                    (*((nsAString**)d))->setTainted((setTaint?1:0),(void *)str);
+//                    if(setTaint)
+ //                    JS_addTaintInfoOneArg(cx,(JSString *)p->getJSReference(),str,SET);
+                #endif
                 }
                 else if(JSVAL_IS_NULL(s))
                 {
@@ -806,8 +897,14 @@ XPCConvert::JSData2Native(XPCCallContext& ccx, void* d, jsval s,
                 }
                 else
                 {
+               #ifdef TAINTED
+                     
+                     const nsAString *rs = new nsString((void *)(setTaint && str && str->isTainted()  ?str:0),chars, length);
+                    
+               #else
                     // use nsString to encourage sharing
                     const nsAString *rs = new nsString(chars, length);
+               #endif
                     if(!rs)
                         return JS_FALSE;
                     *((const nsAString**)d) = rs;

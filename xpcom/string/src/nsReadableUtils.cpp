@@ -41,12 +41,21 @@
 #include "nsString.h"
 #include "nsUTF8Utils.h"
 
+#ifdef TAINTED
+#define COPY_TAINT(src,dest)      if((src).isTainted()==1){\
+      (dest).setTainted(1,(src).getJSReference( ) );\
+     }
+#endif
+
 NS_COM
 void
 LossyCopyUTF16toASCII( const nsAString& aSource, nsACString& aDest )
   {
     aDest.Truncate();
     LossyAppendUTF16toASCII(aSource, aDest);
+    #ifdef TAINTED
+    COPY_TAINT(aSource,aDest)
+    #endif
   }
 
 NS_COM
@@ -55,6 +64,9 @@ CopyASCIItoUTF16( const nsACString& aSource, nsAString& aDest )
   {
     aDest.Truncate();
     AppendASCIItoUTF16(aSource, aDest);
+    #ifdef TAINTED
+    COPY_TAINT(aSource,aDest)
+    #endif
   }
 
 NS_COM
@@ -83,6 +95,9 @@ CopyUTF16toUTF8( const nsAString& aSource, nsACString& aDest )
   {
     aDest.Truncate();
     AppendUTF16toUTF8(aSource, aDest);
+    #ifdef TAINTED
+    COPY_TAINT(aSource,aDest)
+    #endif
   }
 
 NS_COM
@@ -91,6 +106,9 @@ CopyUTF8toUTF16( const nsACString& aSource, nsAString& aDest )
   {
     aDest.Truncate();
     AppendUTF8toUTF16(aSource, aDest);
+    #ifdef TAINTED
+    COPY_TAINT(aSource,aDest)
+    #endif
   }
 
 NS_COM

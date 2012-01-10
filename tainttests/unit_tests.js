@@ -6,6 +6,9 @@ var zerolengthuntaintedNewString=new String("");
 var zerolengthuntainted="";
 ts.tainted
 
+__domIntruderObj={domILog:function(a,b,c,d){print(a,b,c,d)}};
+
+
 ///////////////////////////
 // [String in Object Test]
 
@@ -343,5 +346,18 @@ v=cv.join(' ')
 assert("Array join ","v.tainted",true);
 
 String.getTaintInfo(v) 
+
+///////////////////////////
+/// Array Objects.
+var ts=String.newTainted("ddddd\nddd","dd")   
+c='ddd'+ts
+cv=[c,ts,'dddd']
+cv[]
+
+////////////////////
+/// Eval tests
+var tse=String.newTainted("test","dd")   
+eval("print('"+tse+"')")
+
 
 printResults();

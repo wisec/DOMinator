@@ -98,7 +98,12 @@ void traverseInfoTaintDep(JSContext *cx ,InfoTaintDep *ITD,JSString *str,JSObjec
      
       v=INT_TO_JSVAL( tmpITD->epos);
       JS_SetProperty(cx,entryObj,"endPos",&v);
-     
+      
+      if( tmpITD->desc != NULL){
+       v=STRING_TO_JSVAL(  js_NewStringCopyZ(cx,tmpITD->desc));
+       JS_SetProperty(cx,entryObj,"desc",&v);
+      }
+      
       v=OBJECT_TO_JSVAL(entryObj );
       JS_SetElement(cx,depArr,i,&v);
      
@@ -328,6 +333,9 @@ JSBool removeInfoTaintEntryDeps( InfoTaintEntry *ITE){
        if(tmpITD->entry){
        JS_ASSERT(tmpITD->entry->refCount>0);
        tmpITD->entry->refCount--;
+       }
+       if(tmpITD->desc){
+         free(tmpITD->desc);
        }
        nextITD=tmpITD->next;
        free(tmpITD);
@@ -1111,44 +1119,33 @@ JSBool taint_newTaintedDependency(JSContext *cx, uintN argc, jsval *vp)
     jsval *argv;
     const jschar *chars;
     size_t len;
-    JSString *str1,*astr;
     
- /*   argv = vp + 2;
-    JS_ASSERT(argc  <= JS_ARGS_LENGTH_MAX);
-    // Set "" if JSVAL IS NULL or argc ==0
-
-    if(JSVAL_IS_STRING(argv[0])){
-     str1= JSVAL_TO_STRING(argv[0]);
-     if(!JSSTRING_IS_TAINTED(str1)){
-        // str1->getCharsAndLength(chars,len);
-         chars=str1->getChars(cx);
-         len= str1->length();
-
-         astr=js_NewStringCopyN(cx,chars,len);
-         if (!astr) {
-           //  cx->free(chars);
-             return JS_FALSE;
-         }
-         JSSTRING_SET_TAINTED(astr);
-     }else{
-       astr=str1;
-     }
-    if(!JSVAL_IS_NULL(argv[1]) && JSVAL_IS_STRING(argv[1])){
-      JSString *bindStr;
-      bindStr=  JSVAL_TO_STRING(argv[1]);
-
-      addToTaintTable(cx,astr,bindStr,SOURCE);
+   argv = vp + 2;
+    JS_ASSERT(argc  <=  js::StackSpace::ARGS_LENGTH_MAX);
+ 
+    if(argc==3 && JSVAL_IS_STRING(argv[0])&&  JSVAL_IS_STRING(argv[1])&&  JSVAL_IS_STRING(argv[2]) ){
+       JSString *newStr,*oldStr,*op;
+       const jschar *chars;
+       size_t nchars;
+       char *opChars ;
+       newStr = JSVAL_TO_STRING(argv[0]);
+       if(!newStr->isTainted()){
+        return JS_FALSE;
+       }
+       oldStr =JSVAL_TO_STRING(argv[1]);
+       if(! oldStr->isTainted()){
+        return JS_FALSE;
+       }
        
-    }else{
-          JSString *bindStr;
-      bindStr= cx->runtime->emptyString;
-      addToTaintTable(cx,astr,bindStr,SOURCE);
-   
-    }
-
-     *vp = STRING_TO_JSVAL(astr);    
-    return JS_TRUE;
-    }*/
+       op=JSVAL_TO_STRING(argv[2]);
+       
+       chars= JS_GetStringCharsAndLength(cx, op , &nchars);
+       opChars=js::DeflateString(cx,chars,nchars);
+       addTaintInfoOneArg( cx,oldStr , newStr,  opChars,DEPEND);
+       *vp = JSVAL_VOID; 
+       return JS_TRUE;
+    }  
+ 
     return JS_FALSE; 
 }
 
@@ -1159,13 +1156,8 @@ taint_newTaintedString(JSContext *cx, JSString *oriStr)
     const jschar *chars; 
     size_t len; 
     JSString *str,*str1,*astr;
-     
-    //XXXStefano Note: is this the correct one?
-    // Trying to prevent some race condition on GC
-    // js::AutoLockGC lock(cx->runtime);
 
     str1= oriStr;
-       //  str1->getCharsAndLength(const_cast<const jschar *&> (chars),len);
     chars= str1->getChars(cx);
     len= str1->length();
     astr=js_NewStringCopyN(cx,chars,len);
@@ -1174,7 +1166,6 @@ taint_newTaintedString(JSContext *cx, JSString *oriStr)
         return JS_FALSE;
     }
     JSSTRING_SET_TAINTED(astr);
-    //JS_AddNamedStringRoot(cx,&astr,"Taint");
     return  astr;
 }
  
