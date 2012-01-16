@@ -4032,7 +4032,41 @@ BEGIN_CASE(JSOP_GETELEM)
                 goto error;
         }
     }
-
+        #ifdef TAINTED
+    if((rref.isString()) && ((rref).toString())->isTainted() ) {
+                 JSString *str____;
+                 js::Class *clasp;
+                 const char *classname;
+                 char *name=NULL;
+                 clasp = obj->getClass();
+                 str____=(rref.toString());
+                 if(!strcmp(obj->proto->getClass()->name,"XPC_WN_ModsAllowed_NoCall_Proto_JSClass")){
+                   JSObject *_tobj=obj;
+                   classname=clasp->name;
+                   if(obj->isProxy()){
+                     if((_tobj=obj->getProxyPrivate().toObjectOrNull()))
+                      classname= _tobj->getClass()->name;
+                    // classname=((JSExtendedClass *)clasp)->wrappedObject(cx,_tobj)->getClass()->name;
+                   }
+                   name= JS_sprintf_append( NULL, "%s[%s]",classname,js_GetStringBytes(cx,str____));               
+                   logTaint(cx, "SPECIALOBJKEYGET" , name  , &Jsvalify(rref));            
+                   if(name)                                                 
+                     free(name);                                               
+                #ifdef DEBUG
+                   js_DumpObject(obj);
+                #endif 
+                }else{
+                 classname=clasp->name;
+                 name= JS_sprintf_append( NULL, "%s[%s]",classname,js_GetStringBytes(cx,str____));               
+                 logTaint(cx, "OBJKEYGET" ,name , &Jsvalify(rref));            
+                 if(name)                                                 
+                   free(name);
+                }
+      #ifdef DEBUG 
+      js_DumpString( (rref.toString()));
+      #endif
+    }
+        #endif
     if (!obj->getProperty(cx, id, &rval))
         goto error;
     copyFrom = &rval;

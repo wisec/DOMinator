@@ -619,7 +619,8 @@ ExecuteRegExp(JSContext *cx, ExecType execType, uintN argc, Value *vp)
     if (!re)
         return true;
 
-#ifdef TAINTED
+#ifdef TAINTED_OFF
+// moved to Js wrapper.
 // here check for  logtaint
 // in order to log it if the Getter/SOURCE str is tainted.
   if(  argc>0 ){

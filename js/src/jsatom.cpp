@@ -524,7 +524,7 @@ Atomize(JSContext *cx,const jschar **pchars, size_t length, JSString *str,
      
      
  //XXXStefano TODO we still don't know if we have to add !str.tainted condition
- //  if(!str->isTainted())
+   if(!str->isTainted())
     if (JSAtom *s = JSAtom::lookupStatic(chars, length))
         return s;
 
@@ -558,8 +558,10 @@ Atomize(JSContext *cx,const jschar **pchars, size_t length, JSString *str,
         if (!key)
             return NULL;
     }
-    if(str->isTainted())
+    if(str->isTainted()){
       key->setTainted();
+       addTaintInfoOneArg(cx,str,key,NULL,NONEOP);
+     }
     /*
      * We have to relookup the key as the last ditch GC invoked from the
      * string allocation or OOM handling may unlock the atomsCompartment.

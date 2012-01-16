@@ -5040,6 +5040,11 @@ js_LookupProperty(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
               if((keyOrVal=js_ObjectHasKeyTainted( cx, obj))){
                 jsval l;
                 l= Jsvalify(IdToValue(id));
+                JSObject *theob=JS_NewObject(cx,NULL,NULL,NULL);
+                JS_SetProperty(cx,theob ,"str",&l);
+                l = OBJECT_TO_JSVAL(obj);
+                JS_SetProperty(cx,theob ,"obj",&l);
+                l = OBJECT_TO_JSVAL(theob );
                 if(keyOrVal==1){
                  logTaint( cx,"Check","Exists(Key)",&l);
                 }
@@ -5528,7 +5533,13 @@ js_GetPropertyHelperInline(JSContext *cx, JSObject *obj, JSObject *receiver, jsi
                   jsval l;
                   JSAutoByteString funNameBytes;
                   l= Jsvalify(IdToValue(id));
+                  
                   if(!cx->fp()->maybeFun() || strcmp(GetFunctionNameBytes(cx,cx->fp()->maybeFun(),&funNameBytes),"log") ){
+                      JSObject *theob=JS_NewObject(cx,NULL,NULL,NULL);
+                      JS_SetProperty(cx,theob ,"str",&l);
+                      l = OBJECT_TO_JSVAL(obj);
+                      JS_SetProperty(cx,theob ,"obj",&l);
+                      l = OBJECT_TO_JSVAL(theob );
                       if(keyOrVal==1){
                         logTaint( cx,"Check","Exists(Key)",&l);
                       }else{
