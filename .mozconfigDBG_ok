@@ -41,7 +41,7 @@ ac_add_options --enable-trace-malloc
 #ac_add_options --enable-debug
 #ac_add_options --enable-libxul
 ##ac_add_options --enable-debug-symbols=DBG
-#ac_add_options --disable-crashreporter 
+#ac_add_options --disable-crashreporter
 #ac_add_options --disable-calendar
 #ac_add_options --disable-chatzilla
 #ac_add_options --disable-composer
@@ -49,7 +49,7 @@ ac_add_options --enable-trace-malloc
 #ac_add_options --disable-ipc
 #ac_add_options --disable-ldap
 #ac_add_options --disable-mailnews
-#ac_add_options --disable-mochitest 
+#ac_add_options --disable-mochitest
 #ac_add_options --disable-negotiateauth
 #ac_add_options --disable-updater
 #ac_add_options --disable-xinerama

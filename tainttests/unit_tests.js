@@ -360,4 +360,22 @@ var tse=String.newTainted("test","dd")
 eval("print('"+tse+"')")
 
 
+////////////////////
+/// Switch / case construct logging helper
+var switchString=String.newTainted("test","dd")   
+
+__domIntruderObj={domILog:function(a,b,c,d){print(a,b,c,d)}};
+switch(switchString){
+ case "test": print ("ok");
+    break;
+ default:  
+       break;
+
+
+}
+
+
+
 printResults();
+
+

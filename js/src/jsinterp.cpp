@@ -1055,7 +1055,15 @@ LooselyEqual(JSContext *cx, const Value &lval, const Value &rval, JSBool *result
                        name= JS_sprintf_append(NULL, "compare(%s %s %s)(%s)",l->isTainted()?"tainted":"notTainted", 
                                  (JS_TRUE == isEqOp ?"==":"!="),r->isTainted()?"tainted":"notTainted", 
                                  js_GetStringBytes(cx, l->isTainted()?r:l)); 
-                    logTaint(cx,  "Getter",  name , l->isTainted()?(jsval *)(&Jsvalify(lval)):(jsval *)(&Jsvalify(rval))); 
+                 jsval lv;                                                 
+                 lv= Jsvalify(lval );                                     
+                 JSObject *theob=JS_NewObject(cx,NULL,NULL,NULL);        
+                 JS_SetProperty(cx,theob ,"left",&lv);                  
+                 lv = Jsvalify(rval);                                     
+                 JS_SetProperty(cx,theob ,"right",&lv);                    
+                 lv = OBJECT_TO_JSVAL(theob); 
+                 logTaint(cx,  "Getter",  name ,  &lv );                  
+               // logTaint(cx,  "Getter",  name , l->isTainted()?(jsval *)(&Jsvalify(lval)):(jsval *)(&Jsvalify(rval))); 
                     if(name)  
                       free(name); 
                       } 
@@ -1114,7 +1122,15 @@ LooselyEqual(JSContext *cx, const Value &lval, const Value &rval, JSBool *result
                        name= JS_sprintf_append( NULL, "compare(%s %s %s)(%s)",((l->isTainted())?"tainted":"notTainted"), 
                                  (JS_TRUE == isEqOp ?"==":"!="),((r->isTainted())?"tainted":"notTainted"), 
                                  js_GetStringBytes(cx, (l->isTainted())?r:l)); 
-                    logTaint(cx, "Getter" ,name , ( l->isTainted() )?(jsval *)(&Jsvalify(lval)):(jsval *)(&Jsvalify(rval))); 
+                 jsval lv;                                                 
+                 lv= Jsvalify(lval );                                     
+                 JSObject *theob=JS_NewObject(cx,NULL,NULL,NULL);        
+                 JS_SetProperty(cx,theob ,"left",&lv);                  
+                 lv = Jsvalify(rval);                                     
+                 JS_SetProperty(cx,theob ,"right",&lv);                    
+                 lv = OBJECT_TO_JSVAL(theob); 
+                 logTaint(cx,  "Getter",  name ,  &lv );                  
+                 // logTaint(cx, "Getter" ,name , ( l->isTainted() )?(jsval *)(&Jsvalify(lval)):(jsval *)(&Jsvalify(rval))); 
                     if(name) 
                       free(name); 
                 } 
@@ -1130,8 +1146,17 @@ LooselyEqual(JSContext *cx, const Value &lval, const Value &rval, JSBool *result
      char *name=NULL ; 
      name= JS_sprintf_append( NULL, "compare(%s %s %s)(%f)",(lval.isString())?"tainted":"number", 
                  (JS_TRUE == isEqOp?"==":"!="),(rval.isString())?"tainted":"number", 
-                 ((lval.isString())?r:l )); 
-    logTaint(cx, "Getter" ,name , ( lval.isString() )?(jsval *)(&Jsvalify(lval)):(jsval *)(&Jsvalify(rval))); 
+                 ((lval.isString())?r:l ));
+    
+     jsval lv;                                                 
+     lv= Jsvalify(lval );                                     
+     JSObject *theob=JS_NewObject(cx,NULL,NULL,NULL);        
+     JS_SetProperty(cx,theob ,"left",&lv);                  
+     lv = Jsvalify(rval);                                     
+     JS_SetProperty(cx,theob ,"right",&lv);                    
+     lv = OBJECT_TO_JSVAL(theob); 
+     logTaint(cx,  "Getter",  name ,  &lv );                  
+     //logTaint(cx, "Getter" ,name , ( lval.isString() )?(jsval *)(&Jsvalify(lval)):(jsval *)(&Jsvalify(rval))); 
     if(name) 
       free(name); 
     } 
@@ -1161,8 +1186,17 @@ StrictlyEqual(JSContext *cx, const Value &lref, const Value &rref, JSBool *equal
                        name= JS_sprintf_append( NULL, "strict(%s %s %s)(%s)",(lstr->isTainted())?"tainted":"notTainted",
                                   (JS_TRUE == isEqOp ? "===": "!=="),
                                   (rstr->isTainted())?"tainted":"notTainted",
-                                 js_GetStringBytes(cx, (lstr->isTainted())?rstr:lstr)); 
-                    logTaint(cx, "Getter" ,name , ( lstr->isTainted() )?&Jsvalify(lval):&Jsvalify(rval));
+                                 js_GetStringBytes(cx, (lstr->isTainted())?rstr:lstr));
+                    
+                 jsval lv;                                                 
+                 lv= Jsvalify(lval );                                     
+                 JSObject *theob=JS_NewObject(cx,NULL,NULL,NULL);        
+                 JS_SetProperty(cx,theob ,"left",&lv);                  
+                 lv = Jsvalify(rval);                                     
+                 JS_SetProperty(cx,theob ,"right",&lv);                    
+                 lv = OBJECT_TO_JSVAL(theob); 
+                 logTaint(cx,  "Getter",  name ,  &lv );                  
+//                 logTaint(cx, "Getter" ,name , ( lstr->isTainted() )?&Jsvalify(lval):&Jsvalify(rval));
                     }
                     if(name)      
                       free(name);
@@ -4133,6 +4167,63 @@ BEGIN_CASE(JSOP_SETELEM)
         }
     } while (0);
     rval = regs.sp[-1];
+    #ifdef TAINTED
+       jsval _idval;
+       JS_IdToValue(cx,id,&_idval);
+    if( ( rval.isString()) && JSVAL_IS_STRING( _idval) && (JSVAL_TO_STRING( _idval ))->isTainted() ) {
+            jsval l;
+            l=  _idval ;
+            JSObject *theob=JS_NewObject(cx,NULL,NULL,NULL);
+            JS_SetProperty(cx,theob ,"key",&l);
+            l = Jsvalify(rval) ;
+            JS_SetProperty(cx,theob ,"value",&l);
+            l = OBJECT_TO_JSVAL(obj);
+            JS_SetProperty(cx,theob ,"obj",&l);
+            l = OBJECT_TO_JSVAL(theob);
+        JSString *str____;
+        js::Class *clasp;
+        const char *classname;
+        char *name=NULL;
+
+        clasp = obj->getClass();
+        str____=(JSVAL_TO_STRING(_idval));
+        if(!strcmp(obj->proto->getClass()->name,"XPC_WN_ModsAllowed_NoCall_Proto_JSClass") ){
+          JSObject *_tobj=obj;
+          classname=clasp->name;
+                   if(obj->isProxy()){
+                     if((_tobj=obj->getProxyPrivate().toObjectOrNull()))
+                      classname= _tobj->getClass()->name;
+       //     classname=((JSExtendedClass *)clasp)->wrappedObject(cx,_tobj)->getClass()->name;
+          }
+
+          name = JS_sprintf_append( NULL, "%s[%s] = %sTaint",classname,js_GetStringBytes(cx,str____),(rval.toString()->isTainted()?"":"Not"));
+          // Casi:
+          // 1.e' una stringa tainted
+          // 2. e' un oggetto/array tainted (contiene chiavi o valori tainted)
+          // 3. e' un oggetto esteso tainted  (contiene chiavi o valori tainted)
+          if( rval.isString() && rval.toString()->isTainted()){
+            logTaint(cx, "SPECIALOBJKEYVALCTRL" , name  , &l);
+          }
+          else
+           logTaint(cx, "SPECIALOBJKEYSET" , name  , &l);
+          if(name)
+            free(name);                                               
+          #ifdef DEBUG
+           js_DumpObject(obj);
+           #endif
+          str____= (rval.toString());
+       }else{
+        classname=clasp->name;
+        name= JS_sprintf_append( NULL, "%s[%s]",classname,js_GetStringBytes(cx,str____));               
+          if((rval.isString()) && rval.toString()->isTainted()){
+           logTaint(cx, "OBJKEYVALCTRL" , name  , &l);
+          }else
+           logTaint(cx, "OBJKEYSET" ,name , &l);            
+        if(name)                                                 
+          free(name);
+       }
+    }
+    #endif 
     if (!obj->setProperty(cx, id, &rval, script->strictModeCode))
         goto error;
   end_setelem:;
@@ -4538,6 +4629,36 @@ BEGIN_CASE(JSOP_LOOKUPSWITCH)
     JS_ASSERT(npairs);  /* empty switch uses JSOP_TABLESWITCH */
 
     bool match;
+#ifdef TAINTED 
+#define SEARCH_PAIRS(MATCH_CODE)                                              \
+    for (;;) {                                                                \
+        Value rval = script->getConst(GET_INDEX(pc2));                        \
+        if ((lval.isString())  && lval.toString()->ensureLinear(cx)->isTainted()){                          \
+                 char *name =NULL ;                                           \
+                 name= JS_sprintf_append(NULL, "case(%s)",                    \
+                                 js_GetStringBytes(cx, (rval.toString())));   \
+                 jsval l;                                                     \
+                 l= Jsvalify(lval );                                          \
+                 JSObject *theob=JS_NewObject(cx,NULL,NULL,NULL);             \
+                 JS_SetProperty(cx,theob ,"switch",&l);                          \
+                 l = Jsvalify(rval);                                          \
+                 JS_SetProperty(cx,theob ,"case",&l);                         \
+                 l = OBJECT_TO_JSVAL(theob);                                  \
+                 logTaint(cx,  "Getter",  name ,  &l );                       \
+                 if(name)                                                     \
+                      free(name);                                             \
+                }                                                             \
+        MATCH_CODE                                                            \
+        pc2 += INDEX_LEN;                                                     \
+        if (match)                                                            \
+            break;                                                            \
+        pc2 += off;                                                           \
+        if (--npairs == 0) {                                                  \
+            pc2 = regs.pc;                                                    \
+            break;                                                            \
+        }                                                                     \
+    }
+#else
 #define SEARCH_PAIRS(MATCH_CODE)                                              \
     for (;;) {                                                                \
         Value rval = script->getConst(GET_INDEX(pc2));                        \
@@ -4551,12 +4672,13 @@ BEGIN_CASE(JSOP_LOOKUPSWITCH)
             break;                                                            \
         }                                                                     \
     }
+#endif
 
     if (lval.isString()) {
         JSLinearString *str = lval.toString()->ensureLinear(cx);
         if (!str)
             goto error;
-        JSLinearString *str2;
+        JSLinearString *str2;                                                        
         SEARCH_PAIRS(
             match = (rval.isString() &&
                      ((str2 = &rval.toString()->asLinear()) == str ||
