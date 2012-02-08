@@ -3845,14 +3845,14 @@ typedef struct InfoTaintDep{
  InfoTaintEntry *entry;
  int spos;
  int epos;
- char *desc;
+ JSObject *desc;
  struct InfoTaintDep *next;
 } InfoTaintDep;
 #endif /*IfNotDef TAINTSTRUCTS*/
 
 
 extern JS_PUBLIC_API(JSBool)
- JS_addTaintInfoOneArg(JSContext *cx,JSString *argStr,JSString *retStr,char *desc, TaintOp op) ;
+ JS_addTaintInfoOneArg(JSContext *cx,JSString *argStr,JSString *retStr,JSObject *desc, TaintOp op) ;
  
 extern JS_PUBLIC_API(JSString *)
  JS_newTaintedString(JSContext *cx, JSString *str ) ;

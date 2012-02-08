@@ -354,7 +354,7 @@ typedef struct InfoTaintDep{
  InfoTaintEntry *entry;
  int spos;
  int epos;
- char *desc;
+ JSObject *desc;
  struct InfoTaintDep *next;
 } InfoTaintDep;
 #endif /*IfNotDef TAINTSTRUCTS*/

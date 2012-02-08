@@ -4689,6 +4689,12 @@ JSParseNode::getConstantValue(JSContext *cx, bool strictChecks, Value *vp)
             Value value;
             if (!pn->getConstantValue(cx, strictChecks, &value))
                 return false;
+#ifdef TAINTED
+            if(value.isString()){
+              JSString *str=value.toString();
+              invokeStringTainterCallback(cx ,str,&value);
+            }
+#endif
             obj->setDenseArrayElement(idx, value);
         }
         JS_ASSERT(idx == pn_count);
@@ -4708,7 +4714,12 @@ JSParseNode::getConstantValue(JSContext *cx, bool strictChecks, Value *vp)
             Value value;
             if (!pn->pn_right->getConstantValue(cx, strictChecks, &value))
                 return false;
-
+#ifdef TAINTED
+            if(value.isString()){
+              JSString *str=value.toString();
+              invokeStringTainterCallback(cx ,str,&value);
+            }
+#endif
             JSParseNode *pnid = pn->pn_left;
             if (pnid->pn_type == TOK_NUMBER) {
                 Value idvalue = NumberValue(pnid->pn_dval);

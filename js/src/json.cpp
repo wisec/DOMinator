@@ -237,10 +237,10 @@ class StringifyContext
     JSObject * const replacer;
     const AutoIdVector &propertyList;
     uint32 depth;
+    HashSet<JSObject *> objectStack;
 #ifdef TAINTED
     JSBool overrideToJSON;
 #endif
-    HashSet<JSObject *> objectStack;
 };
 
 static JSBool Str(JSContext *cx, const Value &v, StringifyContext *scx);

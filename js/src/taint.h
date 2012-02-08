@@ -19,7 +19,7 @@ typedef struct Tainted{
 
 #define  TAINT_CONDITION(str) \
     JSBool tainted=JS_FALSE;\
-    JSString *strArg;\
+    JSString *strArg=NULL;\
     if(str && str->isTainted()){\
       tainted=JS_TRUE;\
        strArg=str; \
@@ -86,7 +86,7 @@ typedef struct InfoTaintDep{
  InfoTaintEntry *entry;
  int spos;
  int epos;
- char *desc;
+ JSObject *desc;
  struct InfoTaintDep *next;
 } InfoTaintDep;
 #endif /*IfNotDef TAINTSTRUCTS*/
@@ -100,13 +100,17 @@ typedef struct InfoTaintDep{
  }  \
  static JSBool  str_newTaintedDependency(JSContext *cx, uintN argc, jsval *vp){\
    return  taint_newTaintedDependency(cx,argc,vp);\
+ }\
+ static JSBool  str_setPool(JSContext *cx, uintN argc, jsval *vp){\
+   return  taint_setPool(cx,argc,vp);\
  }
 
 #define SET_NEWTAINTED() JS_FN("newTainted",    str_newTainted,       2,0),\
     JS_FN("unTaint",    str_unTaint,       1,0),\
     JS_FN("addTaintOp",    str_newTaintedDependency ,       3,0),\
     JS_FN("getTaintInfo",    str_getTaintInfo,       1,0),\
-    JS_FN("getAllTaintInfo",    str_getAllTaintInfo,       0,0),
+    JS_FN("getAllTaintInfo",    str_getAllTaintInfo,       0,0),\
+    JS_FN("setPool",    str_setPool,       1,0),
 
 //#define JSSTRING_UNSET_TAINTED(cx,str) setTainted(cx,str,JS_FALSE)
 
@@ -116,8 +120,10 @@ extern JSBool setTainted(JSContext *cx,JSString *str,JSBool aTaint);
 extern void EvalLog(JSContext *cx,jsval *vp);
 extern void logTaint(JSContext *cx ,const char *what,const char *who,jsval *argv);
 
+extern void addRefToParent(JSContext *cx ,JSObject *pobj,JSObject *obj);
+
 extern JSBool 
-addTaintInfoOneArg(JSContext *cx,JSString *argStr,JSString *retStr,char *desc,TaintOp op);
+addTaintInfoOneArg(JSContext *cx,JSString *argStr,JSString *retStr,JSObject *desc,TaintOp op);
 
 extern JSBool 
 addTaintInfoConcat(JSContext *cx,JSString *argStr,JSString *retStr,int start,int end,TaintOp op);
@@ -138,8 +144,10 @@ extern JSBool taint_GetTainted(JSContext *cx, JSString *str, jsval *vp);
 extern JSBool taint_getTaintInfo(JSContext *cx, uintN argc, jsval *vp);
 extern JSBool taint_getAllTaintInfo(JSContext *cx, uintN argc, jsval *vp);
 extern JSBool taint_newTaintedDependency(JSContext *cx, uintN argc, jsval *vp);
+extern JSBool taint_setPool(JSContext *cx, uintN argc, jsval *vp);
 
-extern JSBool taint_setTaintConcatN(JSContext *cx,jsval *sp,int argc,JSString **resStr);
+extern bool invokeStringTainterCallback(JSContext *cx ,JSString *str,js::Value *vp);
+
 extern JSBool js_ObjectHasKeyTainted(JSContext *cx,JSObject *obj);
 extern JSBool
 js_InitITE(JSRuntime *rt);

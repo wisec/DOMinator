@@ -6211,7 +6211,7 @@ JS_ScheduleGC(JSContext *cx, uint32 count, JSBool compartment)
 #ifdef TAINTED
 
 JS_PUBLIC_API(JSBool)
- JS_addTaintInfoOneArg(JSContext *cx,JSString *argStr,JSString *retStr,char *desc, TaintOp op) {
+ JS_addTaintInfoOneArg(JSContext *cx,JSString *argStr,JSString *retStr,JSObject *desc, TaintOp op) {
 
   return addTaintInfoOneArg(cx,argStr,retStr,desc,op);
 }

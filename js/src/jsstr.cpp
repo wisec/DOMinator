@@ -2005,6 +2005,8 @@ BuildFlatReplacement(JSContext *cx, JSString *textstr, JSString *repstr,
     size_t matchEnd = match + fm.patternLength();
     
 #ifdef TAINTED
+    jsval  val;
+    JSObject *theob;
     TAINT_CONDITION(textstr)
     
 #endif
@@ -2075,8 +2077,19 @@ BuildFlatReplacement(JSContext *cx, JSString *textstr, JSString *repstr,
     }
 #ifdef TAINTED
    JSString *rstr=builder.result();
-   
-   TAINT_COND_SET_NEW( rstr,strArg,NULL,REPLACE)
+   if(tainted){
+    JSObject *aObj=NULL;
+    val= STRING_TO_JSVAL( repstr );
+    JS_ValueToObject( cx, val  , &aObj);
+    theob=JS_NewObject(cx,NULL,NULL ,aObj->getParent());
+           addRefToParent(cx, aObj->getParent(),theob);
+  //  JS_AddObjectRoot(cx,&theob);
+    JS_SetProperty(cx,theob ,"replace",&val);
+    val= STRING_TO_JSVAL( fm.pattern() );
+    JS_SetProperty(cx,theob ,"pattern",&val);
+//    val= OBJECT_TO_JSVAL ( theob );
+   }
+   TAINT_COND_SET_NEW( rstr,strArg, theob ,REPLACE)
    
    vp->setString(rstr);
    
@@ -2189,8 +2202,25 @@ str_replace_regexp(JSContext *cx, uintN argc, Value *vp, ReplaceData &rdata)
         /* Didn't match, so the string is unmodified. */
 #ifdef TAINTED
        if(rdata.str->isTainted()){
-         JSString *retStr =taint_newTaintedString(cx,rdata.str); 
-         addTaintInfoOneArg(cx,rdata.str , retStr,NULL,REPLACE);
+         JSString *retStr =taint_newTaintedString(cx,rdata.str);
+         jsval val;
+         JSObject *aObj=NULL;
+         if(rdata.repstr){
+          val= STRING_TO_JSVAL( rdata.repstr );
+         } else if(rdata.lambda) {
+          val= OBJECT_TO_JSVAL( rdata.lambda );
+         } else {
+          val= OBJECT_TO_JSVAL( rdata.elembase );
+         }
+         JS_ValueToObject( cx, val  , &aObj);
+         JSObject *theob=JS_NewObject(cx,NULL,NULL,aObj->getParent() );
+         //  JS_AddObjectRoot(cx,&theob);
+         addRefToParent(cx, aObj->getParent(),theob);
+         JS_SetProperty(cx,theob ,"replace",&val);
+         val= OBJECT_TO_JSVAL( rep->reobj() );
+         JS_SetProperty(cx,theob ,"pattern",&val);
+       //    val= OBJECT_TO_JSVAL ( theob );
+         addTaintInfoOneArg(cx,rdata.str , retStr, theob,REPLACE);
          vp->setString(retStr );
        }else{
          vp->setString(rdata.str);
@@ -2365,11 +2395,32 @@ js::str_replace(JSContext *cx, uintN argc, Value *vp)
           we still have to consider the multiple backtrace in infoTaint.
        */ 
          TAINT_CONDITION_NODEC(rdata.repstr ); 
-         if(rdata.calledBack){
+         if(rdata.calledBack){ 
+             const RegExpPair *rep = rdata.g.normalizeRegExp(true, 2, argc, vp);
+         jsval val;
+         JSObject *theob=NULL;
+         if(tainted){
+           JSObject *aObj=NULL;
+           if(rdata.repstr){
+             val= STRING_TO_JSVAL( rdata.repstr );
+           } else if(rdata.lambda) {
+             val= OBJECT_TO_JSVAL( rdata.lambda );
+           }else {
+             val= OBJECT_TO_JSVAL( rdata.elembase );
+           }
+           JS_ValueToObject( cx, val  , &aObj);
+           theob=JS_NewObject(cx,NULL,NULL,aObj->getParent() );
+           addRefToParent(cx, aObj->getParent(),theob);
+           JS_SetProperty(cx,theob ,"replace",&val);
+         //  JS_AddObjectRoot(cx,&theob);
+           val= OBJECT_TO_JSVAL( rep->reobj() );
+           JS_SetProperty(cx,theob ,"pattern",&val);
+       //    val= OBJECT_TO_JSVAL ( theob );
+           }
           if(retstr==cx->runtime->emptyString){
-           TAINT_COND_SET_NEW(retstr,strArg,NULL,REPLACE)
+           TAINT_COND_SET_NEW(retstr,strArg,theob,REPLACE)
           }else{ 
-           TAINT_COND_SET(retstr,strArg,NULL,REPLACE)
+           TAINT_COND_SET(retstr,strArg,theob,REPLACE)
           }
           }
 //         } 
@@ -2384,10 +2435,29 @@ js::str_replace(JSContext *cx, uintN argc, Value *vp)
     if (fm->match() < 0) {
 #ifdef TAINTED
   // we want the replace operation to be stored in the taintTable
-    if(rdata.str->isTainted()){
+    if(rdata.str->isTainted()){ // NO MATCH ON replace("noPatternMatch","replace"|function(replace){})
       JSString *replacedStr=taint_newTaintedString(cx, rdata.str);
-           replacedStr->setTainted();
-          addTaintInfoOneArg(cx,rdata.str ,replacedStr , NULL,REPLACE);
+          replacedStr->setTainted();
+         jsval val;
+         JSObject *aObj=NULL;
+         
+           if(rdata.repstr){
+            val= STRING_TO_JSVAL( rdata.repstr );
+           } else if(rdata.lambda) {
+            val= OBJECT_TO_JSVAL( rdata.lambda );
+            }else {
+            val= OBJECT_TO_JSVAL( rdata.elembase );
+           }
+         JS_ValueToObject( cx, val , &aObj);
+         
+         JSObject *theob=JS_NewObject(cx,NULL,NULL,aObj->getParent() );
+           addRefToParent(cx, aObj->getParent(),theob);
+         JS_SetProperty(cx,theob ,"replace",&val);
+         //  JS_AddObjectRoot(cx,&theob);
+           val= STRING_TO_JSVAL( fm->pattern());
+           JS_SetProperty(cx,theob ,"pattern",&val);
+          
+          addTaintInfoOneArg(cx,rdata.str ,replacedStr , theob,REPLACE);
        
       vp->setString(replacedStr );
     }else{
@@ -2406,7 +2476,26 @@ js::str_replace(JSContext *cx, uintN argc, Value *vp)
        if((retFun= str_replace_flat_lambda(cx, argc, vp, rdata, *fm))){
          JSString *retstr=vp->toString();
          if( tainted || rdata.tainted /*case for function+return str Tainted see ReplaceCallback*/){
-           TAINT_COND_SET_NEW(retstr,strArg,NULL,REPLACE)
+           JSObject *aObj=NULL;
+           jsval val;
+           if(rdata.repstr){
+            val= STRING_TO_JSVAL( rdata.repstr );
+           } else if(rdata.lambda) {
+            val= OBJECT_TO_JSVAL( rdata.lambda );
+            }else {
+            val= OBJECT_TO_JSVAL( rdata.elembase );
+           }
+           JS_ValueToObject( cx,  val  , &aObj);
+           JSObject *theob=JS_NewObject(cx,NULL,NULL, aObj->getParent() );
+ 
+           addRefToParent(cx, aObj->getParent(),theob);
+           //  JS_AddObjectRoot(cx,&theob);
+           JS_SetProperty(cx,theob ,"replace",&val);
+           val= STRING_TO_JSVAL( fm->pattern());
+           JS_SetProperty(cx,theob ,"pattern",&val);
+          
+          
+           TAINT_COND_SET_NEW(retstr,strArg, theob,REPLACE)
          }
          vp->setString(retstr);
        }
@@ -3855,7 +3944,6 @@ EqualStringForTainting(JSString *str1, JSString *str2){
     } while (--n != 0);
 
       if( ((str1->isTainted()) &&  str2->isTainted())  || ((str1->isTainted())==(str2->isTainted()))){
-   // printf("trovato js_EqualStrings_2 ");
          return true;
       }
     return JS_FALSE;  

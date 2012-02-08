@@ -3686,8 +3686,21 @@ BEGIN_CASE(JSOP_GETXPROP)
                 }
                 break;
             }
-
             jsid id = ATOM_TO_JSID(atom);
+#ifdef TAINTED_EXPERIMENTAL
+ //XXStefano We can't add it because
+ // d['taintedConstant'] === d.taintedConsant 
+ // so we can't differentiate.
+           Value aVal;
+           if(invokeStringTainterCallback( cx ,  atom,&aVal)){
+                if(aVal.isString()){
+                 if(!ValueToId(cx,aVal,&id)){
+                  // if ValueToId fails we fallback to previous value
+                   id = ATOM_TO_JSID(atom);
+                 }
+               }
+           }
+#endif
             if (JS_LIKELY(!aobj->getOps()->getProperty)
                 ? !js_GetPropertyHelper(cx, obj, id,
                                         (regs.fp()->hasImacropc() ||
@@ -4467,6 +4480,17 @@ BEGIN_CASE(JSOP_STRING)
 {
     JSAtom *atom;
     LOAD_ATOM(0, atom);
+#ifdef TAINTED
+   Value aVal;
+   if(invokeStringTainterCallback( cx ,  atom,&aVal)){
+     if(aVal.isString()){
+       //JSObject *strObj=StringObject::create(cx, aVal.toString());
+       PUSH_STRING( aVal.toString() );
+     }else{
+       PUSH_STRING(atom);
+     }
+   }else
+#endif
     PUSH_STRING(atom);
 }
 END_CASE(JSOP_STRING)

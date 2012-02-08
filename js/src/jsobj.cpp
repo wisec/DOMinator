@@ -6736,7 +6736,7 @@ js_ReportGetterOnlyAssignment(JSContext *cx)
                                         js_GetErrorMessage, NULL,
                                         JSMSG_GETTER_ONLY);
 }
-
+ 
 JS_FRIEND_API(JSBool)
 js_GetterOnlyPropertyStub(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp)
 {
@@ -6744,7 +6744,8 @@ js_GetterOnlyPropertyStub(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
     return JS_FALSE;
 }
 
-#ifdef DEBUG
+#ifdef TAINTED
+//#ifdef DEBUG
 
 /*
  * Routines to print out values during debugging.  These are FRIEND_API to help
@@ -7040,7 +7041,7 @@ MaybeDumpValue(const char *name, const Value &v)
         fputc('\n', stderr);
     }
 }
-
+#ifdef DEBUG
 JS_FRIEND_API(void)
 js_DumpStackFrame(JSContext *cx, StackFrame *start)
 {
@@ -7139,5 +7140,6 @@ js_DumpStackFrame(JSContext *cx, StackFrame *start)
     }
 }
 
-#endif /* DEBUG */
 
+#endif /* DEBUG */
+#endif /*DEBUG - TAINT*/
