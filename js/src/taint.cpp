@@ -441,7 +441,9 @@ static JSBool markLiveObjects(JSContext *cx, JSGCStatus theStatus){
               JS_ASSERT(tmpITE->refCount>=0);
               if(!tmpITE->refCount){
                  refCount=0;
+                 #ifdef DEBUGVERBOSE
                  printf("String: DONT keep: \n");
+                 #endif
               } else {
          #ifdef DEBUGVERBOSE
           printf("SourcE: KEEP, refCount: %d\n", tmpITE->refCount);
@@ -457,8 +459,10 @@ static JSBool markLiveObjects(JSContext *cx, JSGCStatus theStatus){
  
               if(!tmpITE->refCount){
                  refCount=0; 
-                 printf("String: DONT keep: \n");
                  
+               #ifdef DEBUGVERBOSE
+                printf("String: DONT keep: \n");
+                #endif
              } else {
               
          #ifdef DEBUGVERBOSE
@@ -731,7 +735,7 @@ JSBool taint_newTaintedDependency(JSContext *cx, uintN argc, jsval *vp)
    argv = vp + 2;
     JS_ASSERT(argc  <=  js::StackSpace::ARGS_LENGTH_MAX);
  
-    if(argc==3 && JSVAL_IS_STRING(argv[0])&&  JSVAL_IS_STRING(argv[1])&&  JSVAL_IS_STRING(argv[2]) ){
+    if(argc==3 && JSVAL_IS_STRING(argv[0])&&  JSVAL_IS_STRING(argv[1])&&  JSVAL_IS_OBJECT(argv[2]) ){
        JSString *newStr,*oldStr,*op;
        const jschar *chars;
        size_t nchars;
@@ -833,7 +837,7 @@ bool invokeStringTainterCallback(JSContext *cx ,JSString *str,js::Value *vp){
     return false; 
   }
   if(js_IsCallable(js::Valueify(toTaintVal))){
-   #ifdef DEBUG
+   #ifdef DEBUGVERBOSE
       js_DumpString(str);
    #endif
       js::LeaveTrace(cx);
