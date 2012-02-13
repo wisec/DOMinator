@@ -4087,7 +4087,7 @@ BEGIN_CASE(JSOP_GETELEM)
                  char *name=NULL;
                  clasp = obj->getClass();
                  str____=(rref.toString());
-                 if(!strcmp(obj->proto->getClass()->name,"XPC_WN_ModsAllowed_NoCall_Proto_JSClass")){
+                 if(obj->proto && !strcmp(obj->proto->getClass()->name,"XPC_WN_ModsAllowed_NoCall_Proto_JSClass")){
                    JSObject *_tobj=obj;
                    classname=clasp->name;
                    if(obj->isProxy()){
