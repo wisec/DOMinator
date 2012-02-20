@@ -349,14 +349,16 @@ String.getTaintInfo(v)
 
 ///////////////////////////
 /// Array Objects.
-var ts=String.newTainted("ddddd\nddd","dd")   
-c='ddd'+ts
-cv=[c,ts,'dddd']
-cv[]
-
+///var ts=String.newTainted("ddddd\nddd","aSource")   
+///var ts2=String.newTainted("taintedKey","keySource")   
+///c='ddd'+ts
+///cv=[c,ts,'dddd'];
+///
+///cv[c] = 2;
 ////////////////////
 /// Eval tests
 var tse=String.newTainted("test","dd")   
+__domIntruderObj={domILog:function(a,b,c,d){print(a,b,c,d)}};
 eval("print('"+tse+"')")
 
 
@@ -370,8 +372,6 @@ switch(switchString){
     break;
  default:  
        break;
-
-
 }
 
 

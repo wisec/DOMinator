@@ -837,10 +837,10 @@ bool invokeStringTainterCallback(JSContext *cx ,JSString *str,js::Value *vp){
     return false; 
   }
   if(js_IsCallable(js::Valueify(toTaintVal))){
-   #ifdef DEBUGVERBOSE
+   #ifdef DEBUG
       js_DumpString(str);
    #endif
-      js::LeaveTrace(cx);
+     // js::LeaveTrace(cx);
       js::InvokeArgsGuard args;
       if (!cx->stack.pushInvokeArgs(cx, 1, &args))
           return false;
