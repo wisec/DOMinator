@@ -866,17 +866,19 @@ void logTaint(JSContext *cx ,const  char *what,const  char *who,jsval *argv){
        JSExceptionState *state = JS_SaveExceptionState(cx);
        if(!state)
         fprintf(stderr,"Call to a debug function modifying state!\n");
-   JS_ClearPendingException(cx);
+       JS_ClearPendingException(cx);
 
        gobj= JS_GetGlobalObject(cx);
-       if(gobj->compartment()!=cx->compartment)
-        { 
-         const char *c=cx->fp()->script()->filename;
-         if(cx->fp()->prev() && cx->fp()->prev()->maybeScript())
-         printf("FileName1: %s \nFileName2: %s\n",c, cx->fp()->prev()->script()->filename);
-        else
-         printf("FileName: %s\n", c );
+       if(gobj && gobj->compartment()!=cx->compartment)
+        {
+        #ifdef DEBUG
+          const char *c=cx->fp()->script()->filename;
+          if(cx->fp()->prev() && cx->fp()->prev()->maybeScript())
+           printf("FileName1: %s \nFileName2: %s\n",c, cx->fp()->prev()->script()->filename);
+          else
+           printf("FileName: %s\n", c );
           printf("Different Compartment\n");
+          #endif
           goto  exit;
         }
        if(cx && cx->maybefp() && cx->fp()->maybeScript() ) {
