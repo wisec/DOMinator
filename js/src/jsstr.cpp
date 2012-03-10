@@ -2205,10 +2205,10 @@ str_replace_regexp(JSContext *cx, uintN argc, Value *vp, ReplaceData &rdata)
          JSString *retStr =taint_newTaintedString(cx,rdata.str);
          jsval val;
          JSObject *aObj=NULL;
-         if(rdata.repstr){
-          val= STRING_TO_JSVAL( rdata.repstr );
-         } else if(rdata.lambda) {
+         if(rdata.lambda) {
           val= OBJECT_TO_JSVAL( rdata.lambda );
+         } else if(rdata.repstr){
+          val= STRING_TO_JSVAL( rdata.repstr );
          } else {
           val= OBJECT_TO_JSVAL( rdata.elembase );
          }
@@ -2401,11 +2401,11 @@ js::str_replace(JSContext *cx, uintN argc, Value *vp)
          JSObject *theob=NULL;
          if(tainted){
            JSObject *aObj=NULL;
-           if(rdata.repstr){
-             val= STRING_TO_JSVAL( rdata.repstr );
-           } else if(rdata.lambda) {
+           if(rdata.lambda) {
              val= OBJECT_TO_JSVAL( rdata.lambda );
-           }else {
+           } else if(rdata.repstr){
+             val= STRING_TO_JSVAL( rdata.repstr );
+           } else {
              val= OBJECT_TO_JSVAL( rdata.elembase );
            }
            JS_ValueToObject( cx, val  , &aObj);
@@ -2441,11 +2441,11 @@ js::str_replace(JSContext *cx, uintN argc, Value *vp)
          jsval val;
          JSObject *aObj=NULL;
          
-           if(rdata.repstr){
-            val= STRING_TO_JSVAL( rdata.repstr );
-           } else if(rdata.lambda) {
+          if(rdata.lambda) {
             val= OBJECT_TO_JSVAL( rdata.lambda );
-            }else {
+          } else  if(rdata.repstr){
+            val= STRING_TO_JSVAL( rdata.repstr );
+          } else {
             val= OBJECT_TO_JSVAL( rdata.elembase );
            }
          JS_ValueToObject( cx, val , &aObj);
@@ -2478,11 +2478,11 @@ js::str_replace(JSContext *cx, uintN argc, Value *vp)
          if( tainted || rdata.tainted /*case for function+return str Tainted see ReplaceCallback*/){
            JSObject *aObj=NULL;
            jsval val;
-           if(rdata.repstr){
-            val= STRING_TO_JSVAL( rdata.repstr );
-           } else if(rdata.lambda) {
+           if(rdata.lambda) {
             val= OBJECT_TO_JSVAL( rdata.lambda );
-            }else {
+            } else if(rdata.repstr){
+            val= STRING_TO_JSVAL( rdata.repstr );
+           } else {
             val= OBJECT_TO_JSVAL( rdata.elembase );
            }
            JS_ValueToObject( cx,  val  , &aObj);
