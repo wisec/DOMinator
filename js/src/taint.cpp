@@ -26,7 +26,7 @@ const char *const OpNames[] = {"NONE","GET","SET","SOURCE","SINK","CHARAT","SUBS
                                "TRIM","TAGIFY","QUOTE","DEPEND","ATOB","BTOA"};
                                
 const int OpSize=sizeof(OpNames)/sizeof(OpNames[0]);
-void traverseInfoTaintDep(JSContext *cx ,InfoTaintDep *ITD,JSString *str,JSObject *obj,JSObject *depArr);
+JSBool traverseInfoTaintDep(JSContext *cx ,InfoTaintDep *ITD,JSString *str,JSObject *obj,JSObject *depArr);
 
  
 
@@ -35,31 +35,40 @@ static int count=0;
 
 
 
-void traverseInfoTaintEntry(JSContext *cx ,InfoTaintEntry *ITE,JSObject *obj){
+JSBool traverseInfoTaintEntry(JSContext *cx ,InfoTaintEntry *ITE,JSObject *obj){
   InfoTaintEntry *tmpITE;
   jsval v;
   JSObject *depArray;
   if(!ITE->str){
-   return;
+   return JS_FALSE;
   }
   v=STRING_TO_JSVAL(ITE->str);
-  JS_SetProperty(cx,obj,"val",&v);
+  if(!JS_SetProperty(cx,obj,"val",&v)){
+   return JS_FALSE;
+  } 
   if(ITE->source){
    v=STRING_TO_JSVAL(ITE->source);
    JS_SetProperty(cx,obj,"source",&v);
   }
   v=STRING_TO_JSVAL(JS_NewStringCopyZ(cx,OpNames[(int)ITE->op]));
-  JS_SetProperty(cx,obj,"op",&v);
+  if(!JS_SetProperty(cx,obj,"op",&v)){ 
+   return JS_FALSE;
+  } 
   
   if(ITE->dep && ITE->op <= OpSize ){
       depArray=JS_NewArrayObject(cx,0,NULL); //JS_DefineObject(cx,obj,"dep",&js_ArrayClass,NULL,0);
       v=OBJECT_TO_JSVAL(depArray);
-      JS_SetProperty(cx,obj,"dep",&v);
-      traverseInfoTaintDep( cx , ITE->dep,ITE->str, obj,depArray);
+      if(!JS_SetProperty(cx,obj,"dep",&v)){ 
+       return JS_FALSE;
+      } 
+      if(!traverseInfoTaintDep( cx , ITE->dep,ITE->str, obj,depArray)){ 
+        return JS_FALSE;
+      }
   }
+  return JS_TRUE;
 }
 
-void traverseInfoTaintDep(JSContext *cx ,InfoTaintDep *ITD,JSString *str,JSObject *obj,JSObject *depArr){
+JSBool traverseInfoTaintDep(JSContext *cx ,InfoTaintDep *ITD,JSString *str,JSObject *obj,JSObject *depArr){
   InfoTaintDep *tmpITD;
   InfoTaintEntry *tmpITE;
   JSObject *entryObj;
@@ -75,27 +84,38 @@ void traverseInfoTaintDep(JSContext *cx ,InfoTaintDep *ITD,JSString *str,JSObjec
       entryObj=JS_NewObject(cx,NULL,NULL,NULL);
      
       v=INT_TO_JSVAL(tmpITD->spos);
-      JS_SetProperty(cx,entryObj,"startPos",&v);
+      if(!JS_SetProperty(cx,entryObj,"startPos",&v)){
+       return JS_FALSE;
+      }
      
       v=INT_TO_JSVAL( tmpITD->epos);
-      JS_SetProperty(cx,entryObj,"endPos",&v);
+      if(!JS_SetProperty(cx,entryObj,"endPos",&v)){ 
+       return JS_FALSE;
+      }
       
       if( tmpITD->desc != NULL){
      // printf("c'w'\n");
         v= OBJECT_TO_JSVAL(tmpITD->desc);
        //v=STRING_TO_JSVAL(js_NewStringCopyZ(cx,tmpITD->desc));
-       JS_SetProperty(cx,entryObj,"desc",&v );
+       if(!JS_SetProperty(cx,entryObj,"desc",&v ) ){ 
+        return JS_FALSE;
+       }
       }
       
-      v=OBJECT_TO_JSVAL(entryObj );
-      JS_SetElement(cx,depArr,i,&v);
-     
-      traverseInfoTaintEntry(cx ,tmpITD->entry,entryObj);
+       v=OBJECT_TO_JSVAL(entryObj );
+       if(!JS_SetElement(cx,depArr,i,&v)){ 
+        return JS_FALSE;
+       }
+      
+      if(!traverseInfoTaintEntry(cx ,tmpITD->entry,entryObj)){
+       return JS_FALSE;
+      }
       i++;
    }
    tmpITD=tmpITD->next; 
 
   }
+  return JS_TRUE;
 }
 
 InfoTaintEntry *findTaintEntry(JSContext *cx,JSString/*o jsval* */ *str){
@@ -200,7 +220,7 @@ JSBool
 
 
 /// TaintInfos
-JSObject *getInfoFromTaintTable(JSContext *cx,JSString *str ){
+JSObject *getInfoFromTaintTable(JSContext *cx,JSString *str, JSBool &res  ){
   JSObject * obj;
   InfoTaintEntry *tmpITE;
   char *name=NULL;                                            
@@ -209,14 +229,22 @@ JSObject *getInfoFromTaintTable(JSContext *cx,JSString *str ){
  
   atom_str=str;
   if(!(tmpITE=findTaintEntry(cx, atom_str))){
-   return NULL;
+   res=JS_TRUE;
+   return NULL ;
   }
   if(tmpITE){
     //traverseInfoTaintDep(cx , tmpITE->dep);
     obj=JS_NewObject(cx,NULL,NULL,NULL);
-    traverseInfoTaintEntry(cx , tmpITE, obj);
+    if(!obj){
+     res=JS_FALSE;
+     return NULL;
+    }
+    if(!traverseInfoTaintEntry(cx , tmpITE, obj)){
+     res=JS_FALSE;
+     return obj;
+    }
   }
-  
+  res=JS_FALSE;
   return  obj;
 }
 
@@ -593,7 +621,7 @@ taint_getTaintInfo(JSContext *cx, uintN argc, jsval *vp)
     uint16 code;
     JSString *str,*str1,*astr;
     JSObject *obj;
-    
+    JSBool res;
     //XXXStefano Note: is this the correct one?
     // Trying to prevent some race condition on GC
     //js::AutoLockGC lock(cx->runtime);
@@ -603,12 +631,15 @@ taint_getTaintInfo(JSContext *cx, uintN argc, jsval *vp)
     // Set "" if JSVAL IS NULL or argc ==0
     if(JSVAL_IS_STRING(argv[0])){
      str = JSVAL_TO_STRING(argv[0]);
-     obj=getInfoFromTaintTable(cx,str);
-     
+     obj=getInfoFromTaintTable(cx,str,res);
+     if(!obj && res == JS_FALSE){
+      *vp = JSVAL_VOID;
+      return JS_FALSE;
+     }
      //js_NewString();
      //     printVal(cx,astr);   
      *vp = OBJECT_TO_JSVAL(obj); 
-    
+     
      return JS_TRUE;
     }
     return JS_FALSE;
@@ -620,13 +651,23 @@ taint_getAllTaintInfo(JSContext *cx, uintN argc, jsval *vp)
     JSObject *obj;
     jsval v;
     InfoTaintEntry *tmpITE; 
+    JSBool res;
+
     tmpITE=cx->runtime->rootITE;
     JSObject *depArray=JS_NewArrayObject(cx,0,NULL);
     while(tmpITE){
-     obj=getInfoFromTaintTable(cx,tmpITE->str );
+     obj=getInfoFromTaintTable(cx,tmpITE->str,res );
+     if(!obj && res == JS_FALSE){
+      *vp = JSVAL_VOID;
+      return JS_FALSE;
+     }
      v=OBJECT_TO_JSVAL(obj);
 
-     JS_SetElement(cx,depArray,depArray->getArrayLength(),&v);
+     if(!JS_SetElement(cx,depArray,depArray->getArrayLength(),&v)){
+      *vp = JSVAL_VOID;
+      return JS_FALSE;
+     }
+     
      tmpITE=tmpITE->next;
      
     }

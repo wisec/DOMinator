@@ -716,7 +716,12 @@ js_ReportOutOfMemory(JSContext *cx)
 
 JS_FRIEND_API(void)
 js_ReportOverRecursed(JSContext *maybecx)
-{   JS_ASSERT(false);
+{   
+#ifdef TAINTED
+ #ifdef DEBUG
+ JS_ASSERT(false);
+ #endif
+#endif
     if (maybecx)
         JS_ReportErrorNumber(maybecx, js_GetErrorMessage, NULL, JSMSG_OVER_RECURSED);
 }
