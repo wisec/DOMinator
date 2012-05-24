@@ -5,8 +5,8 @@ var zerolengthtainted=String.newTainted("","zerolength")
 var zerolengthuntaintedNewString=new String("");
 var zerolengthuntainted="";
 ts.tainted
-
-__domIntruderObj={domILog:function(a,b,c,d){print(a,b,c,d)}};
+var refs=[];
+__domIntruderObj={get refs(){return refs},domILog:function(a,b,c,d){print(a,b,c,d)}};
 
 
 ///////////////////////////
@@ -37,7 +37,7 @@ var taintedKey=String.newTainted( elName,"aTaintedKey");
 obj[taintedKey]="someValue"
 
 Object.keys(obj)[1].tainted 
-assert("String in Object test Object.keys(obj)[1].tainted ","'d' in obj",true);
+assert("String in Object test Object.keys(obj)[1].tainted ","Object.keys(obj)[1].tainted",true);
 
 ///////////////////////////
 /// [ Object with tainted keys ]
