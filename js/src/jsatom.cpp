@@ -469,7 +469,11 @@ AtomizeInline(JSContext *cx, const jschar **pchars, size_t length,
     AtomSet &atoms = cx->runtime->atomState.atoms;
     AtomSet::AddPtr p = atoms.lookupForAdd(AtomHasher::Lookup(chars, length));
 
-    if (p) {
+    if (p
+#ifdef TAINTED
+  && !(p->asPtr()->asFlat().isTainted())
+#endif    
+    ) {
         JSAtom *atom = p->asPtr();
         p->setTagged(bool(ib));
         return atom;
