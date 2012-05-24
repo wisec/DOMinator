@@ -848,17 +848,19 @@ void addRefToParent(JSContext *cx ,JSObject *pobj,JSObject *obj){
        printf("Error JS_GetProperty !!\n");
    
   }
-  if(!JSVAL_IS_VOID(domiObj )){
+  if(!JSVAL_IS_VOID(domiObj ) ){
        if (!JS_GetProperty(cx, JSVAL_TO_OBJECT( domiObj), "refs" ,  &domiUtil)){
          #ifdef DEBUG
          printf("Error JS_GetProperty !!\n");
          #endif
          
        }
-       refOb=JSVAL_TO_OBJECT(domiUtil);
+       if( !JSVAL_IS_VOID( domiUtil )){
+        refOb=JSVAL_TO_OBJECT(domiUtil);
      //  js_DumpObject(refOb);
-       jsval v=OBJECT_TO_JSVAL(obj);
-       JS_SetElement(cx,  refOb, refOb->getArrayLength(),&v);
+        jsval v=OBJECT_TO_JSVAL(obj);
+        JS_SetElement(cx,  refOb, refOb->getArrayLength(),&v);
+       }
    }
 }
 
