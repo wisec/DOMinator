@@ -2306,6 +2306,10 @@ js::str_replace(JSContext *cx, uintN argc, Value *vp)
         return false;
     static const uint32 optarg = 2;
    #ifdef TAINTED
+    InfoTaintDep *tmpITD;
+    InfoTaintEntry *tmpITE;
+    tmpITD=NULL;
+    tmpITE=NULL;
     TAINT_CONDITION(rdata.str);
      // this=str vp[3] = repstr , 
     // ToDo "dd".replace(Taint,ss); and also "ccc".replace(//,tainted)
@@ -2390,16 +2394,23 @@ js::str_replace(JSContext *cx, uintN argc, Value *vp)
         bool retFun;
        if((retFun=str_replace_regexp(cx, argc, vp, rdata))){
          JSString *retstr=vp->toString();
+         int repstrTainted=0;
+         // XXStefano tainted.replace(tainted,tainted) < is not covered.
+         // only tainted.replace(/regexp/,tainted); is covered.
+         // so TODO: tainted.replace(tainted,tainted)
 //         if(rdata.lambda==NULL || rdata.tainted /*case for function+return str Tainted see ReplaceCallback*/){
        /* TAINT_CONDITION_NODEC(rdata.repstr ), covers the case of TaintedOrNot.replace(/notTainted/,TaintedReplaceStr)
           we still have to consider the multiple backtrace in infoTaint.
        */ 
-         TAINT_CONDITION_NODEC(rdata.repstr ); 
+         if(rdata.repstr &&  rdata.repstr->isTainted()){
+             repstrTainted=1;           
+         } 
+
          if(rdata.calledBack){ 
              const RegExpPair *rep = rdata.g.normalizeRegExp(true, 2, argc, vp);
          jsval val;
          JSObject *theob=NULL;
-         if(tainted){
+         if(tainted || repstrTainted){
            JSObject *aObj=NULL;
            if(rdata.lambda) {
              val= OBJECT_TO_JSVAL( rdata.lambda );
@@ -2417,10 +2428,35 @@ js::str_replace(JSContext *cx, uintN argc, Value *vp)
            JS_SetProperty(cx,theob ,"pattern",&val);
        //    val= OBJECT_TO_JSVAL ( theob );
            }
+         if(tainted   ){ // at least rdata.str is tainted
+            tmpITE=findTaintEntry(cx, strArg );
+            tmpITD=addToInfoTaintDep( cx, tmpITE, tmpITD);
+            tmpITD->desc=theob;
+         }
+         
+         if( repstrTainted ){
+            tmpITE=findTaintEntry(cx, rdata.repstr  );
+            tmpITD=addToInfoTaintDep( cx, tmpITE, tmpITD);
+            tmpITD->desc=theob;                        
+         }
+                
           if(retstr==cx->runtime->emptyString){
-           TAINT_COND_SET_NEW(retstr,strArg,theob,REPLACE)
+           if(tainted || repstrTainted){
+//           TAINT_COND_SET_NEW(retstr,strArg,theob,REPLACE)       
+             retstr=taint_newTaintedString(cx, retstr);
+             retstr->setTainted();
+             tmpITE=addToTaintTable(cx, retstr ,NULL,REPLACE);
+             tmpITE->dep=tmpITD; 
+           }
           }else{ 
-           TAINT_COND_SET(retstr,strArg,theob,REPLACE)
+            if(tainted || repstrTainted){
+//           TAINT_COND_SET(retstr,strArg,theob,REPLACE)
+             if( retstr->length()<10)
+              retstr=taint_newTaintedString(cx, retstr);
+             retstr->setTainted();
+             tmpITE=addToTaintTable(cx, retstr ,NULL,REPLACE);
+             tmpITE->dep=tmpITD; 
+           }
           }
           }
 //         } 
