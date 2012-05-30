@@ -40,7 +40,7 @@
 
 # BrandFullNameInternal is used for some registry and file system values
 # instead of BrandFullName and typically should not be modified.
-!define BrandFullNameInternal "Aurora"
-!define CompanyName           "mozilla.org"
-!define URLInfoAbout          "http://www.mozilla.org"
-!define URLUpdateInfo         "http://www.mozilla.org/projects/firefox"
+!define BrandFullNameInternal "DOMinator"
+!define CompanyName           "mindedsecurity.com"
+!define URLInfoAbout          "http://www.mindedsecurity.com"
+!define URLUpdateInfo         "https://dominator.mindedsecurity.com"
