@@ -186,7 +186,7 @@
 
   SetShellVarContext all  ; Set $DESKTOP to All Users
   ${Unless} ${FileExists} "$DESKTOP\${BrandFullName}.lnk"
-    CreateShortCut "$DESKTOP\${BrandFullName}.lnk" "$INSTDIR\${FileMainEXE}"
+    CreateShortCut "$DESKTOP\${BrandFullName}.lnk" "$INSTDIR\${FileMainEXE}" "-NO-REMOTE"
     ${If} ${FileExists} "$DESKTOP\${BrandFullName}.lnk"
       ShellLink::SetShortCutWorkingDirectory "$DESKTOP\${BrandFullName}.lnk" "$INSTDIR"
       ${If} ${AtLeastWin7}
@@ -195,7 +195,7 @@
     ${Else}
       SetShellVarContext current  ; Set $DESKTOP to the current user's desktop
       ${Unless} ${FileExists} "$DESKTOP\${BrandFullName}.lnk"
-        CreateShortCut "$DESKTOP\${BrandFullName}.lnk" "$INSTDIR\${FileMainEXE}"
+        CreateShortCut "$DESKTOP\${BrandFullName}.lnk" "$INSTDIR\${FileMainEXE}" "-NO-REMOTE"
         ${If} ${FileExists} "$DESKTOP\${BrandFullName}.lnk"
           ShellLink::SetShortCutWorkingDirectory "$DESKTOP\${BrandFullName}.lnk" \
                                                  "$INSTDIR"
@@ -209,7 +209,7 @@
 
   SetShellVarContext all  ; Set $SMPROGRAMS to All Users
   ${Unless} ${FileExists} "$SMPROGRAMS\${BrandFullName}.lnk"
-    CreateShortCut "$SMPROGRAMS\${BrandFullName}.lnk" "$INSTDIR\${FileMainEXE}"
+    CreateShortCut "$SMPROGRAMS\${BrandFullName}.lnk" "$INSTDIR\${FileMainEXE}" "-NO-REMOTE"
     ${If} ${FileExists} "$SMPROGRAMS\${BrandFullName}.lnk"
       ShellLink::SetShortCutWorkingDirectory "$SMPROGRAMS\${BrandFullName}.lnk" \
                                              "$INSTDIR"
@@ -220,7 +220,7 @@
       SetShellVarContext current  ; Set $SMPROGRAMS to the current user's Start
                                   ; Menu Programs directory
       ${Unless} ${FileExists} "$SMPROGRAMS\${BrandFullName}.lnk"
-        CreateShortCut "$SMPROGRAMS\${BrandFullName}.lnk" "$INSTDIR\${FileMainEXE}"
+        CreateShortCut "$SMPROGRAMS\${BrandFullName}.lnk" "$INSTDIR\${FileMainEXE}" "-NO-REMOTE"
         ${If} ${FileExists} "$SMPROGRAMS\${BrandFullName}.lnk"
           ShellLink::SetShortCutWorkingDirectory "$SMPROGRAMS\${BrandFullName}.lnk" \
                                                  "$INSTDIR"
@@ -236,7 +236,7 @@
   ${Unless} ${AtLeastWin7}
   ${AndUnless} ${FileExists} "$QUICKLAUNCH\${BrandFullName}.lnk"
     CreateShortCut "$QUICKLAUNCH\${BrandFullName}.lnk" \
-                   "$INSTDIR\${FileMainEXE}"
+                   "$INSTDIR\${FileMainEXE}" "-NO-REMOTE"
     ${If} ${FileExists} "$QUICKLAUNCH\${BrandFullName}.lnk"
       ShellLink::SetShortCutWorkingDirectory "$QUICKLAUNCH\${BrandFullName}.lnk" \
                                              "$INSTDIR"
@@ -749,7 +749,7 @@
             SetShellVarContext current ; Set SHCTX to the current user
             ${Unless} ${FileExists} "$SMPROGRAMS\$1"
               StrCpy $8 "true"
-              CreateShortCut "$SMPROGRAMS\$1" "$INSTDIR\${FileMainEXE}"
+              CreateShortCut "$SMPROGRAMS\$1" "$INSTDIR\${FileMainEXE}" "-NO-REMOTE"
               ${If} ${FileExists} "$SMPROGRAMS\$1"
                 ShellLink::SetShortCutWorkingDirectory "$SMPROGRAMS\$1" \
                                                        "$INSTDIR"
@@ -830,7 +830,7 @@
               Pop $4
               ${If} "$INSTDIR\${FileMainEXE}" == "$4"
                 CreateShortCut "$SMPROGRAMS\${BrandFullName}.lnk" \
-                               "$INSTDIR\${FileMainEXE}"
+                               "$INSTDIR\${FileMainEXE}" "-NO-REMOTE"
                 ${If} ${FileExists} "$SMPROGRAMS\${BrandFullName}.lnk"
                   ShellLink::SetShortCutWorkingDirectory "$SMPROGRAMS\${BrandFullName}.lnk" \
                                                          "$INSTDIR"
