@@ -1,0 +1,28 @@
+. $topsrcdir/browser/config/mozconfig
+export MOZ_PHOENIX=1
+export MOZ_APP_PROFILE=DOMinator1
+mk_add_options MOZ_PHOENIX=1
+mk_add_options MOZ_APP_PROFILE=DOMinator1
+ac_add_options --enable-application=browser
+ac_add_options --disable-necko-wifi
+mk_add_options MOZ_CO_PROJECT=browser
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/ff-taintOPT
+ac_add_options --disable-tests
+mk_add_options MOZ_MAKE_FLAGS=-j4
+ac_add_options --with-user-appdir=.DOMinator1
+
+#Windows specific
+ac_add_options --disable-accessibility
+ac_add_options --disable-angle
+
+# uncomment if build on win XP-
+#ac_add_options --with-windows-version=600
+
+#################
+
+export CFLAGS="-DTAINTED=1"
+export CXXFLAGS="-DTAINTED=1"
+export CPPFLAGS="-DTAINTED=1"
+export DEFS="-DTAINTED=1"
+
+ 
