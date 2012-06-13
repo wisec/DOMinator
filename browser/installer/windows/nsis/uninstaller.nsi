@@ -223,7 +223,7 @@ Section "Uninstall"
 
   ${MUI_INSTALLOPTIONS_READ} $0 "unconfirm.ini" "Field 3" "State"
   ${If} "$0" == "1"
-    ${un.DeleteRelativeProfiles} "Mozilla\Firefox"
+    ${un.DeleteRelativeProfiles} "DOMinator1"
     RmDir "$APPDATA\DOMinator1\Extensions\{ec8030f7-c20a-464f-9b0e-13a3a9e97384}"
     RmDir "$APPDATA\DOMinator1\Extensions"
     RmDir "$APPDATA\DOMinator1"
