@@ -37,7 +37,10 @@ function assert(msg,arg,exp){
 function printResults(){
 
   print("[Ok] "+assertsOk.join("\n"));
-  
-  print("[Ko] "+assertsKo.join(" "));
-  
+ 
+  if(assertsKo.length>0)
+   print("[Ko] "+assertsKo.join(" "));
+  else
+   print("Congratulations! All tests were correct");
+   
 }
