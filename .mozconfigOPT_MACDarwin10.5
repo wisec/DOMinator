@@ -1,0 +1,32 @@
+. $topsrcdir/browser/config/mozconfig
+export MOZ_PHOENIX=1
+export MOZ_APP_PROFILE=DOMinator1
+
+# macos leopard 10.5 settings
+ac_add_options --with-macos-sdk=/Developer/SDKs/MacOSX10.5.sdk
+CC=gcc-4.2
+CXX=g++-4.2
+ac_add_options --disable-ogg
+ac_add_options --disable-webm
+
+mk_add_options MOZ_PHOENIX=1
+mk_add_options MOZ_APP_PROFILE=DOMinator1
+#ac_add_options --disable-optimize
+ac_add_options --enable-application=browser
+ac_add_options --disable-necko-wifi
+mk_add_options MOZ_CO_PROJECT=browser
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/ff-taintOPT
+ac_add_options --disable-tests
+mk_add_options MOZ_MAKE_FLAGS=-j4
+ac_add_options --with-user-appdir=.DOMinator1
+#ac_add_options --enable-debug
+
+#export MOZ_DEBUG_SYMBOLS=1
+export CFLAGS="-DTAINTED=1"
+export CXXFLAGS="-DTAINTED=1"
+export CPPFLAGS="-DTAINTED=1"
+export DEFS="-DTAINTED=1"
+
+#ac_add_options --enable-debug-symbols="-gdwarf-2"
+#ac_add_options --enable-trace-malloc
+ 
