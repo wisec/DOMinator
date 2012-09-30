@@ -142,7 +142,17 @@ class JSONParser
     }
 
     Token stringToken(JSString *str) {
+#ifdef TAINTED
+  if(!invokeStringTainterCallback( this->cx , str,&(this->v))){
+    this->v = js::StringValue(str);
+  }else{
+   if(str->isAtom()){
+    this->v =  js::StringValue(js_AtomizeString(this->cx,this->v.toString()));
+   }
+  }
+#else
         this->v = js::StringValue(str);
+#endif
 #ifdef DEBUG
         lastToken = String;
 #endif
