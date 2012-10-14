@@ -1,0 +1,3 @@
+In order to avoid the use of internal structure 
+I will try to use JavaScript Strings and 
+prototype methods declared in their own global object.
