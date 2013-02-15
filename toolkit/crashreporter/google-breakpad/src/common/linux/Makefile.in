@@ -67,3 +67,7 @@ FORCE_STATIC_LIB = 1
 FORCE_USE_PIC = 1
 
 include $(topsrcdir)/config/rules.mk
+
+# See https://bugzilla.mozilla.org/show_bug.cgi?id=741348#c11
+# (diff copied from https://bug741348.bugzilla.mozilla.org/attachment.cgi?id=623623 - @dmitris)
+file_id.$(OBJ_SUFFIX): STL_FLAGS=
